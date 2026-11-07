@@ -10,7 +10,7 @@ to get him to shelter as dry as you can.
 Open the umbrella under rain, close it under cover to get your breath back, hurry across the gaps,
 tilt into the wind, and watch out for passing cars.
 
-> **Alpha v0.1.0** — an early version. Expect rough edges, and tell us what you think!
+> **Alpha v0.2.0** — an early version. Expect rough edges, and tell us what you think!
 > Use **Send feedback** on the title screen, or [fill in the feedback form](../../issues/new?template=feedback.yml)
 > (which streets you played, how you played, what felt good and what didn't).
 
