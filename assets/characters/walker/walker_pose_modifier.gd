@@ -281,13 +281,13 @@ func _lean(skel: Skeleton3D, a: int, b: int) -> float:
 func _align_posture(skel: Skeleton3D, right_axis: Vector3) -> void:
 	var w := 1.0 - 0.7 * sad        # sad slump is authored separately; mostly leave it alone
 	# Torso: hips → upper chest should lean only slightly forward.
-	var torso_target := lerpf(0.07, 0.16, run)
+	var torso_target := lerpf(0.07, 0.3, run)
 	var d := (_lean(skel, _b["Hips"], _b["UpperChest"]) - torso_target) * w
 	_rot_global(skel, _b["Spine"], right_axis, d * 0.4)
 	_rot_global(skel, _b["Chest"], right_axis, d * 0.3)
 	_rot_global(skel, _b["UpperChest"], right_axis, d * 0.3)
 	# Neck: upper chest → head should be close to vertical (ears over shoulders).
-	var nd := (_lean(skel, _b["UpperChest"], _b["Head"]) - lerpf(0.06, 0.12, run)) * w
+	var nd := (_lean(skel, _b["UpperChest"], _b["Head"]) - lerpf(0.06, 0.2, run)) * w
 	_rot_global(skel, _b["Neck"], right_axis, nd)
 	# Head: keep the face level — the head bone's up axis near vertical.
 	var hb := char_from_skel.basis * skel.get_bone_global_pose(_b["Head"]).basis.orthonormalized()

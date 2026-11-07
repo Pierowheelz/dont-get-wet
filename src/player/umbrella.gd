@@ -197,3 +197,66 @@ static func _open_extent() -> float:
 	for r in RING_STEPS:
 		h += sin(lerpf(deg_to_rad(86.0), deg_to_rad(138.0), (float(r) + 0.5) / RING_STEPS)) / RING_STEPS
 	return h
+
+
+# --- static canopies for bystanders ----------------------------------------------------------
+
+enum Style { TAUT, LOOSE, INVERTED, TORN }
+
+
+## Builds a static canopy mesh (grip at origin, shaft along +Y, apex at `apex_y`) in one of a few
+## styles, using the same rib-arc construction as the player's umbrella. No collider: bystander
+## umbrellas never affect the rain model.
+static func canopy_mesh(radius: float, style: int, seed: int, apex_y := SHAFT_LEN) -> ArrayMesh:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var a0 := deg_to_rad(86.0)
+	var a1 := deg_to_rad(138.0)
+	var slack := 0.012
+	match style:
+		Style.LOOSE:
+			a1 = deg_to_rad(146.0)
+			slack = 0.075
+		Style.INVERTED:          # blown inside-out: ribs sweep up into a bowl
+			a0 = deg_to_rad(70.0)
+			a1 = deg_to_rad(28.0)
+			slack = 0.05
+	var rib_len := radius / _open_extent()
+	var seg_len := rib_len / RING_STEPS
+	var apex := Vector3(0, apex_y, 0)
+	var segs := RIBS * 3
+	var missing := {}
+	if style == Style.TORN:
+		for i in rng.randi_range(1, 2):
+			missing[rng.randi() % RIBS] = rng.randf_range(0.35, 0.9)   # panel index -> how much is gone
+	var rows: Array = []
+	for s in segs + 1:
+		var a := TAU * float(s) / segs
+		var sag := sin(fmod(float(s), 3.0) / 3.0 * PI) * slack
+		var dir_h := Vector3(cos(a), 0, sin(a))
+		var row: Array = [apex]
+		var p := apex
+		var bend := 0.0
+		if style == Style.TORN and missing.has(int(s / 3) % RIBS) and s % 3 == 0:
+			bend = rng.randf_range(0.2, 0.6)          # a bent rib at the tear
+		for r in RING_STEPS:
+			var ang := lerpf(a0, a1 + bend, (float(r) + 0.5) / RING_STEPS)
+			p += (sin(ang) * dir_h + Vector3(0, cos(ang), 0)) * seg_len
+			var u := float(r + 1) / RING_STEPS
+			row.append(p - Vector3(0, sag * u * u, 0) - dir_h * sag * 0.6 * u * u)
+		rows.append(row)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for s in segs:
+		var panel := int(s / 3) % RIBS
+		for r in RING_STEPS:
+			if missing.has(panel) and float(r) / RING_STEPS > 1.0 - float(missing[panel]):
+				continue                               # torn-away fabric
+			var a: Vector3 = rows[s][r]
+			var b: Vector3 = rows[s + 1][r]
+			var c: Vector3 = rows[s + 1][r + 1]
+			var d: Vector3 = rows[s][r + 1]
+			st.add_vertex(a); st.add_vertex(c); st.add_vertex(b)
+			st.add_vertex(a); st.add_vertex(d); st.add_vertex(c)
+	st.generate_normals()
+	return st.commit()

@@ -10,13 +10,13 @@ extends Node3D
 const PoseModifier := preload("res://assets/characters/pedestrians/ped_pose_modifier.gd")
 const UMBRELLA := preload("res://assets/characters/pedestrians/umbrella/umbrella.tscn")
 const ANIMS := {
-	&"walk": preload("res://assets/characters/walker/anim/walk.res"),
+	&"walk": preload("res://assets/characters/walker/anim/walk_formal.res"),
 	&"jog": preload("res://assets/characters/walker/anim/jog.res"),
 	&"idle": preload("res://assets/characters/walker/anim/idle.res"),
 }
 ## Metres per gait cycle at jog weight 0, .25, .5, .75, 1 on the walker (hips height 0.973 m);
 ## scaled by this body's hips height. See assets/characters/walker/test/measure_blend.gd.
-const CYCLE_M := [1.39, 2.54, 3.69, 4.87, 5.81]
+const CYCLE_M := [1.38, 2.52, 3.78, 4.94, 5.81]
 const REF_HIPS := 0.9728
 
 @export var kind: StringName = &"walker"
@@ -262,9 +262,24 @@ func setup(seed: int) -> void:
 			var v := rng.randf_range(0.88, 1.08)
 			c = Color(c.r * v, c.g * v, c.b * v)
 		(mat as StandardMaterial3D).albedo_color = c
-	if _umbrella and not umbrella_colors.is_empty():
-		var cm := (_umbrella.get_node("Canopy") as MeshInstance3D).get_surface_override_material(0) as StandardMaterial3D
-		cm.albedo_color = umbrella_colors[rng.randi() % umbrella_colors.size()]
+	if _umbrella:
+		# Most bystanders have a decent umbrella; a few are battered by the weather.
+		var roll := rng.randf()
+		var style := Umbrella.Style.TAUT
+		if roll > 0.93:
+			style = Umbrella.Style.TORN
+		elif roll > 0.85:
+			style = Umbrella.Style.INVERTED
+		elif roll > 0.7:
+			style = Umbrella.Style.LOOSE
+		var canopy := _umbrella.get_node("Canopy") as MeshInstance3D
+		canopy.mesh = Umbrella.canopy_mesh(0.55, style, rng.randi(), 0.87)
+		var ribs := _umbrella.get_node_or_null("Ribs")
+		if ribs:
+			ribs.visible = false     # baked for the old canopy shape
+		if not umbrella_colors.is_empty():
+			var cm := canopy.get_surface_override_material(0) as StandardMaterial3D
+			cm.albedo_color = umbrella_colors[rng.randi() % umbrella_colors.size()]
 	_mod.seed_phase = rng.randf_range(0.0, 30.0)
 	_tree.advance(rng.randf_range(0.0, 2.5))
 

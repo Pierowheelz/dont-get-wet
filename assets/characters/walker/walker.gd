@@ -7,7 +7,7 @@ extends Node3D
 const PoseModifier := preload("res://assets/characters/walker/walker_pose_modifier.gd")
 const HAIR_SHADER := preload("res://assets/characters/walker/walker_hair.gdshader")
 const ANIMS := {
-	&"walk": preload("res://assets/characters/walker/anim/walk.res"),
+	&"walk": preload("res://assets/characters/walker/anim/walk_formal.res"),
 	&"jog": preload("res://assets/characters/walker/anim/jog.res"),
 	&"idle": preload("res://assets/characters/walker/anim/idle.res"),
 }
@@ -17,7 +17,7 @@ const ANIMS := {
 @export_range(0.0, 1.0) var jog_blend_max := 0.5
 ## Ground distance (m) covered by one full gait cycle at jog weight 0, 0.25, 0.5, 0.75, 1.0.
 ## Measured on this skeleton with test/measure_blend.gd (planted-foot speed at 1 cycle/s).
-const CYCLE_M := [1.39, 2.54, 3.69, 4.87, 5.81]
+const CYCLE_M := [1.38, 2.52, 3.78, 4.94, 5.81]
 const SAD_STRIDE := 0.85
 const MAX_RUN_CYCLE_M := 2.9  # shorter, shuffling steps when defeated
 
