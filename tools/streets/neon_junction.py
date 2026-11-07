@@ -14,21 +14,14 @@ s = Street("neon_junction", "Neon Junction",
            gusts=True)
 
 
-def xing(tag, w, car=True):
-    s.xing(tag, w)
-    if car:
-        s.crossings[-1]["car"] = True
-
-
 def seam(tag, w, floors):
     """A narrow wall seam between shops. The blank sign stops the retro kit painting a filler name on it."""
     s.lot(tag, w, "wall", "none", sign=" ", floors=floors)
 
 
 def shop(tag, w, style, cover, sign=None, **kw):
-    s.lot(tag, w, style, cover, sign=sign, **kw)
-    if sign:
-        s.lots[-1]["neon"] = True
+    """Every signed shop on this street gets tube lettering, whichever kit era the builder picks."""
+    s.lot(tag, w, style, cover, sign=sign, neon=bool(sign), **kw)
 
 
 # 1. The Automat Concourse: chrome canopies and a colonnade, continuous cover
@@ -45,7 +38,7 @@ shop("alley1", 3, "wall", "none", floors=4)
 shop("synth", 6, "shop_lit", "awning", sign="SYNTH", color="blue", floors=3)
 # 2. Tube Street: the first car, in a calm wind, then the subway balcony
 shop("kiosk", 5, "shop_lit", "awning", sign="TICKETS", color="red", floors=3)
-xing("tube", 7)
+s.xing("tube", 7, car=True)
 shop("subway", 8, "doorway", "balcony", sign="SUBWAY", floors=6)
 shop("jetset", 6, "shop_lit", "balcony", sign="JET-SET TRAVEL", floors=6)
 # the first gutter, alone in a seam
@@ -58,7 +51,7 @@ shop("alley2", 3, "wall", "none", floors=4)
 shop("sat", 5, "shop_lit", "awning", sign="SATELLITE", color="blue", floors=3)
 shop("raygun", 8, "shop_dark", "awning", sign="RAYGUN RECORDS", color="red", floors=3)
 # Fifth Avenue: a second car, the wind rising
-xing("fifth", 9)
+s.xing("fifth", 9, car=True)
 shop("credit", 8, "shuttered", "balcony", sign="CREDIT", floors=7)
 shop("radar", 4, "shop_lit", "balcony", sign="RADAR", floors=7)
 shop("lot3", 8, "vacant", "none", floors=0)
@@ -82,7 +75,7 @@ shop("pulsar", 8, "shop_lit", "awning", sign="PULSAR", color="green", floors=4)
 shop("dyna", 5, "shop_dark", "awning", sign="DYNAMO", color="blue", floors=4)
 shop("coil", 4, "shop_lit", "awning", sign="COIL", color="orange", floors=8)
 # 4. Junction Square: the wide crossing at the gust peak, then the Hotel Orbit
-xing("junction", 14)
+s.xing("junction", 14, car=True)
 shop("hotel", 8, "shop_lit", "balcony", sign="HOTEL ORBIT", floors=9)
 shop("lobby", 8, "doorway", "balcony", sign="LOBBY", floors=9)
 shop("skybar", 4, "shop_lit", "awning", sign="SKY BAR", color="blue", floors=4, awning_style="marquee")
@@ -96,7 +89,7 @@ shop("lot7", 8, "vacant", "none", floors=0)
 shop("galaxy", 8, "shop_lit", "arcade", sign="GALAXY", floors=6)
 shop("cyber", 5, "shop_lit", "awning", sign="CYBER", color="teal", floors=4)
 # Ninth Street: a car into the headwind, then a vent under the balconies
-xing("ninth", 9)
+s.xing("ninth", 9, car=True)
 shop("vision", 6, "shop_lit", "balcony", sign="VISION", floors=7)
 shop("helix", 6, "shuttered", "balcony", sign="HELIX", floors=7)
 shop("lot8", 6, "vacant", "none", floors=0)
@@ -114,7 +107,7 @@ shop("disco", 6, "shop_lit", "awning", sign="DISCO", color="orange", floors=5, a
 shop("rocketeer", 6, "shop_dark", "awning", sign="ROCKETEER", color="blue", floors=5, awning_style="marquee")
 shop("neonbar", 6, "shop_lit", "awning", sign="NEON BAR", color="red", floors=5, awning_style="googie")
 shop("jukebox", 4, "shop_lit", "awning", sign="JUKEBOX", color="orange", floors=5, awning_style="marquee")
-xing("last", 10)
+s.xing("last", 10, car=True)
 # the Bubble Mall: chrome canopies, the last breather before the inn
 shop("mall1", 5, "shop_lit", "awning", sign="BUBBLE MALL", color="teal", floors=6, awning_style="bubble")
 shop("mall2", 4, "shop_lit", "awning", sign="GIFTS", color="blue", floors=6, awning_style="bubble")
