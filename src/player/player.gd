@@ -290,8 +290,27 @@ func _rain_exposure() -> float:
 
 
 ## Gutter streams: a heavy column of water at a fixed x, only the umbrella blocks it.
+## How much of a gutter's falling column is landing on the canopy right now (0..1), found by
+## casting straight down the stream — so the sound starts the instant water meets the umbrella.
+func _stream_on_canopy() -> float:
+	if open <= 0.0 or _dropped_umbrella:
+		return 0.0
+	var reach := umbrella.current_radius() + 0.15
+	var cx := umbrella.canopy_center().x
+	for g in level.gutters:
+		if absf(cx - g) > reach:
+			continue
+		var hits := 0
+		for dz in [-0.12, 0.0, 0.12]:
+			var z: float = position.z + dz
+			if _cast(Vector3(g, 2.9, z), Vector3(g, 0.6, z), UMBRELLA_MASK):
+				hits += 1
+		return hits / 3.0
+	return 0.0
+
+
 func _gutter_exposure() -> float:
-	gutter_on_umbrella = 0.0
+	gutter_on_umbrella = _stream_on_canopy()
 	for g in level.gutters:
 		if absf(position.x - g) < 0.45:
 			# The stream is a vertical column at x = g. Body points inside it get soaked unless
@@ -310,8 +329,6 @@ func _gutter_exposure() -> float:
 					blocked += s[1]
 				else:
 					hit += s[1]
-			if total > 0.0:
-				gutter_on_umbrella = blocked / total   # for the pounding-on-fabric sound
 			return hit / total if total > 0.0 else 0.0
 	return 0.0
 

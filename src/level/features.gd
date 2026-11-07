@@ -70,6 +70,8 @@ func _gutter(x: float) -> void:
 	q.material = dm
 	sp.draw_pass_1 = q
 	sp.position = Vector3(x, 0.05, 1.65)
+	if level.get("gutter_visuals") != null:
+		level.gutter_visuals.append([x, col, sp])
 	root.add_child(sp)
 	_puddle(x, 1.1, false)
 

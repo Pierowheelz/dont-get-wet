@@ -14,6 +14,7 @@ var elapsed := 0.0
 var finished := false
 
 var gutters: Array = []        # x positions
+var gutter_visuals: Array = [] # [x, column MeshInstance3D, splash GPUParticles3D]
 var puddles: Array = []        # [x0, x1, deep]
 var sun_zones: Array = []      # [x0, x1]
 var dry_zones: Array = []      # [x0, x1, rate]
@@ -211,12 +212,34 @@ func _process(delta: float) -> void:
 	_update_camera(delta)
 	if player:
 		_first_encounters()
-	if Game.autopilot and player and OS.has_environment("DGW_TRACE") and player.position.x > float(OS.get_environment("DGW_TRACE")) and int(_t * 2.0) != int((_t - delta) * 2.0):
-		print("x=%.1f wind=%.2f exp=%.2f open=%.2f tilt=%.2f sta=%.0f wet=%.1f gut=%.2f exh=%s" % [player.position.x, wind(player.position.x), player.exposure, player.open, player.tilt, player.stamina, player.wet, player.gutter_hit, player.exhausted])
+		_update_gutter_streams()
+	if Game.autopilot and player and OS.has_environment("DGW_TRACE") and player.position.x > float(OS.get_environment("DGW_TRACE")) and int(_t * 10.0) != int((_t - delta) * 10.0):
+		print("x=%.1f wind=%.2f exp=%.2f open=%.2f tilt=%.2f sta=%.0f wet=%.1f gut=%.2f gumb=%.2f exh=%s" % [player.position.x, wind(player.position.x), player.exposure, player.open, player.tilt, player.stamina, player.wet, player.gutter_hit, player.gutter_on_umbrella, player.exhausted])
 	if Game.autopilot and player and int(_t / 10.0) != int((_t - delta) / 10.0):
 		print("t=%.0f x=%.1f wet=%.1f sta=%.1f open=%.2f state=%d" % [_t, player.position.x, player.wet, player.stamina, player.open, player.state])
 	if Input.is_action_just_pressed(&"restart") and not get_tree().paused:
 		Game.play_level(level_id)
+
+
+## When the umbrella is catching a gutter stream, cut the falling column off at the canopy and
+## move its splash up onto the umbrella, so what you see matches what you hear.
+func _update_gutter_streams() -> void:
+	const TOP := 2.78
+	for gv in gutter_visuals:
+		var gx: float = gv[0]
+		var col: MeshInstance3D = gv[1]
+		var sp: GPUParticles3D = gv[2]
+		var bottom := 0.02
+		if absf(gx - player.position.x) < 1.6 and player.gutter_on_umbrella > 0.0:
+			# canopy surface height at the stream (dome: highest at the shaft)
+			var c: Vector3 = player.umbrella.canopy_center()
+			var r: float = maxf(player.umbrella.current_radius(), 0.01)
+			var d := clampf(absf(gx - c.x) / r, 0.0, 1.0)
+			bottom = c.y + 0.15 - 0.3 * d * d
+		var h := TOP - bottom
+		col.scale.y = h / 2.75
+		col.position.y = bottom + h * 0.5
+		sp.position.y = bottom + 0.03
 
 
 var _seen := {}

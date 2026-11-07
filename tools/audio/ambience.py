@@ -196,37 +196,34 @@ def gutter(seed, dur):
 
 # --------------------------------------------------------------------------- gutter on umbrella
 
-GUTTER_UMB_SPEC = [(40, -20), (70, -9), (120, -3), (220, 0), (450, -1), (900, -3), (1800, -6),
-                   (3600, -9), (7000, -13), (12000, -19), (20000, -30)]
-
-
 def gutter_on_umbrella(seed, dur):
-    """A gutter's water column pounding a taut umbrella: a fast, dense drum-roll of heavy
-    membrane hits (the canopy thrumming), a low fabric 'thrum' body, and spray splattering off
-    the canopy edge. Much denser and heavier than rain on the umbrella."""
+    """A gutter's stream drumming on the umbrella: the same taut-nylon membrane hits as rain on the
+    umbrella (plasticky, bright), but a dense continuous torrent of them — a fast drum-roll with
+    heavier splats mixed in and spray tearing off the canopy edge. Built to layer over
+    rain_on_umbrella_loop."""
     r = rng(seed)
     n = nsamp(dur)
-    heavy_k = [k_membrane(r, logu(r, 140, 300), r.uniform(0.05, 0.11), click=r.uniform(0.3, 0.7),
-                          click_fc=logu(r, 1200, 2600)) for _ in range(24)]
-    mid_k = [k_membrane(r, logu(r, 260, 620), r.uniform(0.02, 0.05), click=r.uniform(0.5, 1.0),
-                        click_fc=logu(r, 2000, 4500)) for _ in range(24)]
-    spray_k = splat_kernels(r, 16, 900, 3500)
-    surge = undb(4.0 * smooth_rand(n, r, 1.6) / 2)        # the pour surges and slackens
-    pans = np.linspace(-0.25, 0.25, 5)                     # one concentrated source overhead
+    hit_k = [k_membrane(r, logu(r, 260, 700), r.uniform(0.015, 0.04), click=r.uniform(0.6, 1.0),
+                        click_fc=logu(r, 2500, 6000)) for _ in range(32)]
+    big_k = [k_membrane(r, logu(r, 200, 420), r.uniform(0.03, 0.06), click=0.8, click_fc=2600)
+             for _ in range(12)]
+    spray_k = splat_kernels(r, 16, 1200, 4200)
+    surge = undb(3.0 * smooth_rand(n, r, 2.2) / 2)
+    pans = np.linspace(-0.3, 0.3, 5)
 
-    pound = spread_field(n, r, 260, heavy_k, pans, 0.6, amp_env=surge)
-    roll = spread_field(n, r, 1400, mid_k, pans, 0.45, amp_env=surge)
-    spray = spread_field(n, r, 160, spray_k, [-0.8, -0.5, 0.5, 0.8], 0.6, amp_env=surge)
-    thrum = np.vstack([cnoise(n, r, lambda f: pink(f) * mag_bp(f, 90, 520, 2)) for _ in range(2)])
-    thrum = cfilt(thrum, lambda f: mag_peak(f, 180, 4.0, 6.0)) * surge
-    hiss = np.vstack([cnoise(n, r, lambda f: mag_bp(f, 2500, 9000, 2)) for _ in range(2)]) * surge
+    roll = spread_field(n, r, 1800, hit_k, pans, 0.55, amp_env=surge)     # continuous torrent
+    hits = spread_field(n, r, 220, hit_k, pans, 0.8, amp_env=surge)       # audible individual taps
+    big = spread_field(n, r, 35, big_k, pans, 0.6, amp_env=surge)         # heavier gobbets
+    spray = spread_field(n, r, 120, spray_k, [-0.8, -0.5, 0.5, 0.8], 0.6, amp_env=surge)
+    hiss = np.vstack([cnoise(n, r, lambda f: pink(f) * mag_bp(f, 600, 6000, 2)) for _ in range(2)])
+    hiss *= surge
 
     def u(x):
         return x / (np.sqrt(np.mean(x ** 2)) + 1e-12)
 
-    out = u(pound) + undb(-3) * u(roll) + undb(-4) * u(thrum) + undb(-9) * u(spray) \
-        + undb(-18) * u(hiss)
-    out = match_spectrum(out, GUTTER_UMB_SPEC, 0.6)
+    out = u(roll) + undb(-2) * u(hits) + undb(-5) * u(big) + undb(-10) * u(spray) \
+        + undb(-14) * u(hiss)
+    out = match_spectrum(out, UMBRELLA_SPEC, 0.6)
     out = out + 0.1 * cconv(out, street_ir(r, 0.45))
     return out
 
