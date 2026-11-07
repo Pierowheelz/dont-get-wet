@@ -8,7 +8,8 @@ of writing. Check them there if a result looks off.
 
 1. Write the street down as a list of set pieces before touching the JSON. For each one, note its
    name, its x range, and the one thing it asks of the player.
-2. Edit the JSON. Set `"authored": true` at the top level so `level_gen.py` skips the file.
+2. Write or edit the plan script and run it: `python3 tools/streets/LEVEL.py`. The JSON it writes
+   carries `"authored": true`, so `level_gen.py` skips the file.
 3. Run the fast static check after every edit. It needs no Godot run.
    `python3 tools/level_preview.py LEVEL --report -o /tmp/LEVEL.png`
 4. Run both bots and render the strip. Open the PNG and read it, every time.
@@ -20,10 +21,12 @@ of writing. Check them there if a result looks off.
 6. Before committing, run `godot --headless --path . res://tests/run_tests.tscn` and
    `tools/playtest.sh LEVEL`. The playtest must report 0 errors.
 
-Lots sit end to end, so every later `x` shifts when you change one width. Main Street was generated
-from an ordered Python list of lots (tag, width, style, cover, sign, colour, floors, tears), with
-features and props placed relative to tagged lots. A small script like that makes width changes
-cheap. Hand-editing `x` values by the dozen leads to gaps and overlaps.
+Lots sit end to end, so every later `x` shifts when you change one width. Write the street as a plan
+script, `tools/streets/LEVEL.py` (copy `tools/streets/main_street.py`): lots and crossings in walking
+order, with features, props and set pieces placed relative to tagged lots (`s.mid("pipe")`). Run it to
+rewrite `levels/LEVEL.json`; the plan is the source, so never hand-edit the JSON afterwards.
+`awning_style=` on a lot picks one of the styles in docs/CONTRACTS.md; leave it out to get the
+automatic mix.
 
 ## What each element does in play
 
@@ -72,7 +75,7 @@ of it.
 |---|---|
 | `gutter` (`x`) | A falling column at z 1.65. Inside 0.45 m of it the rate is 26/s unless the umbrella is directly above. The bot opens for it even under cover. The column starts at 2.78 m, so it clips through intact awning canvas. Put it in a `wall` seam or inside a tear of 1 m or more. |
 | `puddle` (`x`, `w`, `deep`) | Stepping in costs 0.75 walking and 2.5 running (above about 2.2 m/s). `deep` multiplies that by 1.6. Nobody can step around one, so the lesson is "walk, don't run". |
-| `sun` (`x`, `w`) | No rain and 3/s drying. The rain-free span stretches to meet cover within 2 m. |
+| `sun` (`x`, `w`) | No rain, and 3/s drying scaled by how closed the umbrella is (open shades him, no drying). The rain-free span stretches to meet cover within 2 m. Both bots close the umbrella in it. |
 | `vent` (`x`, `w` = 1.6) | 4.5/s drying. |
 | `fire_barrel` (`x`, `w` = 1.8) | 5.4/s drying. It sits against the wall and looks right under a balcony. |
 
@@ -123,9 +126,6 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
 
 ## Pitfalls
 
-- **The bots keep the umbrella open in sun breaks.** They only look for cover, so in the trace a sun
-  lot looks like an ordinary gap. Put real cover before a sun lot, or the perfect bot runs dry and
-  stops.
 - **The perfect bot hurries whenever stamina is above 80 and nothing is ahead.** It meets each gap
   with about 80, not 100, and stops (about 4 s each) once it falls to 24. Watch its `min stamina` and
   its time. Each stop costs score.
