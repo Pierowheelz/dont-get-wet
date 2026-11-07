@@ -270,14 +270,16 @@ func _rain_exposure() -> float:
 ## Gutter streams: a heavy column of water at a fixed x, only the umbrella blocks it.
 func _gutter_exposure() -> float:
 	for g in level.gutters:
-		if absf(position.x - g) < 0.4:
+		if absf(position.x - g) < 0.35:
+			# Rays from the upper body toward the stream's source; only the umbrella blocks it.
+			var src := Vector3(g, 2.9, position.z)
 			var total := 0.0
 			var hit := 0.0
 			for i in 5:
 				var s: Array = SAMPLES[i]
 				var p := _sample_world(s[0])
 				total += s[1]
-				if not _cast(p, Vector3(p.x, 3.0, p.z), UMBRELLA_MASK):
+				if not _cast(p, src, UMBRELLA_MASK):
 					hit += s[1]
 			return hit / total
 	return 0.0
@@ -424,5 +426,8 @@ func _autopilot(delta: float) -> Array:
 		stop = true
 		for off in [-0.9, -0.45, 0.0, 0.45, 0.9]:
 			if _exposed_at(position.x + off) or _exposed_at(position.x + off, 0.5):
+				stop = false
+		for g in level.gutters:
+			if absf(g - position.x) < 1.2:
 				stop = false
 	return [u, h, tl, stop]

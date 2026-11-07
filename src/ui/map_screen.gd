@@ -197,10 +197,18 @@ func _draw_routes(ci: Control) -> void:
 		var p := _map_point(Game.current_node) + Vector2(0, -NodeButton.R - 16.0 + sin(_t * 3.0) * 3.0)
 		ci.draw_circle(p + Vector2(0, -26), 30.0, Color(0, 0, 0, 0.35))
 		UIStyle.draw_walker(ci, p, 46.0, UIStyle.AMBER, _t * 6.0)
-		var lbl := "YOU ARE HERE"
-		var f := UIStyle.F_COND
-		var w := f.get_string_size(lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-		ci.draw_string(f, p + Vector2(-w * 0.5, -62), lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(UIStyle.AMBER, 0.85))
+	# Leader line from the preview card down to the focused street.
+	if _card_id != "" and _card.modulate.a > 0.05:
+		var np := _map_point(_card_id)
+		var top := _card.position + Vector2(0, _card.size.y) - _map.position
+		var from := Vector2(clampf(np.x, top.x + 20.0, top.x + _card.size.x - 20.0), top.y)
+		var to := np + Vector2(0, -NodeButton.R - 12.0)
+		if _card_id == Game.current_node:
+			to.y -= 62.0
+		var a := _card.modulate.a
+		if to.y > from.y + 8.0:
+			ci.draw_line(from, to, Color(UIStyle.AMBER, 0.7 * a), 2.0, true)
+			ci.draw_circle(to, 4.0, Color(UIStyle.AMBER, a))
 
 
 func _dashed(ci: Control, a: Vector2, b: Vector2, col: Color, width: float, dash: float, gap: float, offset: float) -> void:
@@ -223,7 +231,7 @@ func _dashed(ci: Control, a: Vector2, b: Vector2, col: Color, width: float, dash
 func _build_card() -> void:
 	_card = PanelContainer.new()
 	_card.theme_type_variation = &"CardPanel"
-	_card.custom_minimum_size = Vector2(470, 0)
+	_card.custom_minimum_size = Vector2(0, 0)
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.modulate.a = 0.0
 	add_child(_card)
@@ -236,52 +244,77 @@ func _show_card(id: String) -> void:
 		c.queue_free()
 	var n: Dictionary = Game.nodes[id]
 	var best: Dictionary = Game.best.get(id, {})
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_card.add_child(v)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 28)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.add_child(row)
+
+	# Left: what & where.
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 4)
+	left.custom_minimum_size = Vector2(390, 0)
+	row.add_child(left)
 	var kick := "YOU ARE HERE" if id == Game.current_node else ("WALKED" if Game.completed.has(id) else "UNEXPLORED")
-	var top := HBoxContainer.new()
-	top.add_child(UIStyle.label(kick, &"KickerLabel", 20))
-	var sp := Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(sp)
+	left.add_child(UIStyle.label(kick, &"KickerLabel", 20))
+	left.add_child(UIStyle.label(String(n.get("name", id)).to_upper(), &"HeaderLabel", 56))
+	var blurb := UIStyle.label(String(n.get("blurb", "")), &"BodyLabel", 22)
+	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	blurb.custom_minimum_size = Vector2(390, 0)
+	left.add_child(blurb)
+
+	var sep := VSeparator.new()
+	sep.add_theme_constant_override("separation", 2)
+	sep.add_theme_stylebox_override("separator", _vline())
+	row.add_child(sep)
+
+	# Right: difficulty, record, and whether you can go there.
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 10)
+	right.custom_minimum_size = Vector2(290, 0)
+	row.add_child(right)
 	var diff := int(n.get("difficulty", 1))
-	top.add_child(UIStyle.label("DIFFICULTY", &"CaptionLabel", 18))
+	var dr := HBoxContainer.new()
+	dr.add_theme_constant_override("separation", 12)
+	dr.add_child(UIStyle.label("DIFFICULTY", &"CaptionLabel", 18))
 	var drops := func(ci: Control) -> void:
 		for i in 5:
 			var on := i < diff
-			UIStyle.draw_drop(ci, Vector2(10.0 + i * 19.0, 13.0), 20.0,
-				Color(UIStyle.RAIN, 0.9 if on else 0.3), UIStyle.RAIN_DEEP.lerp(UIStyle.RAIN, 0.4), 1.0 if on else 0.0)
-	top.add_child(DrawBox.new(drops, Vector2(98, 26)))
-	v.add_child(top)
-	v.add_child(UIStyle.label(String(n.get("name", id)).to_upper(), &"HeaderLabel", 58))
-	var blurb := UIStyle.label(String(n.get("blurb", "")), &"BodyLabel", 24)
-	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	blurb.custom_minimum_size = Vector2(414, 0)
-	v.add_child(blurb)
-	v.add_child(HSeparator.new())
+			UIStyle.draw_drop(ci, Vector2(10.0 + i * 20.0, 13.0), 21.0,
+				Color(UIStyle.RAIN, 0.95 if on else 0.3), UIStyle.RAIN_DEEP.lerp(UIStyle.RAIN, 0.45), 1.0 if on else 0.0)
+	dr.add_child(DrawBox.new(drops, Vector2(104, 26)))
+	right.add_child(dr)
 	if best.is_empty():
-		v.add_child(UIStyle.label("No record yet.", &"MutedLabel"))
+		right.add_child(UIStyle.label("No record yet.", &"MutedLabel"))
 	else:
-		var grid := HBoxContainer.new()
-		grid.add_theme_constant_override("separation", 26)
+		var grid := GridContainer.new()
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", 20)
 		var g := String(best.get("grade", "-"))
 		var gl := _stat(grid, "GRADE", g)
 		gl.add_theme_color_override("font_color", UIStyle.grade_color(g))
 		_stat(grid, "BEST", str(int(best.get("score", 0))))
 		_stat(grid, "WET", "%d%%" % int(best.get("wet", 0)))
 		_stat(grid, "TIME", UIStyle.fmt_time(float(best.get("time", 0))))
-		v.add_child(grid)
+		right.add_child(grid)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(spacer)
 	if not Game.can_select(id):
-		var far := UIStyle.label("Too far — walk a neighbouring street first.", &"ItalicLabel", 22, Color(UIStyle.DANGER, 0.9))
+		var far := UIStyle.label("Too far — walk a neighbouring street first.", &"ItalicLabel", 21, Color(UIStyle.DANGER, 0.95))
 		far.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		far.custom_minimum_size = Vector2(414, 0)
-		v.add_child(far)
+		far.custom_minimum_size = Vector2(290, 0)
+		right.add_child(far)
 	else:
-		var go := UIStyle.label("Walk this street ▸" if not Game.completed.has(id) else "Walk it again ▸", &"KickerLabel", 22, UIStyle.CREAM)
-		v.add_child(go)
+		right.add_child(UIStyle.label("WALK THIS STREET  ▸" if not Game.completed.has(id) else "WALK IT AGAIN  ▸", &"KickerLabel", 22, UIStyle.CREAM))
 	_place_card(id, true)
+
+
+func _vline() -> StyleBoxLine:
+	var l := StyleBoxLine.new()
+	l.vertical = true
+	l.color = Color(1, 1, 1, 0.12)
+	l.thickness = 2
+	return l
 
 
 func _stat(parent: Container, title: String, value: String) -> Label:
@@ -294,21 +327,22 @@ func _stat(parent: Container, title: String, value: String) -> Label:
 	return l
 
 
+## The card docks along the top of the map (where there are no streets) above the focused node,
+## with a leader line down to it, so it never hides a neighbouring street.
 func _place_card(id: String, animate: bool) -> void:
 	_card.reset_size()
 	var cs := _card.get_combined_minimum_size()
 	var p := _map.position + _map_point(id)
-	var right_side := _map_point(id).x < _map.size.x * 0.58
-	var target := Vector2(p.x + 70.0 if right_side else p.x - 70.0 - cs.x, p.y - cs.y * 0.5 - 30.0)
-	target.y = clampf(target.y, _map.position.y, _map.position.y + _map.size.y - cs.y)
+	var target := Vector2(p.x - cs.x * 0.5, _map.position.y + 18.0)
+	target.x = clampf(target.x, _map.position.x + 18.0, _map.position.x + _map.size.x - cs.x - 18.0)
 	if _card_tween and _card_tween.is_valid():
 		_card_tween.kill()
 	if animate:
-		_card.position = target + Vector2(-16.0 if right_side else 16.0, 0)
-		_card.modulate.a = 0.0
+		_card.position = target + Vector2(0, -10)
+		_card.modulate.a = 0.0 if _card.modulate.a < 0.5 else _card.modulate.a
 		_card_tween = create_tween().set_parallel()
-		_card_tween.tween_property(_card, "position", target, 0.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		_card_tween.tween_property(_card, "modulate:a", 1.0, 0.18)
+		_card_tween.tween_property(_card, "position", target, 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_card_tween.tween_property(_card, "modulate:a", 1.0, 0.16)
 	else:
 		_card.position = target
 

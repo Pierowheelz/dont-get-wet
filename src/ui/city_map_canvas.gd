@@ -20,6 +20,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip_contents = true
 	resized.connect(queue_redraw)
 
 
