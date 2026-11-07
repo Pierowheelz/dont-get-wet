@@ -17,7 +17,7 @@ var gutters: Array = []        # x positions
 var gutter_visuals: Array = [] # [x, column MeshInstance3D, splash GPUParticles3D]
 var puddles: Array = []        # [x0, x1, deep]
 var sun_zones: Array = []      # [x0, x1] rain-free span (the break, widened to meet nearby cover)
-var dry_zones: Array = []      # [x0, x1, rate]
+var dry_zones: Array = []      # [x0, x1, rate, needs_closed_umbrella]
 var crossings: Array = []      # [x0, x1]
 var cars: Array = []           # CarHazard nodes
 
@@ -141,13 +141,13 @@ func _parse_features() -> void:
 				puddles.append([x - f.get("w", 1.0) * 0.5, x + f.get("w", 1.0) * 0.5, f.get("deep", false)])
 			"sun":
 				sun_zones.append([x, x + float(f["w"])])
-				dry_zones.append([x, x + float(f["w"]), Tun.f("dry_sun_rate")])
+				dry_zones.append([x, x + float(f["w"]), Tun.f("dry_sun_rate"), true])
 			"vent":
 				var w: float = f.get("w", 1.6)
-				dry_zones.append([x - w * 0.5, x + w * 0.5, Tun.f("dry_vent_rate")])
+				dry_zones.append([x - w * 0.5, x + w * 0.5, Tun.f("dry_vent_rate"), false])
 			"fire_barrel":
 				var w2: float = f.get("w", 1.8)
-				dry_zones.append([x - w2 * 0.5, x + w2 * 0.5, Tun.f("dry_vent_rate") * 1.2])
+				dry_zones.append([x - w2 * 0.5, x + w2 * 0.5, Tun.f("dry_vent_rate") * 1.2, false])
 	_join_sun_to_cover()
 
 
@@ -208,11 +208,12 @@ func rain_dir(x: float) -> Vector3:
 	return Vector3(wind(x) * 0.9, -1.0, 0.0).normalized()
 
 
-func dry_rate(x: float) -> float:
+## The sun only dries what the umbrella isn't shading; vents and barrels warm you either way.
+func dry_rate(x: float, umbrella_open: float) -> float:
 	var r := 0.0
 	for z in dry_zones:
 		if x > z[0] and x < z[1]:
-			r += z[2]
+			r += z[2] * (1.0 - umbrella_open if z[3] else 1.0)
 	return r
 
 

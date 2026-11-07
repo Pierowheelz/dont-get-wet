@@ -205,7 +205,7 @@ func _physics_process(delta: float) -> void:
 	gain += gutter_hit * Tun.f("wet_gutter_rate")
 	stats["wet_gutter"] += gutter_hit * Tun.f("wet_gutter_rate") * delta
 	_check_puddles()
-	drying = level.dry_rate(position.x)
+	drying = level.dry_rate(position.x, open)
 	stats["dried"] += minf(drying * delta, wet)
 	wet = clampf(wet + (gain - drying) * delta, 0.0, Tun.f("wet_max"))
 	if wet >= Tun.f("wet_max"):
@@ -483,6 +483,8 @@ func _humanise(ap: Array, delta: float) -> Array:
 	return out
 
 func _exposed_at(x: float, height := 1.6) -> bool:
+	if level.rain_intensity(x) <= 0.0:
+		return false
 	var p := Vector3(x, level.ground_y(x) + height, position.z)
 	return not _cast(p, p - rain_dir() * 30.0, COVER_MASK)
 
