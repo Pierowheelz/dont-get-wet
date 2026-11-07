@@ -1,0 +1,9 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://src/fx/holo_ad.gdshader" id="1_holo_ad"]
+
+[resource]
+resource_name = "holo_screen"
+shader = ExtResource("1_holo_ad")
+shader_parameter/tint = Color(0.2, 1, 0.95, 1)
+shader_parameter/seed = 3.0

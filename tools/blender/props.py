@@ -20,8 +20,9 @@ RES = "res://assets/props/"
 PROPS = []
 
 
-def register(pid, place, footprint, tags=(), **extra):
-    e = {"id": pid, "scene": RES + pid + ".glb", "place": place, "footprint": [round(footprint[0], 2), round(footprint[1], 2)],
+def register(pid, place, footprint, tags=(), era="60s", **extra):
+    e = {"id": pid, "scene": RES + pid + ".glb", "place": place, "era": era,
+         "footprint": [round(footprint[0], 2), round(footprint[1], 2)],
          "tags": list(tags)}
     e.update(extra)
     PROPS.append(e)
@@ -599,9 +600,13 @@ def main():
     car_sedan("car_sedan", "car_paint_teal")
     car_sedan("car_sedan_b", "car_paint_cream", roof="car_paint_maroon")
     car_sedan("car_sedan_c", "car_paint_maroon", roof="car_paint_cream")
+    import retro_props
+    retro_props.build(sys.modules[__name__])
     with open(os.path.join(OUT, "props.json"), "w") as f:
         json.dump({"version": 1, "generator": "tools/blender/props.py",
-                   "notes": "Origin = base centre, front faces +Z. Markers: omni_* -> OmniLight3D (kit_import.gd), "
+                   "notes": "era: '60s' | 'retro'. wall_high props carry mount_y (suggested height); spans (cables) carry span. "
+                            "Materials neon_* are recolourable emissive tubes, holo_screen / led_ticker are animated quads. "
+                            "Origin = base centre, front faces +Z. Markers: omni_* -> OmniLight3D (kit_import.gd), "
                             "outlet = downpipe gutter outlet, vent/warm = warm-air source. Cars: origin at ground "
                             "centre, facing +X; drop them to road level (sidewalk top y=0, road ~-0.15).",
                    "props": PROPS}, f, indent=1)

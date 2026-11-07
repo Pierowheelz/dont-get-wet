@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/generated/chainlink.png" id="1_chainlink"]
+
+[resource]
+resource_name = "chainlink"
+albedo_texture = ExtResource("1_chainlink")
+roughness = 0.500
+metallic = 0.600
+transparency = 2
+alpha_scissor_threshold = 0.5
+cull_mode = 2
+uv1_scale = Vector3(2.5000, 2.5000, 2.5000)
+texture_filter = 5

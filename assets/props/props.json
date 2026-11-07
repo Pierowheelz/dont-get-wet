@@ -1,12 +1,13 @@
 {
  "version": 1,
  "generator": "tools/blender/props.py",
- "notes": "Origin = base centre, front faces +Z. Markers: omni_* -> OmniLight3D (kit_import.gd), outlet = downpipe gutter outlet, vent/warm = warm-air source. Cars: origin at ground centre, facing +X; drop them to road level (sidewalk top y=0, road ~-0.15).",
+ "notes": "era: '60s' | 'retro'. wall_high props carry mount_y (suggested height); spans (cables) carry span. Materials neon_* are recolourable emissive tubes, holo_screen / led_ticker are animated quads. Origin = base centre, front faces +Z. Markers: omni_* -> OmniLight3D (kit_import.gd), outlet = downpipe gutter outlet, vent/warm = warm-air source. Cars: origin at ground centre, facing +X; drop them to road level (sidewalk top y=0, road ~-0.15).",
  "props": [
   {
    "id": "lamp_post",
    "scene": "res://assets/props/lamp_post.glb",
    "place": "curb",
+   "era": "60s",
    "footprint": [
     0.5,
     0.5
@@ -21,6 +22,7 @@
    "id": "hydrant",
    "scene": "res://assets/props/hydrant.glb",
    "place": "curb",
+   "era": "60s",
    "footprint": [
     0.5,
     0.5
@@ -32,6 +34,7 @@
    "id": "trash_can",
    "scene": "res://assets/props/trash_can.glb",
    "place": "sidewalk",
+   "era": "60s",
    "footprint": [
     0.6,
     0.6
@@ -43,6 +46,7 @@
    "id": "newspaper_box",
    "scene": "res://assets/props/newspaper_box.glb",
    "place": "sidewalk",
+   "era": "60s",
    "footprint": [
     0.6,
     0.5
@@ -54,6 +58,7 @@
    "id": "newspaper_box_b",
    "scene": "res://assets/props/newspaper_box_b.glb",
    "place": "sidewalk",
+   "era": "60s",
    "footprint": [
     0.6,
     0.5
@@ -65,6 +70,7 @@
    "id": "bench",
    "scene": "res://assets/props/bench.glb",
    "place": "sidewalk",
+   "era": "60s",
    "footprint": [
     1.8,
     0.6
@@ -78,6 +84,7 @@
    "id": "mailbox",
    "scene": "res://assets/props/mailbox.glb",
    "place": "curb",
+   "era": "60s",
    "footprint": [
     0.6,
     0.5
@@ -89,6 +96,7 @@
    "id": "parking_meter",
    "scene": "res://assets/props/parking_meter.glb",
    "place": "curb",
+   "era": "60s",
    "footprint": [
     0.3,
     0.3
@@ -100,6 +108,7 @@
    "id": "street_sign",
    "scene": "res://assets/props/street_sign.glb",
    "place": "curb",
+   "era": "60s",
    "footprint": [
     0.3,
     0.3
@@ -113,6 +122,7 @@
    "id": "wall_ac_unit",
    "scene": "res://assets/props/wall_ac_unit.glb",
    "place": "wall_high",
+   "era": "60s",
    "footprint": [
     0.7,
     0.6
@@ -127,6 +137,7 @@
    "id": "fire_barrel",
    "scene": "res://assets/props/fire_barrel.glb",
    "place": "sidewalk",
+   "era": "60s",
    "footprint": [
     0.7,
     0.7
@@ -142,6 +153,7 @@
    "id": "downpipe",
    "scene": "res://assets/props/downpipe.glb",
    "place": "wall",
+   "era": "60s",
    "footprint": [
     0.35,
     0.35
@@ -160,6 +172,7 @@
    "id": "downpipe_short",
    "scene": "res://assets/props/downpipe_short.glb",
    "place": "wall",
+   "era": "60s",
    "footprint": [
     0.35,
     0.35
@@ -178,6 +191,7 @@
    "id": "downpipe_tall",
    "scene": "res://assets/props/downpipe_tall.glb",
    "place": "wall",
+   "era": "60s",
    "footprint": [
     0.35,
     0.35
@@ -196,6 +210,7 @@
    "id": "trash_bags",
    "scene": "res://assets/props/trash_bags.glb",
    "place": "wall",
+   "era": "60s",
    "footprint": [
     1.1,
     0.8
@@ -209,6 +224,7 @@
    "id": "crates",
    "scene": "res://assets/props/crates.glb",
    "place": "wall",
+   "era": "60s",
    "footprint": [
     1.2,
     0.6
@@ -222,6 +238,7 @@
    "id": "bollard",
    "scene": "res://assets/props/bollard.glb",
    "place": "curb",
+   "era": "60s",
    "footprint": [
     0.3,
     0.3
@@ -233,6 +250,7 @@
    "id": "phone_booth",
    "scene": "res://assets/props/phone_booth.glb",
    "place": "sidewalk",
+   "era": "60s",
    "footprint": [
     1.0,
     1.0
@@ -247,6 +265,7 @@
    "id": "sandwich_board",
    "scene": "res://assets/props/sandwich_board.glb",
    "place": "sidewalk",
+   "era": "60s",
    "footprint": [
     0.6,
     0.45
@@ -260,6 +279,7 @@
    "id": "cardboard_boxes",
    "scene": "res://assets/props/cardboard_boxes.glb",
    "place": "wall",
+   "era": "60s",
    "footprint": [
     0.7,
     0.6
@@ -273,6 +293,7 @@
    "id": "car_sedan",
    "scene": "res://assets/props/car_sedan.glb",
    "place": "road",
+   "era": "60s",
    "footprint": [
     5.6,
     2.1
@@ -288,6 +309,7 @@
    "id": "car_sedan_b",
    "scene": "res://assets/props/car_sedan_b.glb",
    "place": "road",
+   "era": "60s",
    "footprint": [
     5.6,
     2.1
@@ -303,6 +325,7 @@
    "id": "car_sedan_c",
    "scene": "res://assets/props/car_sedan_c.glb",
    "place": "road",
+   "era": "60s",
    "footprint": [
     5.6,
     2.1
@@ -313,6 +336,246 @@
    ],
    "height": 1.45,
    "length": 5.62
+  },
+  {
+   "id": "neon_blade_a",
+   "scene": "res://assets/props/neon_blade_a.glb",
+   "place": "wall_high",
+   "era": "retro",
+   "footprint": [
+    0.9,
+    0.5
+   ],
+   "tags": [
+    "neon",
+    "sign",
+    "rundown_neon"
+   ],
+   "height": 2.2,
+   "mount_y": 4.2,
+   "sign_rect": [
+    -0.29,
+    0.12,
+    0.29,
+    2.08,
+    0.361
+   ]
+  },
+  {
+   "id": "neon_blade_b",
+   "scene": "res://assets/props/neon_blade_b.glb",
+   "place": "wall_high",
+   "era": "retro",
+   "footprint": [
+    0.8,
+    0.5
+   ],
+   "tags": [
+    "neon",
+    "sign",
+    "rundown_neon"
+   ],
+   "height": 2.8,
+   "mount_y": 4.2,
+   "sign_rect": [
+    -0.24,
+    0.12,
+    0.24,
+    2.6799999999999997,
+    0.361
+   ]
+  },
+  {
+   "id": "neon_googie",
+   "scene": "res://assets/props/neon_googie.glb",
+   "place": "wall_high",
+   "era": "retro",
+   "footprint": [
+    1.3,
+    0.5
+   ],
+   "tags": [
+    "neon",
+    "sign",
+    "googie",
+    "rundown_neon"
+   ],
+   "height": 2.2,
+   "mount_y": 3.95,
+   "sign_rect": [
+    -0.38,
+    1.4,
+    0.38,
+    1.8,
+    0.422
+   ]
+  },
+  {
+   "id": "overhead_cables_6",
+   "scene": "res://assets/props/overhead_cables_6.glb",
+   "place": "wall_high",
+   "era": "60s",
+   "footprint": [
+    6.0,
+    1.0
+   ],
+   "tags": [
+    "cables",
+    "rundown_neon",
+    "span"
+   ],
+   "span": 6.0,
+   "mount_y": 6.6,
+   "height": 1.3
+  },
+  {
+   "id": "overhead_cables_10",
+   "scene": "res://assets/props/overhead_cables_10.glb",
+   "place": "wall_high",
+   "era": "60s",
+   "footprint": [
+    10.0,
+    1.0
+   ],
+   "tags": [
+    "cables",
+    "rundown_neon",
+    "span"
+   ],
+   "span": 10.0,
+   "mount_y": 6.6,
+   "height": 1.3
+  },
+  {
+   "id": "led_ticker",
+   "scene": "res://assets/props/led_ticker.glb",
+   "place": "wall_high",
+   "era": "retro",
+   "footprint": [
+    2.6,
+    0.6
+   ],
+   "tags": [
+    "led",
+    "rundown_neon",
+    "neon"
+   ],
+   "height": 0.36,
+   "mount_y": 4.15
+  },
+  {
+   "id": "vending_machine_a",
+   "scene": "res://assets/props/vending_machine_a.glb",
+   "place": "wall",
+   "era": "retro",
+   "footprint": [
+    0.95,
+    0.75
+   ],
+   "tags": [
+    "vending",
+    "light"
+   ],
+   "height": 1.88
+  },
+  {
+   "id": "vending_machine_b",
+   "scene": "res://assets/props/vending_machine_b.glb",
+   "place": "wall",
+   "era": "retro",
+   "footprint": [
+    0.95,
+    0.75
+   ],
+   "tags": [
+    "vending",
+    "light"
+   ],
+   "height": 1.88
+  },
+  {
+   "id": "chainlink_fence_4",
+   "scene": "res://assets/props/chainlink_fence_4.glb",
+   "place": "sidewalk",
+   "era": "60s",
+   "footprint": [
+    4.0,
+    0.2
+   ],
+   "tags": [
+    "fence",
+    "outskirts"
+   ],
+   "height": 2.3400000000000003
+  },
+  {
+   "id": "gas_pump",
+   "scene": "res://assets/props/gas_pump.glb",
+   "place": "curb",
+   "era": "60s",
+   "footprint": [
+    1.0,
+    0.6
+   ],
+   "tags": [
+    "outskirts",
+    "light"
+   ],
+   "height": 2.0
+  },
+  {
+   "id": "car_retro_a",
+   "scene": "res://assets/props/car_retro_a.glb",
+   "place": "road",
+   "era": "retro",
+   "footprint": [
+    5.8,
+    2.1
+   ],
+   "tags": [
+    "car",
+    "retro",
+    "hover",
+    "foreground"
+   ],
+   "height": 1.6,
+   "length": 5.8
+  },
+  {
+   "id": "car_retro_b",
+   "scene": "res://assets/props/car_retro_b.glb",
+   "place": "road",
+   "era": "retro",
+   "footprint": [
+    5.4,
+    2.1
+   ],
+   "tags": [
+    "car",
+    "retro",
+    "hover",
+    "foreground"
+   ],
+   "height": 1.6,
+   "length": 5.4
+  },
+  {
+   "id": "car_retro_c",
+   "scene": "res://assets/props/car_retro_c.glb",
+   "place": "road",
+   "era": "retro",
+   "footprint": [
+    6.15,
+    2.1
+   ],
+   "tags": [
+    "car",
+    "retro",
+    "hover",
+    "foreground"
+   ],
+   "height": 1.6,
+   "length": 6.15
   }
  ]
 }

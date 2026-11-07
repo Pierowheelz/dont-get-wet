@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" load_steps=1 format=3]
+
+[resource]
+resource_name = "car_paint_black"
+albedo_color = Color(0.0200, 0.0200, 0.0250, 1.0000)
+metallic = 0.500
+roughness = 0.120
+clearcoat_enabled = true
+clearcoat = 1.0
+clearcoat_roughness = 0.08
+texture_filter = 5

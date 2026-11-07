@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" load_steps=1 format=3]
+
+[resource]
+resource_name = "neon_dead"
+transparency = 1
+albedo_color = Color(0.5500, 0.5800, 0.6000, 0.5500)
+metallic = 0.100
+metallic_specular = 0.8
+roughness = 0.150
+texture_filter = 5

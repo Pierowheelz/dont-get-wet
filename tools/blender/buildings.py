@@ -28,9 +28,15 @@ SIGN_Z = 0.055                   # sign face plane
 MODULES = []
 
 
-def register(mid, kind, width, height, style=None, tags=(), **extra):
+AESTHETICS_60S = ["rundown", "industrial", "rundown_neon", "outskirts"]
+
+
+def register(mid, kind, width, height, style=None, tags=(), era="60s", aesthetics=None, **extra):
+    """era: "60s" (decayed main street) or "retro" (retro-future/neon). aesthetics: the level
+    aesthetics (levels/*.json "aesthetic") this module suits best."""
     e = {"id": mid, "scene": RES + mid + ".glb", "kind": kind, "width": round(width, 3),
-         "height": round(height, 3), "era": "60s", "tags": list(tags)}
+         "height": round(height, 3), "era": era, "tags": list(tags),
+         "aesthetics": list(aesthetics if aesthetics is not None else AESTHETICS_60S)}
     if style:
         e["style"] = style
     e.update(extra)
@@ -140,10 +146,10 @@ def ground_frame(B, W, wall, trim, opening_list, pier_mat="stone_trim", sign_mat
 # ------------------------------------------------------------------------------------------------
 
 def shopfront(B, x0, x1, lit, back_img, frame, bulk, door="center", rng=None, broken=0,
-              posters_n=0, furniture=None, glass=None, zg=-0.2, door_w=1.0, recess=0.9):
+              posters_n=0, furniture=None, glass=None, zg=-0.2, door_w=1.0, recess=0.9, side_mat=None):
     rng = rng or B.rng
     glass = glass or ("glass_lit" if lit else "glass_dirty")
-    side = "interior_warm" if lit else "interior_dark"
+    side = side_mat or ("interior_warm" if lit else "interior_dark")
     floor = "terrazzo" if lit else "interior_dark"
     z_back = -2.7
     interior_box(B, x0, x1, 0.0, 3.0, zg - 0.02, z_back, back_img, side, floor, side,
@@ -926,14 +932,20 @@ def main():
         filler(mid, W, H, kind, wall)
         register(mid, "filler", W, H, None, tags)
 
+    import retro
+    retro.build(sys.modules[__name__])
+
     with open(os.path.join(OUT, "kit.json"), "w") as f:
         json.dump({
-            "version": 1,
-            "generator": "tools/blender/buildings.py",
+            "version": 2,
+            "generator": "tools/blender/buildings.py (+ retro.py)",
             "notes": "ground: awning mount y=3.0, sign board face at z=sign_rect[4] spanning sign_rect[0..3] "
                      "(x0,y0,x1,y1) with its own material 'sign_face' (0..1 UVs). Markers in the scenes: "
                      "omni_* -> OmniLight3D (added by kit_import.gd), door -> Node3D at the entrance, "
-                     "outlet -> downpipe gutter outlet.",
+                     "outlet -> downpipe gutter outlet. era: '60s' | 'retro'. aesthetics: level aesthetics a "
+                     "module suits. Retro boards use material 'sign_face_dark' (prefix sign_face). Materials "
+                     "named neon_* are emissive tubes (recolourable); 'holo_screen' is a 0..1-UV quad using "
+                     "src/fx/holo_ad.gdshader. cover: list of boxes [x0,y0,z0,x1,y1,z1] that block rain.",
             "modules": MODULES}, f, indent=1)
     print("wrote kit.json with %d modules" % len(MODULES))
 

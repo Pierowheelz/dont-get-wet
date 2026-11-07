@@ -25,7 +25,7 @@ var _lights: Array[SpotLight3D] = []
 func _ready() -> void:
 	position = Vector3(crossing_x + 1.7, LevelBuilder.ROAD_Y, START_Z)
 	rotation.y = -PI * 0.5
-	var car_path := "res://assets/props/%s.glb" % ["car_sedan", "car_sedan_b", "car_sedan_c"][randi() % 3]
+	var car_path := CarHazard.pick_car(level)
 	if ResourceLoader.exists(car_path):
 		_body = load(car_path).instantiate()
 	else:
@@ -47,6 +47,13 @@ func _ready() -> void:
 	_spray = _make_spray()
 	_spray.top_level = true
 	add_child(_spray)
+
+
+## A car model suited to the level: retro hover-cars appear with probability = neon.
+static func pick_car(lvl: Node) -> String:
+	var neon: float = lvl.data.get("neon", 0.0) if lvl else 0.0
+	var ids: Array = ["car_retro_a", "car_retro_b", "car_retro_c"] if randf() < neon else ["car_sedan", "car_sedan_b", "car_sedan_c"]
+	return "res://assets/props/%s.glb" % ids[randi() % ids.size()]
 
 
 static func greybox_car() -> Node3D:

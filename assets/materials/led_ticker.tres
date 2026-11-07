@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://assets/materials/led_ticker.gdshader" id="1_led_ticker"]
+[ext_resource type="Texture2D" path="res://assets/textures/generated/led_text.png" id="2_led_text"]
+
+[resource]
+resource_name = "led_ticker"
+shader = ExtResource("1_led_ticker")
+shader_parameter/text_tex = ExtResource("2_led_text")
+shader_parameter/color = Color(1, 0.62, 0.15, 1)
+shader_parameter/speed = 0.05

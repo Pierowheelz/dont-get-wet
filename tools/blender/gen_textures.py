@@ -553,6 +553,8 @@ def main():
     ]
     for i, (fn, t, bg, fg, st, sub, border) in enumerate(signs):
         save(sign(t, bg, fg, st, sub, seed=100 + i, border=border), fn, SIGNS)
+    import gen_textures_retro
+    gen_textures_retro.main()
 
 
 if __name__ == "__main__":

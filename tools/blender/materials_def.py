@@ -104,6 +104,52 @@ MATS = {
     "cardboard":      dict(kind="pbr", tex="plywood", tile=0.8, tint=(0.62, 0.45, 0.28), rough=1.0, preview=(0.45, 0.32, 0.2)),
 }
 
+# ------------------------------------------------------------------------------------------------
+# retro-future / neon kit (tools/blender/retro.py, retro_props.py) and outskirts pieces
+# Every material whose name starts with "neon_" is an emissive neon tube: code may recolour it by
+# matching the prefix. "holo_screen" uses src/fx/holo_ad.gdshader (code may swap per instance).
+# ------------------------------------------------------------------------------------------------
+NEON = {
+    "neon_cyan": (0.2, 1.0, 0.95), "neon_pink": (1.0, 0.25, 0.75), "neon_orange": (1.0, 0.55, 0.15),
+    "neon_violet": (0.55, 0.35, 1.0), "neon_green": (0.35, 1.0, 0.4), "neon_red": (1.0, 0.2, 0.25),
+}
+for _n, _c in NEON.items():
+    MATS[_n] = dict(kind="emissive", tint=_c, emit=(_c[0], _c[1], _c[2], 5.0), rough=0.3, preview=_c)
+
+MATS.update({
+    "sign_face_dark": dict(kind="pbr", tex="worn_plaster_wall", tile=2.5, tint=(0.09, 0.09, 0.1), rough=0.5, uv01=True, preview=(0.08, 0.08, 0.09)),
+    "neon_dead":      dict(kind="glass", tint=(0.55, 0.58, 0.6), alpha=0.55, rough=0.15, preview=(0.5, 0.5, 0.55)),
+    "enamel_cream":   dict(kind="flat", tint=(0.72, 0.68, 0.58), rough=0.22, clearcoat=True, preview=(0.72, 0.68, 0.58)),
+    "enamel_teal":    dict(kind="flat", tint=(0.08, 0.38, 0.40), rough=0.22, clearcoat=True, preview=(0.08, 0.38, 0.4)),
+    "enamel_coral":   dict(kind="flat", tint=(0.70, 0.25, 0.20), rough=0.22, clearcoat=True, preview=(0.7, 0.25, 0.2)),
+    "enamel_black":   dict(kind="flat", tint=(0.03, 0.03, 0.035), rough=0.18, clearcoat=True, preview=(0.03, 0.03, 0.035)),
+    "enamel_mint":    dict(kind="flat", tint=(0.45, 0.66, 0.58), rough=0.22, clearcoat=True, preview=(0.45, 0.66, 0.58)),
+    "steel_ribbed":   dict(kind="pbr", tex="green_metal_rust", tile=1.2, tint=(0.55, 0.58, 0.62), rough=0.55, metal=0.75, desat=True, preview=(0.45, 0.47, 0.5)),
+    "steel_dark":     dict(kind="pbr", tex="green_metal_rust", tile=1.2, tint=(0.22, 0.23, 0.26), rough=0.5, metal=0.7, desat=True, preview=(0.2, 0.2, 0.22)),
+    "glass_block":    dict(kind="image", img="glass_block.png", tile=1.0, emit_energy=0.12, rough=0.15, preview=(0.6, 0.62, 0.6)),
+    "glass_block_lit": dict(kind="image", img="glass_block.png", tile=1.0, emit_energy=0.9, emit_tint=(0.75, 0.95, 1.0), rough=0.15, preview=(0.8, 0.9, 0.95)),
+    "graffiti":       dict(kind="decal", img="graffiti.png", alpha=1.0, rough=0.6, preview=(0.8, 0.3, 0.6)),
+    "vending_a":      dict(kind="image", img="vending_a.png", emit_energy=0.9, rough=0.2, preview=(0.8, 0.2, 0.2)),
+    "vending_b":      dict(kind="image", img="vending_b.png", emit_energy=0.9, rough=0.2, preview=(0.2, 0.3, 0.8)),
+    "chainlink":      dict(kind="decal", img="chainlink.png", scissor=True, double=True, tile=0.4, rough=0.5, metal=0.6, preview=(0.6, 0.6, 0.6)),
+    "hazard":         dict(kind="image", img="hazard.png", tile=0.8, emit_energy=0.0, rough=0.7, preview=(0.8, 0.6, 0.1)),
+    "canopy_light":   dict(kind="emissive", tint=(0.9, 0.95, 1.0), emit=(0.85, 0.95, 1.0, 3.0), rough=0.3, preview=(0.9, 0.95, 1.0)),
+    "hover_glow":     dict(kind="emissive", tint=(0.3, 0.7, 1.0), emit=(0.3, 0.75, 1.0, 4.0), rough=0.3, preview=(0.3, 0.7, 1.0)),
+    "car_paint_pearl": dict(kind="flat", tint=(0.78, 0.78, 0.76), rough=0.15, metal=0.35, clearcoat=True, preview=(0.78, 0.78, 0.76)),
+    "car_paint_turq": dict(kind="flat", tint=(0.05, 0.45, 0.5), rough=0.15, metal=0.4, clearcoat=True, preview=(0.05, 0.45, 0.5)),
+    "car_paint_coral": dict(kind="flat", tint=(0.75, 0.22, 0.18), rough=0.15, metal=0.35, clearcoat=True, preview=(0.75, 0.22, 0.18)),
+    "car_paint_black": dict(kind="flat", tint=(0.02, 0.02, 0.025), rough=0.12, metal=0.5, clearcoat=True, preview=(0.02, 0.02, 0.025)),
+    "interior_noodle":      dict(kind="image", img="interior_noodle.png", emit_energy=1.3, preview=(0.6, 0.3, 0.4)),
+    "interior_arcade":      dict(kind="image", img="interior_arcade.png", emit_energy=1.5, preview=(0.4, 0.2, 0.6)),
+    "interior_parts":       dict(kind="image", img="interior_parts.png", emit_energy=1.4, preview=(0.3, 0.5, 0.6)),
+    "interior_cafe":        dict(kind="image", img="interior_cafe.png", emit_energy=1.5, preview=(0.2, 0.5, 0.3)),
+    "interior_lobby_retro": dict(kind="image", img="interior_lobby_retro.png", emit_energy=1.3, preview=(0.6, 0.4, 0.3)),
+    "interior_cool":  dict(kind="emissive", tint=(0.25, 0.32, 0.4), emit=(0.55, 0.75, 1.0, 0.45), rough=0.9, preview=(0.3, 0.4, 0.5)),
+    "holo_screen":    dict(kind="shader", shader="res://src/fx/holo_ad.gdshader", params={"tint": "Color(0.2, 1, 0.95, 1)", "seed": "3.0"}, preview=(0.2, 0.9, 0.9)),
+    "led_ticker":     dict(kind="shader", shader="res://assets/materials/led_ticker.gdshader", tex_param=("text_tex", "led_text.png"),
+                           params={"color": "Color(1, 0.62, 0.15, 1)", "speed": "0.05"}, preview=(1.0, 0.6, 0.1)),
+})
+
 
 def preview(name):
     return MATS[name].get("preview", (0.5, 0.5, 0.5))

@@ -87,7 +87,9 @@ def gen_level(lid, cfg):
                 return n
         return rng.choice(pool)
 
-    def building_style(lit_bias=0.0):
+    def building_style(lit_bias=0.0, covered=True):
+        if cfg["aesthetic"] in ("industrial", "outskirts") and rng.random() < (0.35 if cfg["aesthetic"] == "outskirts" else 0.25):
+            return "warehouse" if covered or rng.random() < 0.5 else "loading_dock"
         r = rng.random()
         lit = cfg["lit"] + lit_bias
         if r < lit:
@@ -148,6 +150,12 @@ def gen_level(lid, cfg):
                 tw = round_to(rng.uniform(0.6, lerp(1.0, 2.2, d)), 0.1)
                 tx = round(round_to(rng.uniform(0.8, w - tw - 0.8), 0.1), 2)
                 tears = [[tx, round(tx + tw, 2)]]
+            if cfg["aesthetic"] in ("industrial", "outskirts") and rng.random() < 0.06 and run_end - x >= 8:
+                w = 8.0
+                lot = add_lot(x, w, "canopy", style="gas_station", floors=0)
+                x += w
+                first = False
+                continue
             lot = add_lot(x, w, cover, tears=tears)
             # warm vent on a covered lot
             if rng.random() < 0.08 and cover != "arcade":
@@ -195,7 +203,12 @@ def gen_level(lid, cfg):
                 lots[-1]["w"] = round(lots[-1]["w"] + w, 2)
                 x += w
                 break
-            add_lot(x, w, "none", style="vacant" if vacant else None)
+            st = "vacant" if vacant else building_style(covered=False)
+            if st == "warehouse":
+                st = "loading_dock" if w >= 8 else "wall"
+            if st == "loading_dock" and w < 8:
+                st = "wall"
+            add_lot(x, w, "none", style=st)
             x += w
         if rng.random() < 0.3 + 0.3 * d:
             features.append({"type": "puddle", "x": round(gx + rng.uniform(0.6, max(0.7, gw - 0.6)), 2), "w": 1.0})
@@ -225,7 +238,9 @@ def gen_level(lid, cfg):
     clutter = ["trash_bags", "crates", "cardboard_boxes", "newspaper_box_b", "sandwich_board", "phone_booth",
                "bollard", "downpipe"]
     if cfg["aesthetic"] in ("industrial", "outskirts"):
-        clutter += ["crates", "crates", "trash_bags"]
+        clutter += ["crates", "crates", "trash_bags", "chainlink_fence_4"]
+    if cfg["neon"] > 0:
+        clutter += ["vending_machine_a", "vending_machine_b"] * int(1 + cfg["neon"] * 3)
     for _ in range(int(x / 14)):
         props.append({"id": rng.choice(clutter), "x": round(rng.uniform(4, x - 4), 2)})
     for c in crossings:

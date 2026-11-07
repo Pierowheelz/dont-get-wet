@@ -1,7 +1,7 @@
 {
- "version": 1,
- "generator": "tools/blender/buildings.py",
- "notes": "ground: awning mount y=3.0, sign board face at z=sign_rect[4] spanning sign_rect[0..3] (x0,y0,x1,y1) with its own material 'sign_face' (0..1 UVs). Markers in the scenes: omni_* -> OmniLight3D (added by kit_import.gd), door -> Node3D at the entrance, outlet -> downpipe gutter outlet.",
+ "version": 2,
+ "generator": "tools/blender/buildings.py (+ retro.py)",
+ "notes": "ground: awning mount y=3.0, sign board face at z=sign_rect[4] spanning sign_rect[0..3] (x0,y0,x1,y1) with its own material 'sign_face' (0..1 UVs). Markers in the scenes: omni_* -> OmniLight3D (added by kit_import.gd), door -> Node3D at the entrance, outlet -> downpipe gutter outlet. era: '60s' | 'retro'. aesthetics: level aesthetics a module suits. Retro boards use material 'sign_face_dark' (prefix sign_face). Materials named neon_* are emissive tubes (recolourable); 'holo_screen' is a 0..1-UV quad using src/fx/holo_ad.gdshader. cover: list of boxes [x0,y0,z0,x1,y1,z1] that block rain.",
  "modules": [
   {
    "id": "shop_lit_3a",
@@ -13,6 +13,12 @@
    "tags": [
     "lit",
     "barber"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shop_lit",
    "sign_rect": [
@@ -34,6 +40,12 @@
     "lit",
     "pawn"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shop_lit",
    "sign_rect": [
     0.3,
@@ -53,6 +65,12 @@
    "tags": [
     "lit",
     "laundromat"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shop_lit",
    "sign_rect": [
@@ -74,6 +92,12 @@
     "lit",
     "diner"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shop_lit",
    "sign_rect": [
     0.3,
@@ -93,6 +117,12 @@
    "tags": [
     "lit",
     "newsstand"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shop_lit",
    "sign_rect": [
@@ -114,6 +144,12 @@
     "lit",
     "diner"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shop_lit",
    "sign_rect": [
     0.3,
@@ -132,6 +168,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shop_dark",
    "sign_rect": [
@@ -152,6 +194,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shop_dark",
    "sign_rect": [
     0.3,
@@ -170,6 +218,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shop_dark",
    "sign_rect": [
@@ -190,6 +244,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shop_dark",
    "sign_rect": [
     0.3,
@@ -208,6 +268,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shop_dark",
    "sign_rect": [
@@ -228,6 +294,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shuttered",
    "sign_rect": [
     0.3,
@@ -246,6 +318,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shuttered",
    "sign_rect": [
@@ -266,6 +344,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shuttered",
    "sign_rect": [
     0.3,
@@ -284,6 +368,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "shuttered",
    "sign_rect": [
@@ -304,6 +394,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "shuttered",
    "sign_rect": [
     0.3,
@@ -322,6 +418,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "boarded",
    "sign_rect": [
@@ -342,6 +444,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "boarded",
    "sign_rect": [
     0.3,
@@ -360,6 +468,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "boarded",
    "sign_rect": [
@@ -380,6 +494,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "wall",
    "sign_rect": [
     0.3,
@@ -398,6 +518,12 @@
    "era": "60s",
    "tags": [
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "wall",
    "sign_rect": [
@@ -418,6 +544,12 @@
    "tags": [
     "dark"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "wall",
    "sign_rect": [
     0.3,
@@ -436,6 +568,12 @@
    "era": "60s",
    "tags": [
     "residential"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "doorway",
    "sign_rect": [
@@ -456,6 +594,12 @@
    "tags": [
     "residential"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "doorway",
    "sign_rect": [
     0.3,
@@ -475,6 +619,12 @@
    "tags": [
     "lit",
     "goal"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ],
    "style": "inn",
    "sign_rect": [
@@ -500,6 +650,12 @@
     "lit",
     "goal"
    ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ],
    "style": "inn",
    "sign_rect": [
     0.3,
@@ -524,6 +680,12 @@
     "dark",
     "lit",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -538,6 +700,12 @@
     "lit",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -551,6 +719,12 @@
     "boarded",
     "broken",
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -563,6 +737,12 @@
    "tags": [
     "boarded",
     "bricked"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -577,6 +757,12 @@
     "dark",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -590,6 +776,12 @@
     "dark",
     "lit",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -604,6 +796,12 @@
     "lit",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -617,6 +815,12 @@
     "boarded",
     "broken",
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -629,6 +833,12 @@
    "tags": [
     "boarded",
     "bricked"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -643,6 +853,12 @@
     "dark",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -656,6 +872,12 @@
     "dark",
     "lit",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -670,6 +892,12 @@
     "lit",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -683,6 +911,12 @@
     "boarded",
     "broken",
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -695,6 +929,12 @@
    "tags": [
     "boarded",
     "bricked"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -709,6 +949,12 @@
     "dark",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -722,6 +968,12 @@
     "dark",
     "lit",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -736,6 +988,12 @@
     "lit",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -749,6 +1007,12 @@
     "boarded",
     "broken",
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -761,6 +1025,12 @@
    "tags": [
     "boarded",
     "bricked"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -775,6 +1045,12 @@
     "dark",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -788,6 +1064,12 @@
     "dark",
     "lit",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -802,6 +1084,12 @@
     "lit",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -815,6 +1103,12 @@
     "boarded",
     "broken",
     "dark"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -827,6 +1121,12 @@
    "tags": [
     "boarded",
     "bricked"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -841,6 +1141,12 @@
     "dark",
     "lit_b",
     "lit"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -852,6 +1158,12 @@
    "era": "60s",
    "tags": [
     "cornice"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -863,6 +1175,12 @@
    "era": "60s",
    "tags": [
     "parapet"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -874,6 +1192,12 @@
    "era": "60s",
    "tags": [
     "flat"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -885,6 +1209,12 @@
    "era": "60s",
    "tags": [
     "cornice"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -896,6 +1226,12 @@
    "era": "60s",
    "tags": [
     "parapet"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -907,6 +1243,12 @@
    "era": "60s",
    "tags": [
     "flat"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -918,6 +1260,12 @@
    "era": "60s",
    "tags": [
     "cornice"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -930,6 +1278,12 @@
    "tags": [
     "parapet",
     "stepped"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -941,6 +1295,12 @@
    "era": "60s",
    "tags": [
     "flat"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -952,6 +1312,12 @@
    "era": "60s",
    "tags": [
     "cornice"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -964,6 +1330,12 @@
    "tags": [
     "parapet",
     "stepped"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -975,6 +1347,12 @@
    "era": "60s",
    "tags": [
     "flat"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -986,6 +1364,12 @@
    "era": "60s",
    "tags": [
     "cornice"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -998,6 +1382,12 @@
    "tags": [
     "parapet",
     "stepped"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1009,6 +1399,12 @@
    "era": "60s",
    "tags": [
     "flat"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1020,6 +1416,12 @@
    "era": "60s",
    "tags": [
     "ground"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1031,6 +1433,12 @@
    "era": "60s",
    "tags": [
     "upper"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1042,6 +1450,12 @@
    "era": "60s",
    "tags": [
     "cap"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1053,6 +1467,12 @@
    "era": "60s",
    "tags": [
     "ground"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1064,6 +1484,12 @@
    "era": "60s",
    "tags": [
     "upper"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1075,6 +1501,12 @@
    "era": "60s",
    "tags": [
     "cap"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1087,6 +1519,12 @@
    "tags": [
     "upper",
     "ghost_sign"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1098,6 +1536,12 @@
    "era": "60s",
    "tags": [
     "ground"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1109,6 +1553,12 @@
    "era": "60s",
    "tags": [
     "ground"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1120,6 +1570,12 @@
    "era": "60s",
    "tags": [
     "ground"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1132,6 +1588,12 @@
    "tags": [
     "ground",
     "gutter"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1144,6 +1606,12 @@
    "tags": [
     "ground",
     "gap"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1155,6 +1623,12 @@
    "era": "60s",
    "tags": [
     "upper"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1166,6 +1640,12 @@
    "era": "60s",
    "tags": [
     "upper"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1177,6 +1657,12 @@
    "era": "60s",
    "tags": [
     "upper"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
    ]
   },
   {
@@ -1188,6 +1674,1209 @@
    "era": "60s",
    "tags": [
     "upper"
+   ],
+   "aesthetics": [
+    "rundown",
+    "industrial",
+    "rundown_neon",
+    "outskirts"
+   ]
+  },
+  {
+   "id": "retro_shop_lit_3a",
+   "scene": "res://assets/buildings/retro_shop_lit_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "noodle",
+    "kiosk",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.45,
+    3.15,
+    2.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shop_lit_4a",
+   "scene": "res://assets/buildings/retro_shop_lit_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "arcade",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.45,
+    3.15,
+    3.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shop_lit_5a",
+   "scene": "res://assets/buildings/retro_shop_lit_5a.glb",
+   "kind": "ground",
+   "width": 5.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "parts",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.45,
+    3.15,
+    4.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shop_lit_6a",
+   "scene": "res://assets/buildings/retro_shop_lit_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "cafe",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.45,
+    3.15,
+    5.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shop_lit_8a",
+   "scene": "res://assets/buildings/retro_shop_lit_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "noodle",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.45,
+    3.15,
+    7.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shop_lit_6b",
+   "scene": "res://assets/buildings/retro_shop_lit_6b.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "arcade",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.45,
+    3.15,
+    5.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shop_dark_4a",
+   "scene": "res://assets/buildings/retro_shop_dark_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "dark",
+    "dead_neon",
+    "graffiti"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_dark",
+   "sign_rect": [
+    0.45,
+    3.15,
+    3.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shop_dark_6a",
+   "scene": "res://assets/buildings/retro_shop_dark_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "dark",
+    "dead_neon",
+    "graffiti"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shop_dark",
+   "sign_rect": [
+    0.45,
+    3.15,
+    5.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shuttered_3a",
+   "scene": "res://assets/buildings/retro_shuttered_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "dark",
+    "graffiti"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.45,
+    3.15,
+    2.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shuttered_5a",
+   "scene": "res://assets/buildings/retro_shuttered_5a.glb",
+   "kind": "ground",
+   "width": 5.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "dark",
+    "graffiti"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.45,
+    3.15,
+    4.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_shuttered_8a",
+   "scene": "res://assets/buildings/retro_shuttered_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "dark",
+    "graffiti"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.45,
+    3.15,
+    7.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_wall_4a",
+   "scene": "res://assets/buildings/retro_wall_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "dark",
+    "glass_block",
+    "vending"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "wall",
+   "sign_rect": [
+    0.45,
+    3.15,
+    3.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_wall_6a",
+   "scene": "res://assets/buildings/retro_wall_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "dark",
+    "glass_block",
+    "vending"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "wall",
+   "sign_rect": [
+    0.45,
+    3.15,
+    5.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_doorway_3a",
+   "scene": "res://assets/buildings/retro_doorway_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "residential",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "doorway",
+   "sign_rect": [
+    0.45,
+    3.15,
+    2.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_doorway_4a",
+   "scene": "res://assets/buildings/retro_doorway_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "residential",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "doorway",
+   "sign_rect": [
+    0.45,
+    3.15,
+    3.55,
+    3.85,
+    0.055
+   ]
+  },
+  {
+   "id": "retro_inn_6a",
+   "scene": "res://assets/buildings/retro_inn_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "goal",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "inn",
+   "sign_rect": [
+    0.45,
+    3.15,
+    5.55,
+    3.85,
+    0.055
+   ],
+   "door": [
+    3.0,
+    -0.9
+   ]
+  },
+  {
+   "id": "retro_inn_8a",
+   "scene": "res://assets/buildings/retro_inn_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "lit",
+    "goal",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ],
+   "style": "inn",
+   "sign_rect": [
+    0.45,
+    3.15,
+    7.55,
+    3.85,
+    0.055
+   ],
+   "door": [
+    4.0,
+    -0.9
+   ]
+  },
+  {
+   "id": "retro_upper_3a",
+   "scene": "res://assets/buildings/retro_upper_3a.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "ribbon_window"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_3b",
+   "scene": "res://assets/buildings/retro_upper_3b.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "enamel",
+    "porthole",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_3c",
+   "scene": "res://assets/buildings/retro_upper_3c.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "holo",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_3d",
+   "scene": "res://assets/buildings/retro_upper_3d.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "glass_block",
+    "ac",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_4a",
+   "scene": "res://assets/buildings/retro_upper_4a.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "ribbon_window"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_4b",
+   "scene": "res://assets/buildings/retro_upper_4b.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "enamel",
+    "porthole",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_4c",
+   "scene": "res://assets/buildings/retro_upper_4c.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "holo",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_4d",
+   "scene": "res://assets/buildings/retro_upper_4d.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "glass_block",
+    "ac",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_5a",
+   "scene": "res://assets/buildings/retro_upper_5a.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "ribbon_window"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_5b",
+   "scene": "res://assets/buildings/retro_upper_5b.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "enamel",
+    "porthole",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_5c",
+   "scene": "res://assets/buildings/retro_upper_5c.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "holo",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_5d",
+   "scene": "res://assets/buildings/retro_upper_5d.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "glass_block",
+    "ac",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_6a",
+   "scene": "res://assets/buildings/retro_upper_6a.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "ribbon_window"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_6b",
+   "scene": "res://assets/buildings/retro_upper_6b.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "enamel",
+    "porthole",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_6c",
+   "scene": "res://assets/buildings/retro_upper_6c.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "holo",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_6d",
+   "scene": "res://assets/buildings/retro_upper_6d.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "glass_block",
+    "ac",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_8a",
+   "scene": "res://assets/buildings/retro_upper_8a.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "ribbon_window"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_8b",
+   "scene": "res://assets/buildings/retro_upper_8b.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "enamel",
+    "porthole",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_8c",
+   "scene": "res://assets/buildings/retro_upper_8c.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "ribbed",
+    "holo",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_upper_8d",
+   "scene": "res://assets/buildings/retro_upper_8d.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "glass_block",
+    "ac",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_band_3",
+   "scene": "res://assets/buildings/retro_cap_band_3.glb",
+   "kind": "cap",
+   "width": 3.0,
+   "height": 0.7,
+   "era": "retro",
+   "tags": [
+    "streamline",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_dish_3",
+   "scene": "res://assets/buildings/retro_cap_dish_3.glb",
+   "kind": "cap",
+   "width": 3.0,
+   "height": 3.16,
+   "era": "retro",
+   "tags": [
+    "dish",
+    "antenna",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_neon_3",
+   "scene": "res://assets/buildings/retro_cap_neon_3.glb",
+   "kind": "cap",
+   "width": 3.0,
+   "height": 2.6,
+   "era": "retro",
+   "tags": [
+    "neon_frame"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_band_4",
+   "scene": "res://assets/buildings/retro_cap_band_4.glb",
+   "kind": "cap",
+   "width": 4.0,
+   "height": 0.7,
+   "era": "retro",
+   "tags": [
+    "streamline",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_dish_4",
+   "scene": "res://assets/buildings/retro_cap_dish_4.glb",
+   "kind": "cap",
+   "width": 4.0,
+   "height": 3.16,
+   "era": "retro",
+   "tags": [
+    "dish",
+    "antenna",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_neon_4",
+   "scene": "res://assets/buildings/retro_cap_neon_4.glb",
+   "kind": "cap",
+   "width": 4.0,
+   "height": 2.6,
+   "era": "retro",
+   "tags": [
+    "neon_frame",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_band_5",
+   "scene": "res://assets/buildings/retro_cap_band_5.glb",
+   "kind": "cap",
+   "width": 5.0,
+   "height": 0.7,
+   "era": "retro",
+   "tags": [
+    "streamline",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_dish_5",
+   "scene": "res://assets/buildings/retro_cap_dish_5.glb",
+   "kind": "cap",
+   "width": 5.0,
+   "height": 3.16,
+   "era": "retro",
+   "tags": [
+    "dish",
+    "antenna",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_neon_5",
+   "scene": "res://assets/buildings/retro_cap_neon_5.glb",
+   "kind": "cap",
+   "width": 5.0,
+   "height": 2.6,
+   "era": "retro",
+   "tags": [
+    "neon_frame",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_band_6",
+   "scene": "res://assets/buildings/retro_cap_band_6.glb",
+   "kind": "cap",
+   "width": 6.0,
+   "height": 0.7,
+   "era": "retro",
+   "tags": [
+    "streamline",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_dish_6",
+   "scene": "res://assets/buildings/retro_cap_dish_6.glb",
+   "kind": "cap",
+   "width": 6.0,
+   "height": 3.16,
+   "era": "retro",
+   "tags": [
+    "dish",
+    "antenna",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_neon_6",
+   "scene": "res://assets/buildings/retro_cap_neon_6.glb",
+   "kind": "cap",
+   "width": 6.0,
+   "height": 2.6,
+   "era": "retro",
+   "tags": [
+    "neon_frame",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_band_8",
+   "scene": "res://assets/buildings/retro_cap_band_8.glb",
+   "kind": "cap",
+   "width": 8.0,
+   "height": 0.7,
+   "era": "retro",
+   "tags": [
+    "streamline",
+    "neon"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_dish_8",
+   "scene": "res://assets/buildings/retro_cap_dish_8.glb",
+   "kind": "cap",
+   "width": 8.0,
+   "height": 3.16,
+   "era": "retro",
+   "tags": [
+    "dish",
+    "antenna",
+    "cables"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "retro_cap_neon_8",
+   "scene": "res://assets/buildings/retro_cap_neon_8.glb",
+   "kind": "cap",
+   "width": 8.0,
+   "height": 2.6,
+   "era": "retro",
+   "tags": [
+    "neon_frame",
+    "holo"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "side_ground_retro_10",
+   "scene": "res://assets/buildings/side_ground_retro_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 4.0,
+   "era": "retro",
+   "tags": [
+    "ground"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "side_upper_retro_10",
+   "scene": "res://assets/buildings/side_upper_retro_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 3.2,
+   "era": "retro",
+   "tags": [
+    "upper"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "side_cap_retro_10",
+   "scene": "res://assets/buildings/side_cap_retro_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 0.5,
+   "era": "retro",
+   "tags": [
+    "cap"
+   ],
+   "aesthetics": [
+    "neon",
+    "rundown_neon"
+   ]
+  },
+  {
+   "id": "warehouse_6a",
+   "scene": "res://assets/buildings/warehouse_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "corrugated",
+    "outskirts",
+    "industrial"
+   ],
+   "aesthetics": [
+    "outskirts",
+    "industrial"
+   ],
+   "style": "warehouse",
+   "sign_rect": [
+    0.4,
+    3.13,
+    4.0,
+    3.49,
+    0.052
+   ]
+  },
+  {
+   "id": "warehouse_8a",
+   "scene": "res://assets/buildings/warehouse_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "corrugated",
+    "outskirts",
+    "industrial"
+   ],
+   "aesthetics": [
+    "outskirts",
+    "industrial"
+   ],
+   "style": "warehouse",
+   "sign_rect": [
+    0.5,
+    3.13,
+    2.6999999999999997,
+    3.49,
+    0.052
+   ]
+  },
+  {
+   "id": "loading_dock_8a",
+   "scene": "res://assets/buildings/loading_dock_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "open_sky",
+    "fence",
+    "outskirts",
+    "industrial"
+   ],
+   "aesthetics": [
+    "outskirts",
+    "industrial"
+   ],
+   "style": "loading_dock"
+  },
+  {
+   "id": "gas_station_8a",
+   "scene": "res://assets/buildings/gas_station_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "cover",
+    "outskirts",
+    "industrial"
+   ],
+   "aesthetics": [
+    "outskirts",
+    "industrial"
+   ],
+   "style": "gas_station",
+   "cover": [
+    [
+     0.15,
+     3.55,
+     -0.2,
+     7.85,
+     3.95,
+     3.3
+    ]
+   ],
+   "sign_rect": [
+    0.3,
+    3.7800000000000002,
+    7.7,
+    3.96,
+    3.351
+   ]
+  },
+  {
+   "id": "side_ground_warehouse_10",
+   "scene": "res://assets/buildings/side_ground_warehouse_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground",
+    "corrugated",
+    "outskirts",
+    "industrial"
+   ],
+   "aesthetics": [
+    "outskirts",
+    "industrial"
+   ]
+  },
+  {
+   "id": "side_cap_warehouse_10",
+   "scene": "res://assets/buildings/side_cap_warehouse_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 0.3,
+   "era": "60s",
+   "tags": [
+    "cap",
+    "corrugated",
+    "outskirts",
+    "industrial"
+   ],
+   "aesthetics": [
+    "outskirts",
+    "industrial"
    ]
   }
  ]

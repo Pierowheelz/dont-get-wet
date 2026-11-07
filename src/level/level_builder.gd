@@ -106,6 +106,8 @@ func cover_map() -> Array:
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, false, 3.35)
 			"arcade":
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, false, 3.6)
+			"canopy":
+				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, false, 3.55)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
 
@@ -179,8 +181,12 @@ func _load_kits() -> void:
 	if FileAccess.file_exists(KIT_PATH):
 		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(KIT_PATH))
 		if d is Dictionary:
+			var aes: String = data.get("aesthetic", "rundown")
 			for m in d.get("modules", []):
 				if not ResourceLoader.exists(m["scene"]):
+					continue
+				var ok: Array = m.get("aesthetics", [])
+				if not ok.is_empty() and not ok.has(aes) and not (aes == "neon" and ok.has("rundown_neon")):
 					continue
 				var style: String = m.get("style", m["kind"])
 				var kind: String = m["kind"]
@@ -259,10 +265,21 @@ func _build_lot(lot: Dictionary) -> void:
 			_build_slab(x, w, 3.35, 2.4, false)
 		"arcade":
 			_build_slab(x, w, 3.6, 2.9, true)
+		"canopy":
+			# Gas-station canopy (the kit module draws it; we add the collider).
+			_cover_box(Vector3(w - 0.3, 0.4, 3.5), Transform3D(Basis(), Vector3(x + w * 0.5, 3.75, 1.55)))
+			_drips(x + 0.15, x + w - 0.15, 3.5, 3.32)
 	if lot.has("sign") and style != "vacant":
 		_build_sign(x, w, String(lot["sign"]), style, bool(lot.get("neon", false)))
 	if style != "vacant" and rng.randf() < float(data.get("neon", 0.0)) * 0.45:
 		_build_holo(x, w, floors)
+	if style != "vacant" and floors >= 1 and w >= 6.0 and rng.randf() < float(data.get("neon", 0.0)) * 0.5:
+		var cid := "overhead_cables_10" if w >= 10.0 else "overhead_cables_6"
+		if props_kit.has(cid):
+			var cn := _instance(props_kit[cid]["scene"])
+			if cn:
+				cn.position = Vector3(x, float(props_kit[cid].get("mount_y", 6.6)), 0.0)
+				root.add_child(cn)
 
 
 func _wall_color() -> Color:
@@ -615,7 +632,18 @@ func _build_neon(x: float, w: float, text: String) -> void:
 	om.light_volumetric_fog_energy = 1.2
 	om.position = Vector3(x + w * 0.5, 3.3, 0.9)
 	root.add_child(om)
-	# Vertical blade sign on taller buildings.
+	# Vertical blade sign on taller buildings: prefer the kit's modelled signs.
+	var kit_signs: Array = ["neon_blade_a", "neon_blade_b", "neon_googie", "led_ticker"].filter(func(id): return props_kit.has(id))
+	if w >= 4.0 and not kit_signs.is_empty() and rng.randf() < 0.8:
+		var pid: String = kit_signs[rng.randi() % kit_signs.size()]
+		var sn := _instance(props_kit[pid]["scene"])
+		if sn:
+			sn.position = Vector3(x + w - 0.8 if pid != "led_ticker" else x + w * 0.5, float(props_kit[pid].get("mount_y", 4.2)), 0.0)
+			if pid == "led_ticker":
+				sn.position.y = 4.15
+				sn.position.z = 0.0
+			root.add_child(sn)
+		return
 	if w >= 4.0 and rng.randf() < 0.75:
 		var col2: Color = NEON_COLORS[rng.randi() % NEON_COLORS.size()]
 		var blade := Node3D.new()
@@ -866,7 +894,8 @@ func _build_prop(p: Dictionary) -> void:
 
 func _lamp_light(x: float) -> void:
 	var sl := SpotLight3D.new()
-	sl.light_color = Color(1.0, 0.7, 0.42)
+	# Sodium lamps downtown; cold LED streetlights as the city turns retro-future.
+	sl.light_color = Color(1.0, 0.7, 0.42).lerp(Color(0.62, 0.8, 1.0), float(data.get("neon", 0.0)))
 	sl.light_energy = 3.2
 	sl.spot_range = 9.0
 	sl.spot_angle = 55.0

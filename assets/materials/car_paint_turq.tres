@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" load_steps=1 format=3]
+
+[resource]
+resource_name = "car_paint_turq"
+albedo_color = Color(0.0500, 0.4500, 0.5000, 1.0000)
+metallic = 0.400
+roughness = 0.150
+clearcoat_enabled = true
+clearcoat = 1.0
+clearcoat_roughness = 0.08
+texture_filter = 5

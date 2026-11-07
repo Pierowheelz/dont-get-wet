@@ -735,20 +735,12 @@
    "x": 6.03
   },
   {
-   "id": "bollard",
-   "x": 8.84
-  },
-  {
    "id": "bench",
    "x": 15.69
   },
   {
    "id": "trash_can",
    "x": 20.47
-  },
-  {
-   "id": "newspaper_box_b",
-   "x": 22.13
   },
   {
    "id": "lamp_post",
@@ -763,16 +755,36 @@
    "x": 38.47
   },
   {
+   "id": "vending_machine_b",
+   "x": 39.37
+  },
+  {
+   "id": "sandwich_board",
+   "x": 39.41
+  },
+  {
+   "id": "cardboard_boxes",
+   "x": 40.17
+  },
+  {
+   "id": "vending_machine_a",
+   "x": 46.21
+  },
+  {
+   "id": "vending_machine_a",
+   "x": 49.65
+  },
+  {
    "id": "lamp_post",
    "x": 50.9
   },
   {
-   "id": "sandwich_board",
-   "x": 52.31
+   "id": "trash_bags",
+   "x": 51.04
   },
   {
-   "id": "phone_booth",
-   "x": 54.18
+   "id": "sandwich_board",
+   "x": 52.31
   },
   {
    "id": "lamp_post",
@@ -783,16 +795,12 @@
    "x": 65.9
   },
   {
-   "id": "cardboard_boxes",
-   "x": 78.22
+   "id": "sandwich_board",
+   "x": 67.25
   },
   {
    "id": "sandwich_board",
-   "x": 78.34
-  },
-  {
-   "id": "downpipe",
-   "x": 78.89
+   "x": 74.83
   },
   {
    "id": "lamp_post",
@@ -803,24 +811,20 @@
    "x": 82.88
   },
   {
-   "id": "phone_booth",
-   "x": 90.75
-  },
-  {
-   "id": "cardboard_boxes",
-   "x": 91.95
+   "id": "newspaper_box_b",
+   "x": 94.43
   },
   {
    "id": "parking_meter",
    "x": 94.74
   },
   {
-   "id": "cardboard_boxes",
-   "x": 97.34
-  },
-  {
    "id": "lamp_post",
    "x": 100.52
+  },
+  {
+   "id": "bollard",
+   "x": 113.11
   },
   {
    "id": "lamp_post",
@@ -837,22 +841,6 @@
   {
    "id": "trash_can",
    "x": 135.85
-  },
-  {
-   "id": "crates",
-   "x": 139.58
-  },
-  {
-   "id": "downpipe",
-   "x": 143.11
-  },
-  {
-   "id": "downpipe",
-   "x": 147.23
-  },
-  {
-   "id": "cardboard_boxes",
-   "x": 148.56
   },
   {
    "id": "lamp_post",
@@ -915,12 +903,8 @@
    "x": 223.52
   },
   {
-   "id": "crates",
-   "x": 227.74
-  },
-  {
-   "id": "bollard",
-   "x": 232.66
+   "id": "cardboard_boxes",
+   "x": 232.27
   },
   {
    "id": "lamp_post",
@@ -931,12 +915,16 @@
    "x": 251.88
   },
   {
+   "id": "downpipe",
+   "x": 263.76
+  },
+  {
    "id": "lamp_post",
    "x": 265.26
   },
   {
-   "id": "crates",
-   "x": 269.95
+   "id": "bollard",
+   "x": 270.12
   },
   {
    "id": "lamp_post",
@@ -948,11 +936,23 @@
   },
   {
    "id": "trash_bags",
-   "x": 282.08
+   "x": 291.21
   },
   {
    "id": "lamp_post",
    "x": 293.94
+  },
+  {
+   "id": "crates",
+   "x": 294.85
+  },
+  {
+   "id": "bollard",
+   "x": 301.32
+  },
+  {
+   "id": "vending_machine_a",
+   "x": 303.14
   },
   {
    "id": "bench",
@@ -979,16 +979,16 @@
    "x": 320.75
   },
   {
-   "id": "sandwich_board",
-   "x": 321.06
-  },
-  {
    "id": "lamp_post",
    "x": 322.54
   },
   {
-   "id": "newspaper_box_b",
-   "x": 331.41
+   "id": "vending_machine_a",
+   "x": 326.71
+  },
+  {
+   "id": "cardboard_boxes",
+   "x": 329.1
   },
   {
    "id": "lamp_post",

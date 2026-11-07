@@ -6,6 +6,8 @@ extends Node3D
 ##         res://assets/buildings/test/kit_preview.tscn
 ##
 ## Optional user args (after `--`): --start=X  --step=M  --cam_y=1.6  --cam_z=9  --fov=55  --warmup=1
+##   --street=60s|neon|mixed|outskirts   which layout (neon = retro-future kit at night,
+##   mixed = rundown_neon: 60s kit + neon decorations, outskirts = warehouses / dock / gas station)
 ##   --shot=props   frames the prop line-up / car instead of the street.
 
 const KIT := "res://assets/buildings/kit.json"
@@ -46,6 +48,51 @@ const STREET := [
 	["filler_pilaster_g_03", ["filler_pilaster_u_03"], "", ""],
 ]
 
+const STREET_NEON := [
+	["retro_shop_lit_3a", ["retro_upper_3b", "retro_upper_3a"], "retro_cap_neon_3", "RAMEN"],
+	["retro_shop_lit_6a", ["retro_upper_6c", "retro_upper_6b"], "retro_cap_neon_6", "CYBER CAFE"],
+	["retro_shuttered_5a", ["retro_upper_5a"], "retro_cap_dish_5", ""],
+	["retro_doorway_3a", ["retro_upper_3d", "retro_upper_3b"], "retro_cap_band_3", ""],
+	["retro_shop_lit_8a", ["retro_upper_8b", "retro_upper_8c", "retro_upper_8a"], "retro_cap_neon_8", "NOODLES 24 HR"],
+	["retro_wall_6a", ["retro_upper_6d"], "retro_cap_dish_6", ""],
+	["retro_shop_lit_4a", ["retro_upper_4c", "retro_upper_4a"], "retro_cap_band_4", "ARCADE"],
+	["retro_shop_dark_4a", ["retro_upper_4d"], "retro_cap_dish_4", ""],
+	["retro_shop_lit_5a", ["retro_upper_5b", "retro_upper_5c"], "retro_cap_neon_5", "PARTS & MODS"],
+	["retro_shuttered_8a", ["retro_upper_8d", "retro_upper_8a"], "retro_cap_band_8", ""],
+	["retro_shop_lit_6b", ["retro_upper_6a", "retro_upper_6c"], "retro_cap_neon_6", "PACHINKO"],
+	["retro_wall_4a", ["retro_upper_4b"], "retro_cap_band_4", ""],
+	["retro_shop_dark_6a", ["retro_upper_6b"], "retro_cap_dish_6", ""],
+	["retro_doorway_4a", ["retro_upper_4a", "retro_upper_4d"], "retro_cap_neon_4", ""],
+	["retro_shuttered_3a", ["retro_upper_3c"], "retro_cap_band_3", ""],
+	["retro_inn_8a", ["retro_upper_8b", "retro_upper_8c"], "retro_cap_neon_8", "HOTEL ORBIT"],
+	["retro_inn_6a", ["retro_upper_6b"], "retro_cap_band_6", ""],
+]
+const STREET_MIXED := [
+	["shop_lit_6a", ["upper_6a", "upper_6b"], "cap_cornice_6", "sign_diner"],
+	["retro_shop_lit_4a", ["upper_4c"], "cap_parapet_4", "ARCADE"],
+	["shuttered_5a", ["upper_5a", "upper_5d"], "cap_cornice_5", ""],
+	["shop_lit_5a", ["upper_5b"], "cap_parapet_5", "sign_laundromat"],
+	["retro_wall_4a", ["upper_4e"], "cap_flat_4", ""],
+	["doorway_3a", ["upper_3b", "upper_3c"], "cap_parapet_3", ""],
+	["shop_dark_6a", ["upper_6c", "upper_6b"], "cap_cornice_6", ""],
+	["retro_shop_lit_3a", ["upper_3a"], "cap_flat_3", "RAMEN"],
+	["shop_lit_4a", ["upper_4a", "upper_4e"], "cap_cornice_4", "sign_pawn"],
+	["boarded_5a", ["upper_5e"], "cap_parapet_5", ""],
+	["shop_lit_8a", ["upper_8b", "upper_8a"], "cap_parapet_8", "sign_diner"],
+]
+const STREET_OUT := [
+	["warehouse_8a", [], "cap_flat_8", ""],
+	["loading_dock_8a", [], "", ""],
+	["gas_station_8a", [], "", ""],
+	["warehouse_6a", [], "cap_flat_6", ""],
+	["shuttered_4a", ["upper_4d"], "cap_flat_4", ""],
+	["filler_alley_g_10", [], "", ""],
+	["boarded_6a", [], "cap_parapet_6", ""],
+]
+const NEON_TEXT_COLS := [Color(1.0, 0.25, 0.75), Color(0.2, 1.0, 0.95), Color(1.0, 0.55, 0.15), Color(0.55, 0.35, 1.0)]
+
+var _layout := "60s"
+var _rows: Array = []
 var _mods := {}
 var _cam: Camera3D
 var _frame := 0
@@ -62,6 +109,7 @@ var _street_len := 0.0
 
 func _ready() -> void:
 	_parse_args()
+	_rows = {"neon": STREET_NEON, "mixed": STREET_MIXED, "outskirts": STREET_OUT}.get(_layout, STREET)
 	_mods = _load_json(KIT, "modules")
 	_build_env()
 	_build_street()
@@ -85,6 +133,7 @@ func _parse_args() -> void:
 			"cam_z": _cam_z = float(kv[1])
 			"cam_y": _cam_y = float(kv[1])
 			"view": _views = Array(kv[1].split(";"))
+			"street": _layout = kv[1]
 
 
 func _load_json(path: String, key: String) -> Dictionary:
@@ -109,15 +158,19 @@ func _inst(id: String, mods: Dictionary) -> Node3D:
 
 func _build_street() -> void:
 	var x := 0.0
-	for row in STREET:
+	var tcol := 0
+	for row in _rows:
 		var g := _inst(row[0], _mods)
 		if g == null:
 			continue
 		var w: float = _mods[row[0]]["width"]
 		g.position = Vector3(x, 0, 0)
 		add_child(g)
-		if row[3] != "":
+		if String(row[3]).begins_with("sign_"):
 			_apply_sign(g, SIGN_DIR + row[3] + ".png")
+		elif row[3] != "":
+			_neon_text(g, row[0], row[3], NEON_TEXT_COLS[tcol % NEON_TEXT_COLS.size()])
+			tcol += 1
 		var y: float = _mods[row[0]]["height"]
 		for u in row[1]:
 			var un := _inst(u, _mods)
@@ -132,19 +185,51 @@ func _build_street() -> void:
 				c.position = Vector3(x, y, 0)
 				add_child(c)
 		var style: String = _mods[row[0]].get("style", "")
-		if style in ["shop_lit", "shop_dark", "inn"] and w >= 3.0 and row[0] != "shop_dark_3a":
+		var retro: bool = _mods[row[0]].get("era", "60s") == "retro" or _layout == "outskirts"
+		if not retro and style in ["shop_lit", "shop_dark", "inn"] and w >= 3.0 and row[0] != "shop_dark_3a":
 			_add_awning(x + 0.15, x + w - 0.15, style == "shop_dark")
 		x += w
 	_street_len = x
 	# side street corner at the end
-	var s := _inst("side_ground_10", _mods)
+	var side_ids: Array = {"neon": ["side_ground_retro_10", "side_upper_retro_10"], "outskirts": ["side_ground_warehouse_10", "side_cap_warehouse_10"]}.get(_layout, ["side_ground_10", "side_upper_ad_10"])
+	var s := _inst(side_ids[0], _mods)
 	if s:
 		s.position = Vector3(x, 0, 0)
 		add_child(s)
-		var su := _inst("side_upper_ad_10", _mods)
+		var su := _inst(side_ids[1], _mods)
 		if su:
 			su.position = Vector3(x, 4.0, 0)
 			add_child(su)
+
+
+## Preview stand-in for the game's neon lettering (level_builder._build_neon).
+func _neon_text(root: Node3D, id: String, text: String, col: Color) -> void:
+	var r: Array = _mods[id].get("sign_rect", [0.4, 3.15, float(_mods[id]["width"]) - 0.4, 3.85, 0.06])
+	var tm := TextMesh.new()
+	tm.text = text
+	tm.font_size = 64
+	tm.pixel_size = 0.0045
+	tm.depth = 0.03
+	var est := text.length() * 64 * 0.62 * tm.pixel_size
+	var avail: float = float(r[2]) - float(r[0]) - 0.2
+	if est > avail:
+		tm.pixel_size *= avail / est
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.emission_enabled = true
+	m.emission = col
+	m.emission_energy_multiplier = 5.0
+	var mi := MeshInstance3D.new()
+	mi.mesh = tm
+	mi.material_override = m
+	mi.position = Vector3((float(r[0]) + float(r[2])) * 0.5, (float(r[1]) + float(r[3])) * 0.5, float(r[4]) + 0.04)
+	root.add_child(mi)
+	var om := OmniLight3D.new()
+	om.light_color = col
+	om.light_energy = 1.5
+	om.omni_range = 5.0
+	om.position = mi.position + Vector3(0, -0.2, 0.8)
+	root.add_child(om)
 
 
 func _apply_sign(root: Node, tex_path: String) -> void:
@@ -215,6 +300,9 @@ func _place_props() -> void:
 	var props := _load_json(PROPS, "props")
 	if props.is_empty():
 		return
+	if _layout != "60s":
+		_place_props_alt(props)
+		return
 	var line := [
 		# id, x, z (z < 0 means: use the default for its `place`)
 		["lamp_post", 3.0], ["hydrant", 7.5], ["newspaper_box", 9.6], ["trash_can", 12.2],
@@ -240,6 +328,43 @@ func _place_props() -> void:
 			add_child(n)
 	# parked cars
 	for c in [[10.0, "car_sedan"], [35.0, "car_sedan_b"], [100.0, "car_sedan_c"]]:
+		var car := _inst(c[1], props)
+		if car:
+			car.position = Vector3(c[0], -0.15, 4.65)
+			add_child(car)
+
+
+func _place_props_alt(props: Dictionary) -> void:
+	# [id, x, y, z]  (z = -1 -> default for its place)
+	var items: Array = []
+	var cars: Array = []
+	match _layout:
+		"neon":
+			items = [["vending_machine_a", 1.6, 0.0, 0.35], ["neon_blade_a", 8.8, 4.2, 0.0], ["led_ticker", 21.0, 4.15, 0.0],
+				["neon_googie", 15.5, 3.95, 0.0], ["overhead_cables_10", 9.0, 6.6, 0.0], ["overhead_cables_6", 26.0, 7.8, 0.0],
+				["neon_blade_b", 33.5, 4.3, 0.0], ["trash_bags", 30.0, 0.0, 0.3], ["bollard", 40.0, 0.0, -1],
+				["vending_machine_b", 47.0, 0.0, 0.35], ["led_ticker", 58.0, 4.15, 0.0], ["overhead_cables_10", 50.0, 6.6, 0.0],
+				["neon_blade_a", 64.5, 4.2, 0.0], ["hydrant", 70.0, 0.0, -1], ["fire_barrel", 77.0, 0.0, 0.8]]
+			cars = [[12.0, "car_retro_a"], [38.0, "car_retro_b"], [66.0, "car_retro_c"]]
+		"mixed":
+			items = [["neon_blade_a", 5.6, 4.2, 0.0], ["led_ticker", 12.0, 4.15, 0.0], ["overhead_cables_10", 0.5, 7.0, 0.0],
+				["vending_machine_b", 16.0, 0.0, 0.35], ["neon_googie", 25.0, 3.95, 0.0], ["overhead_cables_6", 20.0, 7.6, 0.0],
+				["neon_blade_b", 33.8, 4.3, 0.0], ["lamp_post", 3.0, 0.0, -1], ["lamp_post", 29.0, 0.0, -1],
+				["trash_can", 18.0, 0.0, -1], ["overhead_cables_10", 36.0, 6.8, 0.0], ["led_ticker", 44.0, 4.15, 0.0]]
+			cars = [[10.0, "car_sedan"], [30.0, "car_retro_a"], [52.0, "car_sedan_b"]]
+		"outskirts":
+			items = [["lamp_post", 6.0, 0.0, -1], ["trash_bags", 3.0, 0.0, 0.3], ["chainlink_fence_4", 42.0, 0.0, 0.3],
+				["chainlink_fence_4", 46.0, 0.0, 0.3], ["crates", 37.0, 0.0, 0.3], ["lamp_post", 33.0, 0.0, -1],
+				["fire_barrel", 49.0, 0.0, 0.8], ["street_sign", 30.0, 0.0, -1], ["gas_pump", 52.0, 0.0, 3.0]]
+			cars = [[14.0, "car_sedan_c"], [27.0, "car_sedan"]]
+	for it in items:
+		var n := _inst(it[0], props)
+		if n == null:
+			continue
+		var z: float = it[3] if it[3] >= 0.0 else _default_z(props[it[0]])
+		n.position = Vector3(it[1], it[2], z)
+		add_child(n)
+	for c in cars:
 		var car := _inst(c[1], props)
 		if car:
 			car.position = Vector3(c[0], -0.15, 4.65)
@@ -293,12 +418,18 @@ func _build_env() -> void:
 	env.volumetric_fog_albedo = Color(0.6, 0.65, 0.72)
 	env.volumetric_fog_emission = Color(0.02, 0.025, 0.03)
 	env.volumetric_fog_length = 40.0
+	if _layout in ["neon", "mixed"]:
+		sm.sky_top_color = Color(0.02, 0.025, 0.05)
+		sm.sky_horizon_color = Color(0.08, 0.07, 0.14)
+		env.ambient_light_energy = 0.35
+		env.volumetric_fog_density = 0.025
+		env.volumetric_fog_emission = Color(0.01, 0.01, 0.025)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.light_color = Color(0.62, 0.7, 0.85)
-	sun.light_energy = 0.35
+	sun.light_energy = 0.12 if _layout in ["neon", "mixed"] else 0.35
 	sun.rotation_degrees = Vector3(-55, 20, 0)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 60.0
@@ -319,7 +450,7 @@ func _build_rain() -> void:
 	p.visibility_aabb = AABB(Vector3(-20, -10, -10), Vector3(40, 30, 20))
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(14, 0.5, 6)
+	pm.emission_box_extents = Vector3(14, 0.5, 5)
 	pm.direction = Vector3(0.05, -1, 0)
 	pm.spread = 2.0
 	pm.initial_velocity_min = 11.0
@@ -337,7 +468,7 @@ func _build_rain() -> void:
 	p.draw_pass_1 = q
 	p.position = Vector3(0, 9, 3.5)
 	_cam.add_child(p)
-	p.position = Vector3(0, 7.5, -5.5)
+	p.position = Vector3(0, 7.5, -7.5)
 
 
 func _process(_dt: float) -> void:

@@ -120,13 +120,21 @@ def standard(name, d):
         img = r.ext_res("Texture2D", TEX + "generated/" + d["img"])
         P.append(("albedo_texture", img))
         P.append(("roughness", "%.3f" % d.get("rough", 0.8)))
-        if kind == "decal" or d["img"] == "posters.png":
-            P.append(("transparency", "2" if d["img"] == "posters.png" else "1"))
-            if d["img"] == "posters.png":
+        if "metal" in d:
+            P.append(("metallic", "%.3f" % d["metal"]))
+        scissor = d.get("scissor") or d["img"] == "posters.png"
+        if kind == "decal" or scissor:
+            P.append(("transparency", "2" if scissor else "1"))
+            if scissor:
                 P.append(("alpha_scissor_threshold", "0.5"))
+        if d.get("double"):
+            P.append(("cull_mode", "2"))
         if d.get("emit_energy", 0.0) > 0.0:
             P.append(("emission_enabled", "true"))
             P.append(("emission_texture", img))
+            if "emit_tint" in d:  # tint = emission colour x texture (operator multiply)
+                P.append(("emission", col(d["emit_tint"])))
+                P.append(("emission_operator", "1"))
             P.append(("emission_energy_multiplier", "%.3f" % d["emit_energy"]))
             P.append(("albedo_color", col((0.6, 0.6, 0.6))))
         if "tile" in d:
@@ -165,10 +173,25 @@ def wet(name, d):
     r.write(os.path.join(MAT_DIR, name + ".tres"))
 
 
+def shader_mat(name, d):
+    r = Res("ShaderMaterial")
+    sh = r.ext_res("Shader", d["shader"])
+    P = r.props
+    P.append(("resource_name", '"%s"' % name))
+    P.append(("shader", sh))
+    if "tex_param" in d:
+        P.append(("shader_parameter/" + d["tex_param"][0], r.ext_res("Texture2D", TEX + "generated/" + d["tex_param"][1])))
+    for k, v in d.get("params", {}).items():
+        P.append(("shader_parameter/" + k, v))
+    r.write(os.path.join(MAT_DIR, name + ".tres"))
+
+
 def main():
     os.makedirs(MAT_DIR, exist_ok=True)
     for name, d in MATS.items():
-        if d["kind"] == "wet":
+        if d["kind"] == "shader":
+            shader_mat(name, d)
+        elif d["kind"] == "wet":
             wet(name, d)
         else:
             standard(name, d)

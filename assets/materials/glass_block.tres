@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/generated/glass_block.png" id="1_glass_block"]
+
+[resource]
+resource_name = "glass_block"
+albedo_texture = ExtResource("1_glass_block")
+roughness = 0.150
+emission_enabled = true
+emission_texture = ExtResource("1_glass_block")
+emission_energy_multiplier = 0.120
+albedo_color = Color(0.6000, 0.6000, 0.6000, 1.0000)
+uv1_scale = Vector3(1.0000, 1.0000, 1.0000)
+texture_filter = 5

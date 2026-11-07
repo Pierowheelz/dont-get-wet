@@ -5,7 +5,9 @@ extends EditorScenePostImport
 ##
 ## 1. Every imported material whose name matches res://assets/materials/<name>.tres is replaced by
 ##    that shared material (textures are not embedded in the .glb files).
-## 2. Marker nodes named omni_* become OmniLight3D children (warm shop spill, lamps, fire...).
+## 2. Marker nodes named omni_* become OmniLight3D children (warm shop spill, lamps, fire, neon
+##    spill omni_neon_<colour>...). Neon lights are also put in group "kit_neon_light" so code can
+##    recolour them together with the neon_* materials.
 ##    Lights are added without shadows; gameplay code may tweak or remove them (group "kit_light").
 ## 3. Kit meshes are put in group "kit_mesh".
 
@@ -18,6 +20,15 @@ const LIGHTS := {
 	"omni_window": [Color(1.0, 0.62, 0.32), 0.7, 3.5, 1.8],
 	"omni_sodium": [Color(1.0, 0.56, 0.2), 3.0, 9.0, 1.3],
 	"omni_fire": [Color(1.0, 0.42, 0.12), 2.2, 5.5, 1.6],
+	"omni_cool": [Color(0.75, 0.9, 1.0), 1.2, 4.0, 1.5],
+	"omni_hover": [Color(0.3, 0.72, 1.0), 0.8, 2.2, 1.6],
+	# neon spill: colour matches the neon_* material of the same name
+	"omni_neon_cyan": [Color(0.2, 1.0, 0.95), 1.6, 5.0, 1.4],
+	"omni_neon_pink": [Color(1.0, 0.25, 0.75), 1.6, 5.0, 1.4],
+	"omni_neon_orange": [Color(1.0, 0.55, 0.15), 1.6, 5.0, 1.4],
+	"omni_neon_violet": [Color(0.55, 0.35, 1.0), 1.6, 5.0, 1.4],
+	"omni_neon_green": [Color(0.35, 1.0, 0.4), 1.6, 5.0, 1.4],
+	"omni_neon_red": [Color(1.0, 0.2, 0.25), 1.6, 5.0, 1.4],
 }
 
 var _cache := {}
@@ -68,6 +79,9 @@ func _walk(n: Node, root: Node) -> void:
 				l.shadow_enabled = false
 				l.light_bake_mode = Light3D.BAKE_DYNAMIC
 				l.add_to_group(&"kit_light", true)
+				if key.begins_with("omni_neon"):
+					l.add_to_group(&"kit_neon_light", true)
+					l.light_volumetric_fog_energy = 1.5
 				n.add_child(l)
 				l.owner = root
 				break

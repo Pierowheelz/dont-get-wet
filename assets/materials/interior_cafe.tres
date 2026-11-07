@@ -1,0 +1,13 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/generated/interior_cafe.png" id="1_interior_caf"]
+
+[resource]
+resource_name = "interior_cafe"
+albedo_texture = ExtResource("1_interior_caf")
+roughness = 0.800
+emission_enabled = true
+emission_texture = ExtResource("1_interior_caf")
+emission_energy_multiplier = 1.500
+albedo_color = Color(0.6000, 0.6000, 0.6000, 1.0000)
+texture_filter = 5

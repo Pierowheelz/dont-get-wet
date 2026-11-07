@@ -1016,6 +1016,14 @@
    "x": 6.0
   },
   {
+   "id": "vending_machine_a",
+   "x": 9.55
+  },
+  {
+   "id": "vending_machine_b",
+   "x": 19.1
+  },
+  {
    "id": "lamp_post",
    "x": 20.95
   },
@@ -1064,28 +1072,24 @@
    "x": 83.95
   },
   {
-   "id": "trash_bags",
-   "x": 92.42
+   "id": "vending_machine_b",
+   "x": 89.95
   },
   {
    "id": "lamp_post",
    "x": 99.8
   },
   {
-   "id": "crates",
-   "x": 106.28
-  },
-  {
    "id": "parking_meter",
    "x": 110.54
   },
   {
-   "id": "lamp_post",
-   "x": 116.0
+   "id": "sandwich_board",
+   "x": 113.09
   },
   {
-   "id": "sandwich_board",
-   "x": 120.23
+   "id": "lamp_post",
+   "x": 116.0
   },
   {
    "id": "street_sign",
@@ -1109,11 +1113,19 @@
   },
   {
    "id": "downpipe",
+   "x": 148.57
+  },
+  {
+   "id": "downpipe",
    "x": 156.78
   },
   {
    "id": "lamp_post",
    "x": 159.97
+  },
+  {
+   "id": "vending_machine_a",
+   "x": 174.67
   },
   {
    "id": "lamp_post",
@@ -1124,24 +1136,16 @@
    "x": 179.29
   },
   {
+   "id": "vending_machine_a",
+   "x": 186.03
+  },
+  {
    "id": "hydrant",
    "x": 190.13
   },
   {
-   "id": "crates",
-   "x": 192.96
-  },
-  {
    "id": "lamp_post",
    "x": 193.81
-  },
-  {
-   "id": "phone_booth",
-   "x": 202.33
-  },
-  {
-   "id": "downpipe",
-   "x": 207.64
   },
   {
    "id": "lamp_post",
@@ -1156,28 +1160,28 @@
    "x": 210.9
   },
   {
-   "id": "bollard",
-   "x": 216.68
+   "id": "vending_machine_b",
+   "x": 222.32
   },
   {
    "id": "lamp_post",
    "x": 223.71
   },
   {
+   "id": "phone_booth",
+   "x": 232.82
+  },
+  {
    "id": "lamp_post",
    "x": 240.15
   },
   {
-   "id": "cardboard_boxes",
-   "x": 243.54
+   "id": "downpipe",
+   "x": 241.33
   },
   {
    "id": "phone_booth",
    "x": 244.47
-  },
-  {
-   "id": "bollard",
-   "x": 246.47
   },
   {
    "id": "cardboard_boxes",
@@ -1193,15 +1197,15 @@
   },
   {
    "id": "newspaper_box_b",
-   "x": 257.21
+   "x": 258.36
   },
   {
    "id": "lamp_post",
    "x": 270.78
   },
   {
-   "id": "downpipe",
-   "x": 277.17
+   "id": "vending_machine_a",
+   "x": 279.37
   },
   {
    "id": "downpipe",
@@ -1216,16 +1220,12 @@
    "x": 288.4
   },
   {
-   "id": "bollard",
-   "x": 290.68
-  },
-  {
    "id": "hydrant",
    "x": 290.79
   },
   {
-   "id": "phone_booth",
-   "x": 299.45
+   "id": "vending_machine_b",
+   "x": 291.79
   },
   {
    "id": "bench",
@@ -1234,10 +1234,6 @@
   {
    "id": "lamp_post",
    "x": 303.05
-  },
-  {
-   "id": "bollard",
-   "x": 305.06
   },
   {
    "id": "mailbox",
@@ -1256,12 +1252,8 @@
    "x": 317.99
   },
   {
-   "id": "cardboard_boxes",
-   "x": 321.01
-  },
-  {
-   "id": "newspaper_box_b",
-   "x": 330.78
+   "id": "vending_machine_a",
+   "x": 324.97
   },
   {
    "id": "lamp_post",
@@ -1272,8 +1264,8 @@
    "x": 334.88
   },
   {
-   "id": "bollard",
-   "x": 344.49
+   "id": "vending_machine_b",
+   "x": 337.85
   },
   {
    "id": "lamp_post",
@@ -1296,6 +1288,10 @@
    "x": 360.66
   },
   {
+   "id": "vending_machine_a",
+   "x": 361.09
+  },
+  {
    "id": "street_sign",
    "x": 363.4
   },
@@ -1304,12 +1300,12 @@
    "x": 363.54
   },
   {
-   "id": "phone_booth",
-   "x": 372.82
-  },
-  {
    "id": "lamp_post",
    "x": 376.98
+  },
+  {
+   "id": "phone_booth",
+   "x": 388.01
   },
   {
    "id": "lamp_post",
@@ -1324,20 +1320,24 @@
    "x": 395.43
   },
   {
-   "id": "newspaper_box_b",
-   "x": 399.25
+   "id": "vending_machine_b",
+   "x": 397.73
+  },
+  {
+   "id": "vending_machine_a",
+   "x": 399.37
   },
   {
    "id": "lamp_post",
    "x": 402.63
   },
   {
-   "id": "trash_can",
-   "x": 408.09
+   "id": "vending_machine_b",
+   "x": 403.28
   },
   {
-   "id": "phone_booth",
-   "x": 409.33
+   "id": "trash_can",
+   "x": 408.09
   },
   {
    "id": "lamp_post",
