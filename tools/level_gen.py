@@ -222,6 +222,14 @@ def gen_level(lid, cfg):
     for _ in range(int(x / 20)):
         props.append({"id": rng.choice(["hydrant", "trash_can", "newspaper_box", "bench", "mailbox",
                                          "parking_meter"]), "x": round(rng.uniform(4, x - 4), 2)})
+    clutter = ["trash_bags", "crates", "cardboard_boxes", "newspaper_box_b", "sandwich_board", "phone_booth",
+               "bollard", "downpipe"]
+    if cfg["aesthetic"] in ("industrial", "outskirts"):
+        clutter += ["crates", "crates", "trash_bags"]
+    for _ in range(int(x / 14)):
+        props.append({"id": rng.choice(clutter), "x": round(rng.uniform(4, x - 4), 2)})
+    for c in crossings:
+        props.append({"id": "street_sign", "x": round(c["x"] - 0.6, 2)})
 
     rain = [[0.0, cfg["rain"][0]], [0.5, cfg["rain"][1]], [1.0, cfg["rain"][1]]]
     wind = [[0.0, cfg["wind"][0]], [0.5, cfg["wind"][1]], [1.0, cfg["wind"][1]]]

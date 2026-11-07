@@ -10,7 +10,7 @@ const ROAD_Y := -0.16
 const AWNING_WALL_Y := 3.05
 const AWNING_FRONT_Y := 2.6
 const AWNING_DEPTH := 2.35
-const SIGN_Z := 0.32   # in front of the kit's fascia board
+const SIGN_Z := 0.09   # just in front of the kit's fascia board face (z 0.055)
 const KIT_PATH := "res://assets/buildings/kit.json"
 const PROPS_PATH := "res://assets/props/props.json"
 
@@ -29,6 +29,7 @@ var rng := RandomNumberGenerator.new()
 var kit: Dictionary = {}            # style -> kind -> Array of module dicts
 var props_kit: Dictionary = {}      # id -> prop dict
 var lit_windows: Array = []         # [Vector3 position, Color] for lights
+var inn_door_x := -1.0              # world x of the inn door (from the kit), -1 if unknown
 var sign_font: Font
 var _mats := {}
 var _awning_shader: Shader
@@ -336,6 +337,8 @@ func _kit_facade(x: float, w: float, style: String, floors: int) -> bool:
 		if n:
 			n.position = Vector3(x + pad + p[1], 0, 0)
 			root.add_child(n)
+			if p[0].has("door") and inn_door_x < 0.0:
+				inn_door_x = x + pad + float(p[1]) + float(p[0]["door"][0])
 	_fill(x, pad)
 	_fill(x + w - pad, pad)
 	# Upper storeys
@@ -710,6 +713,23 @@ func _build_crossing(c: Dictionary) -> void:
 	# Stop line and a street sign / traffic light at the far corner.
 	_box(Vector3(x1 - x0 - 4.4, 0.02, 0.3), Vector3((x0 + x1) * 0.5, ROAD_Y + 0.005, -1.0), _mat("zebra", Color(0.75, 0.74, 0.7), 0.35))
 	_traffic_light(x1 - 0.6)
+	# A couple of street lamps down the side street so it isn't a black void.
+	for lz in [-7.0, -19.0]:
+		var lx := x0 + 1.2 if lz > -10.0 else x1 - 1.2
+		if props_kit.has("lamp_post"):
+			var n := _instance(props_kit["lamp_post"]["scene"])
+			n.position = Vector3(lx, 0, lz)
+			n.rotation.y = PI * 0.5 if lx < (x0 + x1) * 0.5 else -PI * 0.5
+			root.add_child(n)
+		var sl := SpotLight3D.new()
+		sl.light_color = Color(1.0, 0.7, 0.42)
+		sl.light_energy = 4.0
+		sl.spot_range = 10.0
+		sl.spot_angle = 60.0
+		sl.light_volumetric_fog_energy = 2.5
+		sl.position = Vector3(lx, 4.9, lz)
+		sl.rotation = Vector3(-PI * 0.5, 0, 0)
+		root.add_child(sl)
 
 
 func _side_street_wall(x: float, floors: int, facing: float) -> void:

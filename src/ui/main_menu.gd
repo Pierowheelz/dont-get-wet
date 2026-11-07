@@ -153,7 +153,14 @@ func _set_painterly(on: bool) -> void:
 # --- pages ------------------------------------------------------------------------------------
 
 func _clear(page_name: String) -> void:
+	var was_main := _page_name == "main" or _page_name == ""
 	_page_name = page_name
+	var compact := page_name != "main"
+	if compact == was_main:
+		# Sub-pages shrink the title out of the way so long lists fit on screen.
+		var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_title_box, "scale", Vector2.ONE * (0.6 if compact else 1.0), 0.35)
+		tw.tween_property(_page, "position:y", 380.0 if compact else 560.0, 0.35)
 	_sound.hush()
 	for c in _page.get_children():
 		_page.remove_child(c)

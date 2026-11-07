@@ -666,16 +666,40 @@
    "x": 6.0
   },
   {
+   "id": "crates",
+   "x": 11.98
+  },
+  {
    "id": "lamp_post",
    "x": 18.61
+  },
+  {
+   "id": "downpipe",
+   "x": 19.27
+  },
+  {
+   "id": "trash_bags",
+   "x": 29.95
+  },
+  {
+   "id": "newspaper_box_b",
+   "x": 31.79
   },
   {
    "id": "lamp_post",
    "x": 34.23
   },
   {
+   "id": "crates",
+   "x": 37.98
+  },
+  {
    "id": "lamp_post",
    "x": 51.09
+  },
+  {
+   "id": "trash_bags",
+   "x": 63.75
   },
   {
    "id": "lamp_post",
@@ -688,6 +712,10 @@
   {
    "id": "bench",
    "x": 68.49
+  },
+  {
+   "id": "street_sign",
+   "x": 78.9
   },
   {
    "id": "lamp_post",
@@ -710,24 +738,52 @@
    "x": 104.21
   },
   {
+   "id": "downpipe",
+   "x": 104.78
+  },
+  {
    "id": "lamp_post",
    "x": 109.27
+  },
+  {
+   "id": "crates",
+   "x": 123.45
   },
   {
    "id": "lamp_post",
    "x": 123.65
   },
   {
+   "id": "bollard",
+   "x": 127.3
+  },
+  {
    "id": "lamp_post",
    "x": 138.62
+  },
+  {
+   "id": "crates",
+   "x": 140.97
   },
   {
    "id": "lamp_post",
    "x": 154.15
   },
   {
+   "id": "crates",
+   "x": 157.99
+  },
+  {
+   "id": "street_sign",
+   "x": 161.4
+  },
+  {
    "id": "newspaper_box",
    "x": 164.51
+  },
+  {
+   "id": "phone_booth",
+   "x": 167.61
   },
   {
    "id": "lamp_post",
@@ -738,8 +794,16 @@
    "x": 179.44
   },
   {
+   "id": "newspaper_box_b",
+   "x": 180.89
+  },
+  {
    "id": "lamp_post",
    "x": 184.03
+  },
+  {
+   "id": "sandwich_board",
+   "x": 186.34
   },
   {
    "id": "trash_can",
@@ -748,6 +812,10 @@
   {
    "id": "hydrant",
    "x": 191.6
+  },
+  {
+   "id": "cardboard_boxes",
+   "x": 195.44
   },
   {
    "id": "lamp_post",
@@ -774,6 +842,10 @@
    "x": 217.83
   },
   {
+   "id": "crates",
+   "x": 219.66
+  },
+  {
    "id": "lamp_post",
    "x": 228.45
   },
@@ -786,12 +858,28 @@
    "x": 240.89
   },
   {
+   "id": "street_sign",
+   "x": 251.9
+  },
+  {
+   "id": "phone_booth",
+   "x": 257.06
+  },
+  {
+   "id": "trash_bags",
+   "x": 257.23
+  },
+  {
    "id": "lamp_post",
    "x": 258.73
   },
   {
    "id": "newspaper_box",
    "x": 272.05
+  },
+  {
+   "id": "crates",
+   "x": 274.0
   },
   {
    "id": "trash_can",
@@ -806,8 +894,24 @@
    "x": 292.84
   },
   {
+   "id": "crates",
+   "x": 296.34
+  },
+  {
+   "id": "trash_bags",
+   "x": 303.58
+  },
+  {
+   "id": "crates",
+   "x": 306.33
+  },
+  {
    "id": "lamp_post",
    "x": 310.82
+  },
+  {
+   "id": "bollard",
+   "x": 313.2
   }
  ]
 }

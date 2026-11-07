@@ -54,6 +54,9 @@ func _ready() -> void:
 	add_child(world)
 	builder = LevelBuilder.new()
 	builder.build(world, data)
+	if builder.inn_door_x > 0.0:
+		end_x = builder.inn_door_x
+		par_time = end_x / Tun.f("walk_speed")
 	_parse_features()
 	_setup_environment()
 	_setup_shop_lights()

@@ -24,7 +24,7 @@ func _spawn() -> void:
 	var dir := -1.0 if randf() < 0.6 else 1.0
 	var cam_x: float = level.camera.position.x
 	var car := Node3D.new()
-	var path := "res://assets/props/car_sedan.glb"
+	var path := "res://assets/props/%s.glb" % ["car_sedan", "car_sedan_b", "car_sedan_c"][randi() % 3]
 	var body: Node3D = load(path).instantiate() if ResourceLoader.exists(path) else CarHazard.greybox_car()
 	car.add_child(body)
 	car.position = Vector3(cam_x - dir * 30.0, LevelBuilder.ROAD_Y, 5.4)

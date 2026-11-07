@@ -25,7 +25,7 @@ var _lights: Array[SpotLight3D] = []
 func _ready() -> void:
 	position = Vector3(crossing_x + 1.7, LevelBuilder.ROAD_Y, START_Z)
 	rotation.y = -PI * 0.5
-	var car_path := "res://assets/props/car_sedan.glb"
+	var car_path := "res://assets/props/%s.glb" % ["car_sedan", "car_sedan_b", "car_sedan_c"][randi() % 3]
 	if ResourceLoader.exists(car_path):
 		_body = load(car_path).instantiate()
 	else:

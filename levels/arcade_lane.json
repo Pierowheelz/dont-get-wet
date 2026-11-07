@@ -755,6 +755,10 @@
    "x": 6.02
   },
   {
+   "id": "bollard",
+   "x": 8.82
+  },
+  {
    "id": "hydrant",
    "x": 11.01
   },
@@ -765,6 +769,10 @@
   {
    "id": "lamp_post",
    "x": 20.69
+  },
+  {
+   "id": "newspaper_box_b",
+   "x": 22.07
   },
   {
    "id": "lamp_post",
@@ -779,12 +787,44 @@
    "x": 49.93
   },
   {
+   "id": "sandwich_board",
+   "x": 52.16
+  },
+  {
+   "id": "phone_booth",
+   "x": 54.02
+  },
+  {
+   "id": "street_sign",
+   "x": 63.9
+  },
+  {
    "id": "lamp_post",
    "x": 67.1
   },
   {
+   "id": "cardboard_boxes",
+   "x": 78.0
+  },
+  {
+   "id": "sandwich_board",
+   "x": 78.11
+  },
+  {
    "id": "lamp_post",
    "x": 80.16
+  },
+  {
+   "id": "newspaper_box_b",
+   "x": 82.64
+  },
+  {
+   "id": "phone_booth",
+   "x": 90.48
+  },
+  {
+   "id": "cardboard_boxes",
+   "x": 91.68
   },
   {
    "id": "parking_meter",
@@ -793,6 +833,10 @@
   {
    "id": "lamp_post",
    "x": 94.82
+  },
+  {
+   "id": "cardboard_boxes",
+   "x": 97.06
   },
   {
    "id": "lamp_post",
@@ -811,16 +855,40 @@
    "x": 126.54
   },
   {
+   "id": "street_sign",
+   "x": 127.9
+  },
+  {
    "id": "trash_can",
    "x": 135.45
+  },
+  {
+   "id": "crates",
+   "x": 139.17
+  },
+  {
+   "id": "downpipe",
+   "x": 142.69
   },
   {
    "id": "lamp_post",
    "x": 144.45
   },
   {
+   "id": "downpipe",
+   "x": 146.8
+  },
+  {
+   "id": "cardboard_boxes",
+   "x": 148.12
+  },
+  {
    "id": "newspaper_box",
    "x": 155.77
+  },
+  {
+   "id": "phone_booth",
+   "x": 161.29
   },
   {
    "id": "lamp_post",
@@ -839,6 +907,18 @@
    "x": 193.3
   },
   {
+   "id": "newspaper_box_b",
+   "x": 197.72
+  },
+  {
+   "id": "street_sign",
+   "x": 198.9
+  },
+  {
+   "id": "newspaper_box_b",
+   "x": 207.45
+  },
+  {
    "id": "lamp_post",
    "x": 208.04
   },
@@ -849,6 +929,14 @@
   {
    "id": "lamp_post",
    "x": 224.91
+  },
+  {
+   "id": "crates",
+   "x": 227.06
+  },
+  {
+   "id": "bollard",
+   "x": 231.97
   },
   {
    "id": "lamp_post",
@@ -863,8 +951,20 @@
    "x": 267.45
   },
   {
+   "id": "crates",
+   "x": 269.14
+  },
+  {
+   "id": "street_sign",
+   "x": 269.9
+  },
+  {
    "id": "lamp_post",
    "x": 279.87
+  },
+  {
+   "id": "trash_bags",
+   "x": 281.24
   },
   {
    "id": "lamp_post",
@@ -883,6 +983,10 @@
    "x": 309.19
   },
   {
+   "id": "phone_booth",
+   "x": 309.3
+  },
+  {
    "id": "trash_can",
    "x": 311.51
   },
@@ -895,8 +999,16 @@
    "x": 319.79
   },
   {
+   "id": "sandwich_board",
+   "x": 320.1
+  },
+  {
    "id": "lamp_post",
    "x": 322.99
+  },
+  {
+   "id": "newspaper_box_b",
+   "x": 330.42
   }
  ]
 }

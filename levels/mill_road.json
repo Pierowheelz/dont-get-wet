@@ -940,6 +940,14 @@
    "x": 6.0
   },
   {
+   "id": "newspaper_box_b",
+   "x": 9.95
+  },
+  {
+   "id": "phone_booth",
+   "x": 12.96
+  },
+  {
    "id": "lamp_post",
    "x": 21.6
   },
@@ -948,8 +956,16 @@
    "x": 34.32
   },
   {
+   "id": "bollard",
+   "x": 43.4
+  },
+  {
    "id": "lamp_post",
    "x": 47.13
+  },
+  {
+   "id": "downpipe",
+   "x": 58.88
   },
   {
    "id": "trash_can",
@@ -960,8 +976,20 @@
    "x": 64.83
   },
   {
+   "id": "crates",
+   "x": 67.5
+  },
+  {
+   "id": "trash_bags",
+   "x": 74.79
+  },
+  {
    "id": "lamp_post",
    "x": 77.86
+  },
+  {
+   "id": "street_sign",
+   "x": 85.9
   },
   {
    "id": "lamp_post",
@@ -980,6 +1008,10 @@
    "x": 119.2
   },
   {
+   "id": "phone_booth",
+   "x": 126.08
+  },
+  {
    "id": "parking_meter",
    "x": 126.38
   },
@@ -992,16 +1024,36 @@
    "x": 128.14
   },
   {
+   "id": "trash_bags",
+   "x": 131.26
+  },
+  {
+   "id": "crates",
+   "x": 134.53
+  },
+  {
    "id": "lamp_post",
    "x": 142.02
+  },
+  {
+   "id": "downpipe",
+   "x": 142.6
   },
   {
    "id": "hydrant",
    "x": 152.86
   },
   {
+   "id": "crates",
+   "x": 153.17
+  },
+  {
    "id": "lamp_post",
    "x": 159.18
+  },
+  {
+   "id": "crates",
+   "x": 170.77
   },
   {
    "id": "lamp_post",
@@ -1012,12 +1064,44 @@
    "x": 189.48
   },
   {
+   "id": "downpipe",
+   "x": 197.5
+  },
+  {
+   "id": "street_sign",
+   "x": 198.4
+  },
+  {
+   "id": "newspaper_box_b",
+   "x": 202.78
+  },
+  {
    "id": "lamp_post",
    "x": 204.42
   },
   {
+   "id": "sandwich_board",
+   "x": 207.37
+  },
+  {
+   "id": "downpipe",
+   "x": 215.59
+  },
+  {
    "id": "lamp_post",
    "x": 218.55
+  },
+  {
+   "id": "trash_bags",
+   "x": 227.43
+  },
+  {
+   "id": "trash_bags",
+   "x": 229.4
+  },
+  {
+   "id": "crates",
+   "x": 232.23
   },
   {
    "id": "lamp_post",
@@ -1036,16 +1120,36 @@
    "x": 262.01
   },
   {
+   "id": "sandwich_board",
+   "x": 278.07
+  },
+  {
    "id": "lamp_post",
    "x": 278.19
+  },
+  {
+   "id": "downpipe",
+   "x": 279.24
   },
   {
    "id": "newspaper_box",
    "x": 284.76
   },
   {
+   "id": "newspaper_box_b",
+   "x": 289.69
+  },
+  {
+   "id": "cardboard_boxes",
+   "x": 290.07
+  },
+  {
    "id": "lamp_post",
    "x": 292.65
+  },
+  {
+   "id": "trash_bags",
+   "x": 296.39
   },
   {
    "id": "newspaper_box",
@@ -1054,6 +1158,14 @@
   {
    "id": "hydrant",
    "x": 301.85
+  },
+  {
+   "id": "street_sign",
+   "x": 302.4
+  },
+  {
+   "id": "downpipe",
+   "x": 307.37
   },
   {
    "id": "lamp_post",
@@ -1072,6 +1184,10 @@
    "x": 326.8
   },
   {
+   "id": "crates",
+   "x": 335.66
+  },
+  {
    "id": "bench",
    "x": 337.47
   },
@@ -1084,8 +1200,16 @@
    "x": 354.56
   },
   {
+   "id": "cardboard_boxes",
+   "x": 363.14
+  },
+  {
    "id": "parking_meter",
    "x": 364.61
+  },
+  {
+   "id": "downpipe",
+   "x": 365.2
   },
   {
    "id": "lamp_post",
@@ -1108,6 +1232,10 @@
    "x": 387.04
   },
   {
+   "id": "street_sign",
+   "x": 389.4
+  },
+  {
    "id": "lamp_post",
    "x": 397.08
   },
@@ -1120,12 +1248,20 @@
    "x": 408.79
   },
   {
+   "id": "sandwich_board",
+   "x": 410.21
+  },
+  {
    "id": "lamp_post",
    "x": 410.23
   },
   {
    "id": "bench",
    "x": 412.48
+  },
+  {
+   "id": "crates",
+   "x": 413.78
   },
   {
    "id": "lamp_post",

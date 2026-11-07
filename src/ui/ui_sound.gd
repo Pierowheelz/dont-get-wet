@@ -50,15 +50,15 @@ func play(sound: StringName, db := 0.0, pitch := 1.0) -> void:
 	p.play()
 
 
-func _stream(name: String) -> AudioStream:
-	if _cache.has(name):
-		return _cache[name]
+func _stream(sound: String) -> AudioStream:
+	if _cache.has(sound):
+		return _cache[sound]
 	var s: AudioStream = null
 	for ext in [".ogg", ".wav"]:
-		if ResourceLoader.exists(DIR + name + ext):
-			s = load(DIR + name + ext)
+		if ResourceLoader.exists(DIR + sound + ext):
+			s = load(DIR + sound + ext)
 			break
-	_cache[name] = s
+	_cache[sound] = s
 	return s
 
 
