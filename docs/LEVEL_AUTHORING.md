@@ -81,7 +81,7 @@ of it.
 
 | `type` | Effect |
 |---|---|
-| `gutter` (`x`) | A falling column at z 1.65. Inside 0.45 m of it the rate is 26/s unless the umbrella is directly above. The bot opens for it even under cover. The column starts at 2.78 m, so it clips through intact awning canvas. Put it in a `wall` seam or inside a tear of 1 m or more. |
+| `gutter` (`x`, optional `kind`, `side`) | A falling column on the walker's line. Inside 0.45 m of it the rate is 26/s unless the umbrella is directly above. The bot opens for it even under cover. Put it in a `wall` seam or inside a tear of 1 m or more; the build warns if it lands on intact canvas. The builder draws what it pours from: `snapped` (a gooseneck downpipe broken off over the walkway, the piece on the pavement), `crack` (the same pipe split open) or `collapse` (the nearest canvas within 1 m has slumped off its frame and spills from its corner, which hangs 0.3 m past the canvas edge; the stream moves there from `x`; canvas awnings only, otherwise it falls back to `snapped` at `x`). Without `kind` a street cycles through the three. `side` is 1 when the source reaches the stream from lower x, -1 from higher x. The gutter brings its own downpipe, so don't add a `downpipe` prop at the same x. |
 | `puddle` (`x`, `w`, `deep`) | Stepping in costs 0.75 walking and 2.5 running (above about 2.2 m/s). `deep` multiplies that by 1.6. Nobody can step around one, so the lesson is "walk, don't run". |
 | `sun` (`x`, `w`) | No rain, and 3/s drying (before the wetness falloff) scaled by how closed the umbrella is (open shades him, no drying). The rain-free span stretches to meet cover within 2 m. Both bots close the umbrella in it. |
 | `vent` (`x`, `w` = 1.6) | 4.5/s drying. |

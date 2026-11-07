@@ -106,7 +106,6 @@
   {"id": "cardboard_boxes", "x": 53.0},
   {"id": "crates", "x": 58.0},
   {"id": "lamp_post", "x": 60.2},
-  {"id": "downpipe_tall", "x": 71.25},
   {"id": "lamp_post", "x": 72.7},
   {"id": "crates", "x": 72.8},
   {"id": "chainlink_fence_4", "x": 81.0},
@@ -164,7 +163,6 @@
   {"id": "bench", "x": 286.5},
   {"id": "lamp_post", "x": 293.7},
   {"id": "sandwich_board", "x": 294.0},
-  {"id": "downpipe", "x": 299.75},
   {"id": "bollard", "x": 300.0},
   {"id": "newspaper_box", "x": 309.5}
  ]
