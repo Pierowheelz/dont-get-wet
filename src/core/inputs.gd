@@ -31,8 +31,10 @@ func _ready() -> void:
 	_key(&"stop", KEY_CTRL)
 	_axis(&"tilt_forward", JOY_AXIS_RIGHT_X, 1.0)
 	_axis(&"tilt_back", JOY_AXIS_RIGHT_X, -1.0)
-	_key(&"tilt_forward", KEY_E)
-	_key(&"tilt_back", KEY_Q)
+	_axis(&"tilt_forward_l", JOY_AXIS_LEFT_X, 1.0)
+	_axis(&"tilt_back_l", JOY_AXIS_LEFT_X, -1.0)
+	_key(&"tilt_forward_key", KEY_E)
+	_key(&"tilt_back_key", KEY_Q)
 	_button(&"pause", JOY_BUTTON_START)
 	_key(&"pause", KEY_ESCAPE)
 	_key(&"pause", KEY_P)
@@ -120,8 +122,14 @@ func hurry() -> float:
 
 ## -1..1 tilt request (+ = forward).
 func tilt() -> float:
-	var stick := Input.get_action_strength(&"tilt_forward") - Input.get_action_strength(&"tilt_back")
+	# Either stick tilts; if both are pushed at once, average them so they don't fight.
+	var right := Input.get_action_strength(&"tilt_forward") - Input.get_action_strength(&"tilt_back")
+	var left := Input.get_action_strength(&"tilt_forward_l") - Input.get_action_strength(&"tilt_back_l")
+	var stick := (right + left) * 0.5 if (right != 0.0 and left != 0.0) else right + left
+	var keys := Input.get_action_strength(&"tilt_forward_key") - Input.get_action_strength(&"tilt_back_key")
 	var v := stick
+	if absf(keys) > absf(v):
+		v = keys
 	if absf(touch_tilt) > absf(v):
 		v = touch_tilt
 	if absf(wheel_tilt) > absf(v):

@@ -25,7 +25,7 @@ godot --path . --editor        # open in the editor
 | Umbrella (hold; partial press = partly open) | RT | Right mouse / Space | Right pad |
 | Hurry (full = run) | LT | Shift (W = brisk walk) | Left pad |
 | Stop for breath (only at ≤25% stamina) | LB | S / Ctrl | Stop button |
-| Tilt umbrella forward / back | Right stick | E / Q, mouse wheel | Drag on right pad |
+| Tilt umbrella forward / back | Either stick (both = averaged) | E / Q, mouse wheel | Drag on right pad |
 | Pause / restart | Start / Back | Esc / R | — |
 
 ## Developer tools

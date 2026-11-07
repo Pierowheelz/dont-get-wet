@@ -263,7 +263,7 @@ func _first_encounters() -> void:
 				hud.hint("A break in the clouds. Close the umbrella and let the sun dry you off.", 3.5)
 	if not _seen.has("wind") and absf(wind(x)) > 0.18:
 		_seen["wind"] = true
-		var keys := "right stick" if pad else "Q / E or mouse wheel"
+		var keys := "either stick" if pad else "Q / E or mouse wheel"
 		hud.hint("The wind is slanting the rain — tilt the umbrella into it (%s)." % keys, 4.0)
 	if not _seen.has("stop") and player.stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") and player.sheltered:
 		_seen["stop"] = true
@@ -290,7 +290,7 @@ func _on_car_approaching() -> void:
 	if _car_hints < 2 and hud and hud.has_method("hint"):
 		_car_hints += 1
 		var pad := Inputs.last_device == &"gamepad"
-		hud.hint("Headlights! Tilt the umbrella forward to block the splash  (%s)" % ("right stick →" if pad else "E / scroll up"), 3.5)
+		hud.hint("Headlights! Tilt the umbrella forward to block the splash  (%s)" % ("stick →" if pad else "E / scroll up"), 3.5)
 
 
 func _on_defeated() -> void:

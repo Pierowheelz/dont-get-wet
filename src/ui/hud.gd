@@ -159,7 +159,7 @@ func _key_text(action: String) -> String:
 	match action:
 		"umbrella": return "Hold RT" if pad else "Hold Right Mouse / Space"
 		"hurry": return "LT" if pad else "Shift (W for a brisk walk)"
-		"tilt": return "Right stick" if pad else "Q / E or mouse wheel"
+		"tilt": return "Either stick" if pad else "Q / E or mouse wheel"
 		"stop": return "LB" if pad else "S"
 	return action
 

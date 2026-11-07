@@ -32,7 +32,7 @@ Closer to an action game than a rhythm game: the player makes constant small tra
 | Umbrella (hold, analog) | Right trigger | Right mouse / Space (digital) | Hold right-side button |
 | Hurry (analog; full = run) | Left trigger | Shift (full) / W (half) | Hold left-side button |
 | Stop (only ≤25% stamina) | Left bumper | S / Ctrl | Stop button |
-| Tilt umbrella fwd/back | Right stick X | Mouse wheel / Q, E | Drag on umbrella button |
+| Tilt umbrella fwd/back | Either stick X (both pushed = average) | Mouse wheel / Q, E | Drag on umbrella button |
 | Pause | Start | Esc | Pause icon |
 
 Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger.
