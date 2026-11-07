@@ -11,6 +11,7 @@ const RING_STEPS := 7
 const ANGLE_OPEN := deg_to_rad(72.0)
 const ANGLE_CLOSED := deg_to_rad(174.0)
 const UMBRELLA_LAYER := 1 << 3
+const HUB_R := 0.031          # canopy fabric starts on a ring just outside the shaft
 
 @export var canopy_color := Color(0.58, 0.1, 0.09)   # oxblood: reads against dark streets
 
@@ -45,49 +46,77 @@ func _ready() -> void:
 	_canopy_mat.rim = 0.35
 	_canopy_mat.rim_tint = 0.3
 	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.78, 0.78, 0.8)
-	metal.metallic = 0.9
-	metal.roughness = 0.3
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.32, 0.17, 0.08)
-	wood.roughness = 0.45
+	metal.albedo_color = Color(0.2, 0.21, 0.23)     # dark gunmetal
+	metal.metallic = 0.6
+	metal.roughness = 0.34
+	var matte := StandardMaterial3D.new()             # same finish, dulled, for the grip and sleeve
+	matte.albedo_color = Color(0.15, 0.155, 0.17)
+	matte.metallic = 0.3
+	matte.roughness = 0.7
+	var bore := StandardMaterial3D.new()
+	bore.albedo_color = Color(0.005, 0.005, 0.006)
+	bore.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
 	_canopy = MeshInstance3D.new()
 	_canopy.material_override = _canopy_mat
 	_pivot.add_child(_canopy)
 
-	_shaft = MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.016
-	cyl.bottom_radius = 0.018
-	cyl.height = SHAFT_LEN + 0.12
-	cyl.radial_segments = 10
-	_shaft.mesh = cyl
-	_shaft.position.y = (SHAFT_LEN + 0.12) * 0.5 - 0.02
-	_shaft.material_override = metal
-	_pivot.add_child(_shaft)
+	# Stout shaft (profile r, y) from the release housing up past the canopy to an open, lipped spout.
+	const BASE := 0.17
+	const TOP := SHAFT_LEN + 0.09
+	_shaft = _part(_lathe(PackedVector2Array([Vector2(0.0, BASE), Vector2(0.027, BASE),
+		Vector2(0.025, TOP - 0.024), Vector2(0.029, TOP - 0.02), Vector2(0.029, TOP),
+		Vector2(0.018, TOP), Vector2(0.018, TOP - 0.004)])), metal)
+	_part(_lathe(PackedVector2Array([Vector2(0.018, TOP - 0.004), Vector2(0.018, TOP - 0.06),
+		Vector2(0.0, TOP - 0.06)])), bore)
+	_part(_lathe(PackedVector2Array([Vector2(0.026, SHAFT_LEN - 0.016), Vector2(0.036, SHAFT_LEN - 0.01),
+		Vector2(0.036, SHAFT_LEN + 0.012), Vector2(0.026, SHAFT_LEN + 0.018)])), metal)   # top collar over the fabric
+	# Ridged runner sleeve on the lower shaft.
+	var sleeve := PackedVector2Array([Vector2(0.026, 0.24)])
+	for i in 6:
+		var y := 0.25 + i * 0.022
+		sleeve.append_array([Vector2(0.032, y), Vector2(0.032, y + 0.014), Vector2(0.029, y + 0.017),
+			Vector2(0.029, y + 0.02)])
+	sleeve.append_array([Vector2(0.032, 0.382), Vector2(0.026, 0.39)])
+	_part(_lathe(sleeve), matte)
 
-	# J-shaped handle below the grip.
-	_handle = MeshInstance3D.new()
-	var torus := TorusMesh.new()
-	torus.inner_radius = 0.035
-	torus.outer_radius = 0.058
-	torus.rings = 16
-	torus.ring_segments = 8
-	_handle.mesh = torus
-	_handle.rotation = Vector3(PI * 0.5, 0, 0)
-	_handle.position = Vector3(-0.046, -0.06, 0)
-	_handle.material_override = wood
-	_pivot.add_child(_handle)
-	var grip_cyl := MeshInstance3D.new()
+	# Release housing above the hand, with the catch and its guard on the handle's side.
+	var housing := BoxMesh.new()
+	housing.size = Vector3(0.056, 0.11, 0.044)
+	_part(housing, metal, Vector3(-0.004, 0.12, 0))
+	var catch_ := BoxMesh.new()
+	catch_.size = Vector3(0.024, 0.009, 0.008)
+	_part(catch_, metal, Vector3(-0.038, 0.088, 0), Vector3(0, 0, -0.5))
+	var guard := TorusMesh.new()
+	guard.inner_radius = 0.019
+	guard.outer_radius = 0.025
+	guard.rings = 16
+	guard.ring_segments = 6
+	_part(guard, metal, Vector3(-0.036, 0.083, 0), Vector3(PI * 0.5, 0, 0))
+
+	# Grip under the hand, then a short crook swept back and down, wider toward its flat end.
 	var gc := CylinderMesh.new()
-	gc.top_radius = 0.016
-	gc.bottom_radius = 0.016
-	gc.height = 0.14
-	grip_cyl.mesh = gc
-	grip_cyl.position.y = 0.0
-	grip_cyl.material_override = wood
-	_pivot.add_child(grip_cyl)
+	gc.top_radius = 0.024
+	gc.bottom_radius = 0.022
+	gc.height = 0.13
+	_part(gc, matte, Vector3(0, 0.0, 0))
+	var knee := SphereMesh.new()
+	knee.radius = 0.023
+	knee.height = 0.046
+	_part(knee, matte, Vector3(0, -0.065, 0))
+	var stock := CylinderMesh.new()
+	stock.top_radius = 0.022
+	stock.bottom_radius = 0.03
+	stock.height = 0.13
+	stock.radial_segments = 12
+	const STOCK_ANGLE := 0.95                       # from straight down, swinging back toward -X
+	var dir := Vector3(-sin(STOCK_ANGLE), -cos(STOCK_ANGLE), 0)
+	var stock_root := Node3D.new()                  # oval section: scale across the axis, not along it
+	stock_root.position = Vector3(0, -0.065, 0) + dir * 0.065
+	stock_root.rotation.z = -STOCK_ANGLE
+	_pivot.add_child(stock_root)
+	_handle = _part(stock, matte, Vector3.ZERO, Vector3.ZERO, stock_root)
+	_handle.scale = Vector3(1.25, 1.0, 0.8)
 
 	_body = StaticBody3D.new()
 	_body.collision_layer = UMBRELLA_LAYER
@@ -101,6 +130,43 @@ func _ready() -> void:
 	_pivot.add_child(_body)
 	_rebuild()
 
+
+
+func _part(mesh: Mesh, mat: Material, pos := Vector3.ZERO, rot := Vector3.ZERO, parent: Node3D = null) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.position = pos
+	mi.rotation = rot
+	(parent if parent else _pivot).add_child(mi)
+	return mi
+
+
+## Turned mesh: `profile` is (radius, y) points revolved around +Y. Each profile step gets its own
+## normal across its width, so ridges and lips keep crisp edges.
+static func _lathe(profile: PackedVector2Array, segs := 16) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in profile.size() - 1:
+		var p0 := profile[i]
+		var p1 := profile[i + 1]
+		var d := (p1 - p0).normalized()
+		var n2 := Vector2(d.y, -d.x)                 # outward for a profile running upward
+		for k in segs:
+			var a0 := TAU * k / segs
+			var a1 := TAU * (k + 1) / segs
+			var c0 := Vector3(cos(a0), 0, sin(a0))
+			var c1 := Vector3(cos(a1), 0, sin(a1))
+			var v00 := c0 * p0.x + Vector3(0, p0.y, 0)
+			var v01 := c1 * p0.x + Vector3(0, p0.y, 0)
+			var v10 := c0 * p1.x + Vector3(0, p1.y, 0)
+			var v11 := c1 * p1.x + Vector3(0, p1.y, 0)
+			var n0 := c0 * n2.x + Vector3(0, n2.y, 0)
+			var n1 := c1 * n2.x + Vector3(0, n2.y, 0)
+			for v in [[v00, n0], [v01, n1], [v11, n1], [v00, n0], [v11, n1], [v10, n0]]:
+				st.set_normal(v[1])
+				st.add_vertex(v[0])
+	return st.commit()
 
 # --- open / close choreography (all keyed on the player's overall open amount 0..1) ---------------
 # Opening: he leans in and the right arm raises it at ~70° (tipped forward); the left hand reaches in to the runner; only
@@ -191,8 +257,8 @@ func _rebuild() -> void:
 		var rib_phase := fmod(float(s), 3.0) / 3.0   # 0 at a rib, sag between ribs
 		var sag := sin(rib_phase * PI) * slack
 		var dir_h := Vector3(cos(a), 0, sin(a))
-		var row: Array = [apex]
-		var p := apex
+		var p := apex + dir_h * HUB_R
+		var row: Array = [p]
 		for r in RING_STEPS:
 			var ang := lerpf(a0, a1, (float(r) + 0.5) / RING_STEPS)
 			p += (sin(ang) * dir_h + Vector3(0, cos(ang), 0)) * seg_len
