@@ -53,7 +53,10 @@ func _ready() -> void:
 	world.name = "World"
 	add_child(world)
 	builder = LevelBuilder.new()
+	var t0 := Time.get_ticks_msec()
 	builder.build(world, data)
+	if OS.get_cmdline_user_args().has("--fps-log"):
+		print("build: %d ms" % (Time.get_ticks_msec() - t0))
 	if builder.inn_door_x > 0.0:
 		end_x = builder.inn_door_x
 		par_time = end_x / Tun.f("walk_speed")
@@ -78,10 +81,13 @@ func _ready() -> void:
 	_update_camera(1.0)
 	camera.make_current()
 
+	var t1 := Time.get_ticks_msec()
 	rain_fx = RainFX.new()
 	rain_fx.level = self
 	rain_fx.camera = camera
 	add_child(rain_fx)
+	if OS.get_cmdline_user_args().has("--fps-log"):
+		print("rain/cover map: %d ms" % (Time.get_ticks_msec() - t1))
 
 	var feats := preload("res://src/level/features.gd").new()
 	feats.build(self, world, data)
