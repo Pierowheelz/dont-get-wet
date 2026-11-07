@@ -4,8 +4,8 @@
 
 A game by **Peter Wells**.
 
-It never stops raining in this city, and he isn't dressed for it. He walks on his own — your job is
-to get him to shelter as dry as you can: open the umbrella under open sky, close it under cover to
+It never stops raining in this city, and he isn't dressed for it. He walks forward — your job is
+to get him to shelter as dry as you can: open the umbrella under rain, close it under cover to
 get your breath back, hurry across the gaps, tilt into the wind, and watch out for passing cars.
 
 > **Alpha v0.1.0** — an early version. Expect rough edges, and tell us what you think!
