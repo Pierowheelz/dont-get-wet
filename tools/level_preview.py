@@ -18,6 +18,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 ROW_M = 60.0
 PX_M = 20.0
 LEFT = 78
+SP_COLORS = [(232, 222, 250), (214, 236, 226), (250, 228, 210), (220, 232, 248), (246, 222, 232)]
 RIGHT = 24
 STEP = 0.1  # sampling resolution for cover maths, metres
 
@@ -314,7 +315,9 @@ def render(st, tun, traces, out, title):
     n_rows = math.ceil(st.end_x / ROW_M)
     W = int(LEFT + ROW_M * PX_M + RIGHT)
     H_TICK, H_RAIN, H_COVER, H_XING, H_FEAT, H_TR, GAP = 22, 64, 26, 18, 40, 78, 18
-    row_h = H_TICK + H_RAIN + H_COVER + H_XING + H_FEAT + H_TR * len(traces) + GAP
+    pieces = st.d.get("set_pieces", [])
+    H_SP = 20 if pieces else 0
+    row_h = H_TICK + H_SP + H_RAIN + H_COVER + H_XING + H_FEAT + H_TR * len(traces) + GAP
     top = 54
     legend_h = 96
     img = Image.new("RGB", (W, top + row_h * n_rows + legend_h), BG)
@@ -349,6 +352,16 @@ def render(st, tun, traces, out, title):
             d.line([(X(st.end_x), y + H_TICK), (X(st.end_x), y_lanes_end)], fill=(30, 150, 60), width=3)
             d.text((X(st.end_x) + 4, y + H_TICK + 8), "door", fill=(30, 150, 60), font=font(12, True), anchor="lm")
         y += H_TICK
+
+        for i, p in enumerate(pieces):
+            a, b = max(float(p["x0"]), x0m), min(float(p["x1"]), x1m)
+            if b <= a:
+                continue
+            col = SP_COLORS[i % len(SP_COLORS)]
+            d.rectangle([X(a), y + 2, X(b), y + H_SP - 3], fill=col)
+            label = p["name"] if float(p["x0"]) >= x0m else p["name"] + " (cont.)"
+            d.text((X(a) + 4, y + H_SP // 2), label, fill=INK, font=font(11, True), anchor="lm")
+        y += H_SP
 
         # rain + wind
         d.text((LEFT - 8, y + 18), "rain", fill=RAIN_C, font=font(12, True), anchor="rm")
