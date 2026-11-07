@@ -316,7 +316,7 @@ func _replay_list() -> void:
 	var first: Button = null
 	var ids: Array = []
 	for id: String in Game.nodes:   # map order, country -> centre
-		if Game.run.completed.has(id):
+		if Game.run.completed.has(id) and not Game.other_way(id):
 			ids.append(id)
 	ids.sort_custom(func(a: String, b: String) -> bool:
 		return float(Game.nodes[a]["map_pos"][0]) < float(Game.nodes[b]["map_pos"][0]))
