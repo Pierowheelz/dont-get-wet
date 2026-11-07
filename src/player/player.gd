@@ -44,6 +44,7 @@ var exhausted := false
 var hurry := 0.0
 var drying := 0.0                  # current dry rate (for FX)
 var sheltered := false             # head is under fixed cover (awning/balcony)
+var gutter_on_umbrella := 0.0      # 0..1 how much of a gutter stream the umbrella is catching
 var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "dried": 0.0}
 
 var visual: Node3D
@@ -290,19 +291,27 @@ func _rain_exposure() -> float:
 
 ## Gutter streams: a heavy column of water at a fixed x, only the umbrella blocks it.
 func _gutter_exposure() -> float:
+	gutter_on_umbrella = 0.0
 	for g in level.gutters:
 		if absf(position.x - g) < 0.45:
 			# The stream is a vertical column at x = g. Body points inside it get soaked unless
 			# something (the umbrella) is directly above them in the column.
 			var total := 0.0
 			var hit := 0.0
+			var blocked := 0.0
 			for s in SAMPLES:
 				var p := _sample_world(s[0])
 				if absf(p.x - g) > 0.22:
 					continue
 				total += s[1]
 				var at := Vector3(g, p.y, p.z)
-				hit += s[1] * (umbrella_leak() if _cast(at, Vector3(g, 2.9, p.z), UMBRELLA_MASK) else 1.0)
+				if _cast(at, Vector3(g, 2.9, p.z), UMBRELLA_MASK):
+					hit += s[1] * umbrella_leak()
+					blocked += s[1]
+				else:
+					hit += s[1]
+			if total > 0.0:
+				gutter_on_umbrella = blocked / total   # for the pounding-on-fabric sound
 			return hit / total if total > 0.0 else 0.0
 	return 0.0
 

@@ -183,7 +183,9 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	var score := int(round(Tun.f("score_dry_weight") * dry + Tun.f("score_time_weight") * time_ratio))
 	var prev: Dictionary = best.get(id, {})
 	var prev_score: int = int(prev.get("score", 0))
-	var earned := maxi(0, score / 100 - prev_score / 100)
+	# Tokens scale with score, paid only for improving on your best score for this street.
+	var k := Tun.f("tokens_per_point")
+	var earned := maxi(0, int(floor(score * k)) - int(floor(prev_score * k)))
 	tokens += earned
 	var is_best := score > prev_score
 	if is_best:

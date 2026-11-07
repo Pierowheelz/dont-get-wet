@@ -29,5 +29,9 @@ func f(key: String) -> float:
 	return float(values[key])
 
 
+func dict(key: String) -> Dictionary:
+	return values.get(key, {})
+
+
 func arr(key: String) -> Array:
 	return values.get(key, [])

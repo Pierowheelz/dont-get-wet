@@ -21,6 +21,7 @@ func _ready() -> void:
 	_loop("rain_heavy", "rain_heavy_loop", "Rain")
 	_loop("awning", "rain_on_awning_loop", "SFX")
 	_loop("umbrella", "rain_on_umbrella_loop", "SFX")
+	_loop("gutter_umb", "gutter_on_umbrella_loop", "SFX")
 	_loop("wind", "wind_loop", "SFX")
 	_loop("traffic", "traffic_distant_loop", "SFX")
 	_loop("music", "music_level_loop", "Music")
@@ -173,6 +174,8 @@ func _process(delta: float) -> void:
 		_rain_filter.cutoff_hz = lerpf(_rain_filter.cutoff_hz, target, 1.0 - exp(-5.0 * delta))
 	_set_loop("awning", (0.75 if sheltered else 0.0) * inten, delta)
 	_set_loop("umbrella", pl.umbrella.open * inten * (0.0 if sheltered else 0.9), delta, 6.0)
+	# A gutter stream drumming on the canopy: fast attack, quick release as he walks out of it.
+	_set_loop("gutter_umb", pl.gutter_on_umbrella * pl.umbrella.open * 1.3, delta, 9.0)
 	_set_loop("wind", absf(level.wind(x)) * 1.2, delta)
 	_set_loop("traffic", 0.25, delta)
 	var defeated := pl.state == Player.State.DEFEATED
