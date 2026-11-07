@@ -29,7 +29,9 @@ func get_grip(hand: StringName) -> Node3D                      # &"right" (raise
 - Feet at origin, facing **+X**, height ≈ 1.78 m. No root motion — the player script moves the root.
 - `get_grip()` returns a Node3D that follows the hand bone. Its origin is in the palm; its local **+Y**
   points from the handle toward the canopy. For `&"right"` with `raise = 1, tilt = 0`, +Y is world-up
-  and the grip is ~1.95–2.05 m above the feet. For `&"left"`, +Y points down toward the ground
+  and the grip is ~1.40–1.55 m above the feet, ~0.10–0.20 m in front of the chest (+X), elbow bent —
+  the natural way people hold an umbrella. The umbrella shaft is 0.75 m, so the canopy apex sits at
+  ~2.2 m. Tilt rotates the grip about the Z axis (+ tilts the canopy toward +X). For `&"left"`, +Y points down toward the ground
   (umbrella carried closed like a cane / hanging).
 - The player script turns the root 180° about Y to walk left (defeat sequence).
 

@@ -98,7 +98,7 @@ func _process(delta: float) -> void:
 	_arm_l.rotation.z = -sin(_phase) * swing * 0.6
 	# Right arm: swing when lowered, raised overhead when holding the open umbrella.
 	var sway := sin(_t * 3.1) * 0.25 * _droop
-	var raised := PI - 0.15 - _droop * 0.5
+	var raised := PI * 0.5 + 0.05 - _droop * 0.5
 	_arm_r.rotation.z = lerpf(sin(_phase) * swing * 0.6, raised, _raise) + sway * _raise
 	# Grip: when raised, make +Y point up (canopy direction) then apply tilt.
 	_grip_r.rotation.z = -_arm_r.rotation.z - _tilt

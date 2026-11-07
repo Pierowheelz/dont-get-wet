@@ -1,0 +1,78 @@
+{
+ "start": "main_street",
+ "nodes": [
+  {
+   "id": "mill_road",
+   "name": "Mill Road",
+   "map_pos": [
+    0.12,
+    0.62
+   ],
+   "neighbors": [
+    "canal_row"
+   ],
+   "blurb": "Edge of town. Long stretches of open sky, and the sun sometimes breaks through.",
+   "difficulty": 4,
+   "file": "res://levels/mill_road.json"
+  },
+  {
+   "id": "canal_row",
+   "name": "Canal Row",
+   "map_pos": [
+    0.31,
+    0.45
+   ],
+   "neighbors": [
+    "mill_road",
+    "main_street"
+   ],
+   "blurb": "Warehouses and loading docks by the canal. Fewer awnings, and the wind is picking up.",
+   "difficulty": 2,
+   "file": "res://levels/canal_row.json"
+  },
+  {
+   "id": "main_street",
+   "name": "Main Street",
+   "map_pos": [
+    0.5,
+    0.55
+   ],
+   "neighbors": [
+    "canal_row",
+    "arcade_lane"
+   ],
+   "blurb": "The old downtown. Most shops are shuttered, but the awnings still hold.",
+   "difficulty": 1,
+   "file": "res://levels/main_street.json"
+  },
+  {
+   "id": "arcade_lane",
+   "name": "Arcade Lane",
+   "map_pos": [
+    0.69,
+    0.42
+   ],
+   "neighbors": [
+    "main_street",
+    "neon_junction"
+   ],
+   "blurb": "The first neon signs creep in. Watch the side streets: drivers here don't slow for puddles.",
+   "difficulty": 3,
+   "file": "res://levels/arcade_lane.json"
+  },
+  {
+   "id": "neon_junction",
+   "name": "Neon Junction",
+   "map_pos": [
+    0.88,
+    0.5
+   ],
+   "neighbors": [
+    "arcade_lane"
+   ],
+   "blurb": "Chrome, neon and gale-force gusts between the towers. Nearly the city centre.",
+   "difficulty": 5,
+   "file": "res://levels/neon_junction.json"
+  }
+ ]
+}
