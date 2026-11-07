@@ -11,6 +11,7 @@ var _splash: GPUParticles3D
 var _mat: ShaderMaterial
 var _near_mat: ShaderMaterial
 var _debris: GPUParticles3D
+var _zones_set := false
 var _debris_mat: ParticleProcessMaterial
 
 
@@ -173,13 +174,18 @@ func _process(_delta: float) -> void:
 		umb = Vector4(c.x, c.y + 0.1, c.z, pl.umbrella.current_radius())
 	_mat.set_shader_parameter("umbrella", umb)
 	_near_mat.set_shader_parameter("umbrella", umb)
+	if not _zones_set:
+		_zones_set = true
+		_set_sun_zones()
+
+
+func _set_sun_zones() -> void:
 	var zones: Array = level.sun_zones
 	var arr := PackedVector4Array()
-	for z in zones:
+	for z in zones.slice(0, 8):
 		arr.append(Vector4(z[0], z[1], 0, 0))
 	while arr.size() < 8:
 		arr.append(Vector4(1e9, 1e9, 0, 0))
-	_mat.set_shader_parameter("sun_zones", arr)
-	_mat.set_shader_parameter("sun_zone_count", mini(zones.size(), 8))
-	_near_mat.set_shader_parameter("sun_zones", arr)
-	_near_mat.set_shader_parameter("sun_zone_count", mini(zones.size(), 8))
+	for m in [_mat, _near_mat]:
+		m.set_shader_parameter("sun_zones", arr)
+		m.set_shader_parameter("sun_zone_count", mini(zones.size(), 8))

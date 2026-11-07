@@ -111,7 +111,7 @@ func _process(delta: float) -> void:
 	# Exhausted droop: canopy sags to one side and wobbles.
 	var sway := (sin(_sway_t * 2.3) * 0.22 + sin(_sway_t * 5.1) * 0.08) * droop
 	_pivot.rotation = Vector3(sway * 0.4, 0, sway - droop * 0.35)
-	var key := Vector3(snappedf(open, 0.004), snappedf(radius, 0.01), snappedf(droop, 0.02))
+	var key := Vector3(snappedf(open, 0.02), snappedf(radius, 0.01), snappedf(droop, 0.05))
 	if key != _built_key:
 		_built_key = key
 		_rebuild()

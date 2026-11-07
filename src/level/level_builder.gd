@@ -55,8 +55,10 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 		_build_prop(p)
 
 
-## Cover height map for the visual rain: R = height (m) at which a falling drop is stopped,
-## sampled over x (whole level) and z (behind the facades → camera side). Mirrors the colliders.
+## Cover height map for the visual rain, over x (whole level) and z (behind facades → camera side):
+## R = height of a thin cover shell (awning/slab), G = 1 where such a shell exists, B = solid
+## ground/roof height. Drops only stop on a shell when they cross it from above, so slanted
+## (windy) rain blows in under the edges exactly as the gameplay rays assume.
 const COVER_RES := 10.0          # texels per metre along x
 const COVER_RES_Z := 4.0
 const COVER_Z0 := -3.0
@@ -68,7 +70,7 @@ func cover_map() -> Array:
 	var x0 := -30.0
 	var w := int((L + 60.0) * COVER_RES)
 	var h := int((COVER_Z1 - COVER_Z0) * COVER_RES_Z)
-	var img := Image.create(w, h, false, Image.FORMAT_RF)
+	var img := Image.create(w, h, false, Image.FORMAT_RGBF)
 	var crossings: Array = []
 	for c in data.get("crossings", []):
 		crossings.append([float(c["x"]), float(c["x"]) + float(c["w"])])
@@ -83,7 +85,7 @@ func cover_map() -> Array:
 			var y := ROAD_Y if (z > SIDEWALK_W or in_cross) else 0.0
 			if z < 0.0 and not in_cross:
 				y = 30.0            # inside buildings / behind facades: never visible
-			img.set_pixel(ix, iz, Color(y, 0, 0))
+			img.set_pixel(ix, iz, Color(y, 0, y))
 	for lot in data.get("lots", []):
 		var lx: float = lot["x"]
 		var lw: float = lot["w"]
@@ -116,7 +118,8 @@ func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float
 				var y := flat_y
 				if sloped:
 					y = AWNING_WALL_Y - (AWNING_WALL_Y - AWNING_FRONT_Y) * (z / AWNING_DEPTH)
-				img.set_pixel(ix, iz, Color(maxf(y, img.get_pixel(ix, iz).r if img.get_pixel(ix, iz).r < 20.0 else 0.0), 0, 0))
+				var old := img.get_pixel(ix, iz)
+				img.set_pixel(ix, iz, Color(y, 1.0, old.b))
 
 
 # --- helpers --------------------------------------------------------------------------------

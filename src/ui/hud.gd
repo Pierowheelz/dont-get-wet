@@ -192,7 +192,8 @@ func _process(delta: float) -> void:
 		_hint_t -= delta
 		if _hint_t < 0.6:
 			_hint_box.modulate.a = maxf(0.0, _hint_t / 0.6)
-	if Input.is_action_just_pressed(&"pause") and _overlay == null:
+	var ending: bool = p.state == Player.State.DEFEATED or p.state == Player.State.ENTERING or p.state == Player.State.DONE
+	if Input.is_action_just_pressed(&"pause") and _overlay == null and (not ending or _pause):
 		_toggle_pause()
 
 
@@ -346,6 +347,12 @@ func _draw_progress(ci: Control) -> void:
 
 # --- pause ------------------------------------------------------------------------------------
 
+## Closes the pause panel if open (used when an end sequence starts).
+func close_pause() -> void:
+	if _pause:
+		_toggle_pause()
+
+
 func _toggle_pause() -> void:
 	if _pause:
 		var old := _pause
@@ -421,7 +428,11 @@ func _panel(title: String, kicker: String, body: String, buttons: Array, vertica
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 26)
 	box.add_child(gap)
-	var holder: BoxContainer = VBoxContainer.new() if vertical else HBoxContainer.new()
+	var holder: BoxContainer
+	if vertical:
+		holder = VBoxContainer.new()
+	else:
+		holder = HBoxContainer.new()
 	holder.alignment = BoxContainer.ALIGNMENT_CENTER
 	holder.add_theme_constant_override("separation", 12 if vertical else 18)
 	box.add_child(holder)
@@ -447,7 +458,7 @@ func _hide_hint() -> void:
 
 
 func _buttons(holder: Container, buttons: Array, size: Vector2) -> Button:
-	var first: Button
+	var first: Button = null
 	for spec: Array in buttons:
 		var btn := Button.new()
 		btn.text = spec[0]

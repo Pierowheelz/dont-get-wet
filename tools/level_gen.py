@@ -48,8 +48,8 @@ LEVELS = {
                         d=(0.1, 0.85), lit=0.45, crossing_every=(45, 60), sun=1, aesthetic="rundown_neon"),
     "neon_junction": dict(seed=1964, length=420, neon=0.85, wind=(0.1, 0.45), cars=True, rain=(0.9, 1.25),
                           d=(0.2, 1.0), lit=0.7, crossing_every=(45, 60), sun=0, aesthetic="neon", gusts=True),
-    "mill_road": dict(seed=1965, length=420, neon=0.0, wind=(0.1, 0.4), cars=True, rain=(0.8, 1.15),
-                      d=(0.2, 1.0), lit=0.1, crossing_every=(70, 95), sun=3, aesthetic="outskirts",
+    "mill_road": dict(seed=1965, length=420, neon=0.0, wind=(-0.1, -0.4), cars=True, rain=(0.75, 1.05),
+                      d=(0.15, 0.9), lit=0.1, crossing_every=(70, 95), sun=3, aesthetic="outskirts",
                       vacant=0.3, gusts=True),
 }
 
@@ -162,7 +162,7 @@ def gen_level(lid, cfg):
 
         # ---- gap ----------------------------------------------------------------------
         if x >= next_crossing:
-            cw = round_to(rng.uniform(8, 11))
+            cw = round_to(rng.uniform(8, 12))
             cross = {"x": round(x, 2), "w": cw}
             if cfg["cars"] and rng.random() < 0.45 + 0.5 * d:
                 cross["car"] = True
@@ -186,7 +186,7 @@ def gen_level(lid, cfg):
         if r < lerp(0.65, 0.3, d):
             gw = round_to(rng.uniform(2.0, 3.0))       # short gap
         else:
-            gw = round_to(rng.uniform(4.0 + 2.5 * d, 6.0 + 6 * d))  # long gap
+            gw = round_to(rng.uniform(5.0 + 2.0 * d, 7.0 + 7 * d))  # long gap (5-14 m)
         vacant = rng.random() < cfg.get("vacant", 0.08)
         gx = x
         while x < gx + gw - 0.4:

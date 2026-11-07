@@ -75,12 +75,23 @@ func _shades() -> void:
 	# Darken the left of the frame (title + menu) and the bottom edge, keep the street visible.
 	var left := TextureRect.new()
 	left.texture = _gradient(Vector2(0, 0), Vector2(1, 0), [
-		[0.0, Color(UIStyle.INK, 0.92)], [0.45, Color(UIStyle.INK, 0.72)], [1.0, Color(UIStyle.INK, 0.0)]])
+		[0.0, Color(UIStyle.INK, 0.95)], [0.55, Color(UIStyle.INK, 0.86)], [1.0, Color(UIStyle.INK, 0.0)]])
 	left.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-	left.offset_right = 1180
+	left.offset_right = 1300
 	left.stretch_mode = TextureRect.STRETCH_SCALE
 	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(left)
+	# Soft radial pool of shadow behind the title so lit shop signs don't ghost through it.
+	var halo := TextureRect.new()
+	var hg := _gradient(Vector2(0.5, 0.5), Vector2(1.0, 0.5), [
+		[0.0, Color(UIStyle.INK, 0.8)], [0.6, Color(UIStyle.INK, 0.55)], [1.0, Color(UIStyle.INK, 0.0)]])
+	hg.fill = GradientTexture2D.FILL_RADIAL
+	halo.texture = hg
+	halo.stretch_mode = TextureRect.STRETCH_SCALE
+	halo.position = Vector2(-160, 40)
+	halo.size = Vector2(1500, 480)
+	halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(halo)
 	var bottom := TextureRect.new()
 	bottom.texture = _gradient(Vector2(0, 1), Vector2(0, 0), [
 		[0.0, Color(UIStyle.INK, 0.85)], [1.0, Color(UIStyle.INK, 0.0)]])
@@ -237,7 +248,7 @@ func _leave(cb: Callable, stop_music: bool) -> void:
 func _replay_list() -> void:
 	_clear("replay")
 	_page.add_child(UIStyle.label("REPLAY A STREET", &"HeaderSmall", 0, UIStyle.AMBER))
-	var first: Button
+	var first: Button = null
 	var ids: Array = []
 	for id: String in Game.nodes:   # map order, country -> centre
 		if Game.completed.has(id):
@@ -338,7 +349,7 @@ func _slider_row(text: String, key: String) -> HSlider:
 	sb.bg_color = Color(0.06, 0.066, 0.082, 0.8)
 	sb.border_color = Color(1, 1, 1, 0.08)
 	sb.border_width_bottom = 1
-	sb.content_margin_left = 30
+	sb.content_margin_left = 18
 	sb.content_margin_right = 22
 	sb.content_margin_top = 16
 	sb.content_margin_bottom = 16

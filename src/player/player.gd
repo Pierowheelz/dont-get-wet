@@ -145,8 +145,8 @@ func _physics_process(delta: float) -> void:
 			state = State.STOPPED
 		else:
 			stop_refused.emit()
-	if state == State.STOPPED and stamina >= smax - 0.01:
-		state = State.WALK
+	if state == State.STOPPED and (stamina >= smax - 0.01 or h > 0.5):
+		state = State.WALK   # resumes at full stamina, or early if the player hurries off
 
 	# --- stamina ----------------------------------------------------------------------------
 	var wind := _wind()
@@ -156,8 +156,9 @@ func _physics_process(delta: float) -> void:
 		drain += Tun.f("stamina_drain_umbrella") * open * Game.umbrella_drain_mult()
 		drain += Tun.f("stamina_drain_wind") * wind * wind * open * Game.umbrella_drain_mult()
 	if hurry > 0.0:
-		drain += lerpf(Tun.f("stamina_drain_hurry"), Tun.f("stamina_drain_run"), hurry)
-	if open <= 0.0 and hurry <= 0.0:
+		# Scales from zero so a lightly-resting trigger costs almost nothing.
+		drain += Tun.f("stamina_drain_hurry") * minf(hurry * 2.0, 1.0) + (Tun.f("stamina_drain_run") - Tun.f("stamina_drain_hurry")) * maxf(hurry * 2.0 - 1.0, 0.0)
+	if open <= 0.0 and hurry < 0.05:
 		stamina += (Tun.f("stamina_regen_stopped") if state == State.STOPPED else Tun.f("stamina_regen")) * delta
 	stamina = clampf(stamina - drain * delta, 0.0, smax)
 	if stamina <= 0.0 and drain > 0.0:
@@ -274,18 +275,20 @@ func _rain_exposure() -> float:
 ## Gutter streams: a heavy column of water at a fixed x, only the umbrella blocks it.
 func _gutter_exposure() -> float:
 	for g in level.gutters:
-		if absf(position.x - g) < 0.35:
-			# Rays from the upper body toward the stream's source; only the umbrella blocks it.
-			var src := Vector3(g, 2.9, position.z)
+		if absf(position.x - g) < 0.45:
+			# The stream is a vertical column at x = g. Body points inside it get soaked unless
+			# something (the umbrella) is directly above them in the column.
 			var total := 0.0
 			var hit := 0.0
-			for i in 5:
-				var s: Array = SAMPLES[i]
+			for s in SAMPLES:
 				var p := _sample_world(s[0])
+				if absf(p.x - g) > 0.22:
+					continue
 				total += s[1]
-				if not _cast(p, src, UMBRELLA_MASK):
+				var at := Vector3(g, p.y, p.z)
+				if not _cast(at, Vector3(g, 2.9, p.z), UMBRELLA_MASK):
 					hit += s[1]
-			return hit / total
+			return hit / total if total > 0.0 else 0.0
 	return 0.0
 
 
@@ -442,6 +445,9 @@ func _autopilot(delta: float) -> Array:
 	var tl := clampf(-atan2(rd.x, -rd.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
 	if car_ahead:
 		tl = 1.0
+	for g in level.gutters:
+		if absf(g - position.x) < 0.9:
+			tl = 0.0     # straighten up under a gutter stream
 	var stop := false
 	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered:
 		stop = true

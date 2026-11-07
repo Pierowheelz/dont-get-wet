@@ -111,7 +111,7 @@ func _map_point(id: String) -> Vector2:
 
 
 func _build_nodes() -> void:
-	var focus_btn: Button
+	var focus_btn: Button = null
 	for id: String in Game.nodes:
 		var n: Dictionary = Game.nodes[id]
 		var b := NodeButton.new()

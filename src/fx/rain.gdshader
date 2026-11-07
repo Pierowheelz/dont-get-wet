@@ -41,8 +41,10 @@ void start() {
 void process() {
 	vec3 pos = TRANSFORM[3].xyz;
 	vec2 cuv = vec2((pos.x - cover_rect.x) / cover_rect.z, (pos.z - cover_rect.y) / cover_rect.w);
-	float ground = (cuv.x >= 0.0 && cuv.x <= 1.0 && cuv.y >= 0.0 && cuv.y <= 1.0) ? texture(cover_map, cuv).r : -0.16;
-	bool hit = pos.y < ground;
+	vec3 cm = (cuv.x >= 0.0 && cuv.x <= 1.0 && cuv.y >= 0.0 && cuv.y <= 1.0) ? texture(cover_map, cuv).rgb : vec3(-0.16, 0.0, -0.16);
+	bool hit = pos.y < cm.b;
+	// Thin shell: only stops drops just below its surface (i.e. ones that fell onto it this step).
+	if (cm.g > 0.5 && pos.y < cm.r && pos.y > cm.r - 0.3) hit = true;
 	if (umbrella.w > 0.05) {
 		vec2 d = pos.xz - umbrella.xz;
 		if (dot(d, d) < umbrella.w * umbrella.w && pos.y < umbrella.y + 0.12 && pos.y > umbrella.y - 0.35) hit = true;

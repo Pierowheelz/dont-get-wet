@@ -13,6 +13,8 @@ var touch_stop := false
 ## Mouse-wheel tilt is sticky: each notch nudges it, it resets when the umbrella closes.
 var wheel_tilt := 0.0
 var last_device := &"keyboard"   # &"keyboard", &"gamepad", &"touch"
+const RAMP := 10.0               # digital inputs reach full in ~0.1 s (DESIGN §3)
+var _ramped := {}
 
 
 func _ready() -> void:
@@ -72,6 +74,17 @@ func _mouse(action: StringName, button: MouseButton) -> void:
 	InputMap.action_add_event(action, ev)
 
 
+## Analog values pass straight through; digital jumps are eased so keys feel like triggers.
+func _ramp(key: StringName, target: float) -> float:
+	var now := Time.get_ticks_usec() / 1000000.0
+	var prev: Array = _ramped.get(key, [target, now])
+	var v := move_toward(float(prev[0]), target, RAMP * maxf(now - float(prev[1]), 0.0))
+	if absf(target - float(prev[0])) < 0.2:
+		v = target          # analog movement: no lag
+	_ramped[key] = [v, now]
+	return v
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.3):
 		last_device = &"gamepad"
@@ -88,7 +101,7 @@ func _input(event: InputEvent) -> void:
 
 ## 0..1 how far the umbrella trigger is held.
 func umbrella() -> float:
-	return clampf(maxf(Input.get_action_strength(&"umbrella"), touch_umbrella), 0.0, 1.0)
+	return _ramp(&"umbrella", clampf(maxf(Input.get_action_strength(&"umbrella"), touch_umbrella), 0.0, 1.0))
 
 
 ## 0..1 hurry amount (1 = full run).
@@ -96,7 +109,7 @@ func hurry() -> float:
 	var v := Input.get_action_strength(&"hurry")
 	if Input.is_action_pressed(&"hurry_half"):
 		v = maxf(v, 0.5)
-	return clampf(maxf(v, touch_hurry), 0.0, 1.0)
+	return _ramp(&"hurry", clampf(maxf(v, touch_hurry), 0.0, 1.0))
 
 
 ## -1..1 tilt request (+ = forward).

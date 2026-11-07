@@ -198,12 +198,42 @@ func _process(delta: float) -> void:
 	if player and player.state != Player.State.DEFEATED and player.state != Player.State.DONE and not finished:
 		elapsed += delta
 	_update_camera(delta)
+	if player:
+		_first_encounters()
 	if Game.autopilot and player and OS.has_environment("DGW_TRACE") and player.position.x > float(OS.get_environment("DGW_TRACE")) and int(_t * 2.0) != int((_t - delta) * 2.0):
 		print("x=%.1f wind=%.2f exp=%.2f open=%.2f tilt=%.2f sta=%.0f wet=%.1f gut=%.2f exh=%s" % [player.position.x, wind(player.position.x), player.exposure, player.open, player.tilt, player.stamina, player.wet, player.gutter_hit, player.exhausted])
 	if Game.autopilot and player and int(_t / 10.0) != int((_t - delta) / 10.0):
 		print("t=%.0f x=%.1f wet=%.1f sta=%.1f open=%.2f state=%d" % [_t, player.position.x, player.wet, player.stamina, player.open, player.state])
 	if Input.is_action_just_pressed(&"restart") and not get_tree().paused:
 		Game.play_level(level_id)
+
+
+var _seen := {}
+
+
+## One-off contextual hints the first time each mechanic shows up in a level.
+func _first_encounters() -> void:
+	if hud == null or not hud.has_method("hint") or player.state != Player.State.WALK:
+		return
+	var x := player.position.x
+	var pad := Inputs.last_device == &"gamepad"
+	if not _seen.has("gutter"):
+		for g in gutters:
+			if g - x > 0.0 and g - x < 5.0:
+				_seen["gutter"] = true
+				hud.hint("Overflowing gutter ahead — keep the umbrella upright as you pass under it.", 3.5)
+	if not _seen.has("sun"):
+		for z in sun_zones:
+			if z[0] - x > 0.0 and z[0] - x < 4.0:
+				_seen["sun"] = true
+				hud.hint("A break in the clouds. Close the umbrella and let the sun dry you off.", 3.5)
+	if not _seen.has("wind") and absf(wind(x)) > 0.18:
+		_seen["wind"] = true
+		var keys := "right stick" if pad else "Q / E or mouse wheel"
+		hud.hint("The wind is slanting the rain — tilt the umbrella into it (%s)." % keys, 4.0)
+	if not _seen.has("stop") and player.stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") and player.sheltered:
+		_seen["stop"] = true
+		hud.hint("Puffed out? Stop for a breather under cover (%s)." % ("LB" if pad else "S"), 3.5)
 
 
 func _update_camera(delta: float) -> void:
@@ -231,6 +261,8 @@ func _on_car_approaching() -> void:
 
 func _on_defeated() -> void:
 	_cam_locked = true
+	if hud and hud.has_method("close_pause"):
+		hud.close_pause()
 	if Game.autopilot and Game._shots.is_empty():
 		print("AUTOPILOT_DEFEATED x=%.1f t=%.1f stats=%s" % [player.position.x, elapsed, JSON.stringify(player.stats)])
 		get_tree().quit()
@@ -239,6 +271,10 @@ func _on_defeated() -> void:
 	var t := 0.0
 	while t < 7.0:
 		await get_tree().process_frame
+		if not is_inside_tree():
+			return
+		if get_tree().paused:
+			continue
 		t += get_process_delta_time()
 		if t > 3.5 and player.position.x < camera.position.x - 6.5:
 			break
@@ -251,7 +287,11 @@ func _on_arrived() -> void:
 	var t := elapsed
 	while player.state != Player.State.DONE:
 		await get_tree().process_frame
-	await get_tree().create_timer(0.6).timeout
+		if not is_inside_tree():
+			return
+	await get_tree().create_timer(0.6, false).timeout
+	if not is_inside_tree():
+		return
 	var result := Game.finish_level(level_id, wet, t, par_time)
 	if Game.autopilot and Game._shots.is_empty():
 		print("AUTOPILOT_RESULT ", JSON.stringify(result), " stats=", JSON.stringify(player.stats))

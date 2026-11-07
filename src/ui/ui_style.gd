@@ -35,8 +35,8 @@ static func grade_color(g: String) -> Color:
 
 static func fmt_time(t: float, tenths := false) -> String:
 	if tenths:
-		return "%d:%04.1f" % [int(t) / 60, fmod(t, 60.0)]
-	return "%d:%02d" % [int(t) / 60, int(t) % 60]
+		return "%d:%04.1f" % [floori(t / 60.0), fmod(t, 60.0)]
+	return "%d:%02d" % [floori(t / 60.0), int(t) % 60]
 
 
 ## A label with a theme type variation and optional overrides.
@@ -77,17 +77,27 @@ static func draw_umbrella(ci: CanvasItem, c: Vector2, w: float, col: Color, open
 static func draw_drop(ci: CanvasItem, c: Vector2, h: float, outline: Color, fill_col: Color, fill := 1.0) -> void:
 	var pts := drop_points(c, h)
 	ci.draw_colored_polygon(pts, Color(0, 0, 0, 0.35))
-	if fill > 0.0:
+	if fill > 0.01:
 		var cut := c.y + h * 0.5 - h * clampf(fill, 0.0, 1.0)
-		var fp := PackedVector2Array()
-		for p in pts:
-			fp.append(Vector2(p.x, maxf(p.y, cut)))
-		ci.draw_colored_polygon(fp, fill_col)
+		var below := PackedVector2Array([Vector2(c.x - h, cut), Vector2(c.x + h, cut), Vector2(c.x + h, c.y + h), Vector2(c.x - h, c.y + h)])
+		for fp in Geometry2D.intersect_polygons(pts, below):
+			# Skip degenerate slivers (triangulation fails on near-zero-area polygons).
+			if fp.size() >= 3 and absf(_area(fp)) > 2.0:
+				ci.draw_colored_polygon(fp, fill_col)
 	var closed := pts.duplicate()
 	closed.append(pts[0])
 	ci.draw_polyline(closed, outline, maxf(1.5, h * 0.07), true)
 	# highlight
 	ci.draw_arc(c + Vector2(-h * 0.1, h * 0.12), h * 0.16, PI * 0.9, PI * 1.35, 6, Color(1, 1, 1, 0.55), maxf(1.0, h * 0.05), true)
+
+
+static func _area(pts: PackedVector2Array) -> float:
+	var a := 0.0
+	for i in pts.size():
+		var p := pts[i]
+		var q := pts[(i + 1) % pts.size()]
+		a += p.x * q.y - q.x * p.y
+	return a * 0.5
 
 
 static func drop_points(c: Vector2, h: float) -> PackedVector2Array:

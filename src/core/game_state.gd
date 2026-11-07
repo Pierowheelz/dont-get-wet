@@ -26,8 +26,8 @@ var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": 
 
 func _ready() -> void:
 	_load_index()
-	load_game()
 	var args := OS.get_cmdline_user_args()
+	_fps_log = args.has("--fps-log")
 	autopilot = args.has("--autopilot")
 	debug_lazy = args.has("--lazy")
 	debug_human = args.has("--human")
@@ -43,6 +43,7 @@ func _ready() -> void:
 				_shots.append(float(t))
 		if a.begins_with("--shot-dir="):
 			_shot_dir = a.substr(11)
+	load_game()   # after args: the autopilot must never read or write the player's save
 
 
 # --- debug screenshots: --shots=1.0,2.5 --shot-dir=/abs/path (quits after the last) ----------
@@ -54,10 +55,11 @@ var _shot_i := 0
 
 
 var _fps_t := 0.0
+var _fps_log := false
 
 
 func _process(delta: float) -> void:
-	if OS.get_cmdline_user_args().has("--fps-log"):
+	if _fps_log:
 		_fps_t += delta
 		if _fps_t > 2.0:
 			_fps_t = 0.0
@@ -182,9 +184,15 @@ func save_game() -> void:
 	var d := {"current_node": current_node, "best": best, "tokens": tokens,
 		"upgrades": {"sturdy": upgrades[&"sturdy"], "wide": upgrades[&"wide"], "light": upgrades[&"light"]},
 		"completed": completed, "settings": settings}
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(d, "  "))
+	# Write to a temp file then swap it in, so a crash mid-write can't corrupt the save.
+	var tmp := SAVE_PATH + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
+	if f == null:
+		push_warning("save: cannot write %s" % tmp)
+		return
+	f.store_string(JSON.stringify(d, "  "))
+	f.close()
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(SAVE_PATH))
 
 
 func load_game() -> void:
@@ -192,19 +200,36 @@ func load_game() -> void:
 	if autopilot or not FileAccess.file_exists(SAVE_PATH):
 		return
 	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	var d: Variant = JSON.parse_string(f.get_as_text())
+	var d: Variant = JSON.parse_string(f.get_as_text()) if f else null
 	if not d is Dictionary:
+		# Keep the unreadable file for recovery instead of silently overwriting it.
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(SAVE_PATH), ProjectSettings.globalize_path(SAVE_PATH + ".bak"))
+		push_warning("save: unreadable save backed up to save.json.bak")
 		return
-	current_node = d.get("current_node", start_node)
-	if not nodes.has(current_node):
-		current_node = start_node
-	best = d.get("best", {})
-	tokens = int(d.get("tokens", 0))
-	var u: Dictionary = d.get("upgrades", {})
-	for k in UPGRADES:
-		upgrades[k] = int(u.get(String(k), 0))
-	completed = d.get("completed", [])
-	settings.merge(d.get("settings", {}), true)
+	var cn: Variant = d.get("current_node")
+	if cn is String and nodes.has(cn):
+		current_node = cn
+	var b: Variant = d.get("best")
+	if b is Dictionary:
+		for id in b:
+			if nodes.has(id) and b[id] is Dictionary:
+				best[id] = b[id]
+	var t: Variant = d.get("tokens")
+	if t is float or t is int:
+		tokens = maxi(0, int(t))
+	var u: Variant = d.get("upgrades")
+	if u is Dictionary:
+		for k in UPGRADES:
+			var v: Variant = u.get(String(k), 0)
+			upgrades[k] = clampi(int(v), 0, 3) if (v is float or v is int) else 0
+	var c: Variant = d.get("completed")
+	if c is Array:
+		completed = c.filter(func(e: Variant) -> bool: return e is String and nodes.has(e))
+	var st: Variant = d.get("settings")
+	if st is Dictionary:
+		for k in settings:
+			if st.has(k) and typeof(st[k]) == typeof(settings[k]):
+				settings[k] = st[k]
 
 
 func reset_progress() -> void:
