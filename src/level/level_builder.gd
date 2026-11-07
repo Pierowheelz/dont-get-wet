@@ -88,6 +88,7 @@ var _drip_mesh: QuadMesh
 var _awning_style_at := {}          # lot x -> AWNING_STYLES key, resolved while building
 var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
 var _awning_used := {}              # style -> lots given it so far
+var gutters: Array = []             # resolved gutter streams, see _resolve_gutters
 
 
 func build(p_root: Node3D, p_data: Dictionary) -> void:
@@ -97,6 +98,7 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	_awning_shader = load("res://src/fx/awning.gdshader")
 	assert(_check_awning_styles())
 	_load_kits()
+	_resolve_gutters()
 	if ResourceLoader.exists("res://assets/fonts/sign.ttf"):
 		sign_font = load("res://assets/fonts/sign.ttf")
 	_build_ground()
@@ -146,15 +148,8 @@ func cover_map() -> Array:
 		var lw: float = lot["w"]
 		match lot.get("cover", "none"):
 			"awning":
-				var segs := [[0.0, lw]]
-				for t in lot.get("tears", []):
-					var ns: Array = []
-					for sgm in segs:
-						if t[0] > sgm[0]: ns.append([sgm[0], minf(float(t[0]), sgm[1])])
-						if t[1] < sgm[1]: ns.append([maxf(float(t[1]), sgm[0]), sgm[1]])
-					segs = ns
 				var s: Dictionary = AWNING_STYLES[_awning_style_at.get(lx, "classic")]
-				for sgm in segs:
+				for sgm in _canvas_spans(lot):
 					_cover_fill(img, x0, lx + sgm[0], lx + sgm[1], 0.0, AWNING_DEPTH, func(z): return _awning_y(s, z))
 			"balcony":
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, func(_z): return BALCONY_Y)
@@ -164,6 +159,94 @@ func cover_map() -> Array:
 				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, func(_z): return 3.55)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
+
+
+## Local [x0, x1] spans of an awning lot's canvas, around its tears.
+static func _canvas_spans(lot: Dictionary) -> Array:
+	var segs := [[0.0, float(lot["w"])]]
+	for t in lot.get("tears", []):
+		var ns: Array = []
+		for sgm in segs:
+			if t[0] > sgm[0]: ns.append([sgm[0], minf(float(t[0]), sgm[1])])
+			if t[1] < sgm[1]: ns.append([maxf(float(t[1]), sgm[0]), sgm[1]])
+		segs = ns
+	return segs
+
+
+## Gutter streams. Gameplay only knows a stream's x; this decides what it pours from, so the water
+## always visibly comes out of something:
+##   "crack" / "snapped": a gooseneck downpipe that comes off the facade above the awnings and
+##     reaches out to throw roof water clear of them, split (crack) or broken off (snapped) right
+##     over the walkway; the water falls past an awning's end or through a tear.
+##   "collapse": the canvas beside the gap has lost its frame; its corner has slumped a little way
+##     out over the gap and everything the awning catches spills off that corner. Canvas only sags
+##     so far, so the stream moves to the corner (COLLAPSE_REACH past the edge), not the other way.
+## A feature may name `kind` and `side` (+1: the source reaches the stream from lower x, -1: from
+## higher x); otherwise a street cycles through the kinds. Each entry: {x, kind, side} plus, for
+## a collapse, lot_x (the awning's lot), edge (world x of the slumped canvas edge), z and top.
+## Level takes the streams' gameplay x from here.
+const GUTTER_KINDS := ["snapped", "collapse", "crack"]
+const GUTTER_REACH := 1.0        # furthest a collapse looks for canvas beside its gap
+const COLLAPSE_REACH := 0.3      # how far the slumped corner hangs out past the canvas edge
+const COLLAPSE_SPAN := 1.4       # length of canvas, back from the edge, that slumps
+const COLLAPSE_DROP := 0.36      # how far the slumped corner falls (stays above the walker's umbrella)
+const COLLAPSE_Z := 1.9          # how far back toward the wall the slumped corner is pulled
+
+
+func _resolve_gutters() -> void:
+	var spans: Array = []   # [x0, x1, lot x] of every awning's canvas, world x
+	for lot in data.get("lots", []):
+		if lot.get("cover", "none") == "awning":
+			for sp in _canvas_spans(lot):
+				spans.append([float(lot["x"]) + sp[0], float(lot["x"]) + sp[1], float(lot["x"])])
+	var fs: Array = data.get("features", []).filter(func(f): return f["type"] == "gutter")
+	fs.sort_custom(func(a, b): return float(a["x"]) < float(b["x"]))
+	for i in fs.size():
+		var f: Dictionary = fs[i]
+		var x := float(f["x"])
+		var left: Array = []    # nearest canvas ending before x, within reach
+		var right: Array = []
+		for sp in spans:
+			if sp[0] < x and x < sp[1]:
+				push_warning("level %s: gutter at x=%.2f falls on intact awning canvas" % [data.get("id", "?"), x])
+			if sp[1] <= x and x - sp[1] <= GUTTER_REACH and (left.is_empty() or sp[1] > left[1]):
+				left = sp
+			if sp[0] >= x and sp[0] - x <= GUTTER_REACH and (right.is_empty() or sp[0] < right[0]):
+				right = sp
+		var g := {"x": x, "kind": String(f.get("kind", GUTTER_KINDS[i % GUTTER_KINDS.size()])),
+			"side": int(f.get("side", 1 if i % 2 == 0 else -1))}
+		if not GUTTER_KINDS.has(g["kind"]):
+			push_warning("level %s: unknown gutter kind '%s' at x=%.2f" % [data.get("id", "?"), g["kind"], x])
+			g["kind"] = "snapped"
+		if g["kind"] == "collapse":
+			if (left if g["side"] > 0 else right).is_empty() and not f.has("side"):
+				g["side"] = -g["side"]
+			var own: Array = left if g["side"] > 0 else right
+			if own.is_empty():
+				g["kind"] = "snapped"
+			else:
+				g["lot_x"] = own[2]
+				g["edge"] = own[1] if g["side"] > 0 else own[0]
+				g["planned_x"] = x
+				g["x"] = float(g["edge"]) + g["side"] * COLLAPSE_REACH
+		gutters.append(g)
+
+
+## The collapses slumping on the awning of the lot at x (resolved gutters). Only cloth on light
+## arms can slump; on any other awning the gutter falls back to a broken pipe.
+func _collapses_on(x: float, s: Dictionary) -> Array:
+	var out: Array = []
+	for g in gutters:
+		if g["kind"] != "collapse" or not is_equal_approx(float(g["lot_x"]), x):
+			continue
+		if s["fabric"] != "canvas" or not ["arms", "none"].has(s["frame"]):
+			g["kind"] = "snapped"
+			g["x"] = g["planned_x"]
+			continue
+		g["z"] = COLLAPSE_Z
+		g["top"] = _awning_y(s, AWNING_DEPTH) - COLLAPSE_DROP - 0.04
+		out.append(g)
+	return out
 
 
 func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, height: Callable) -> void:
@@ -321,7 +404,7 @@ func _build_lot(lot: Dictionary) -> void:
 			var aw := _pick_awning_style(lot, era)
 			_awning_style_at[x] = aw
 			_build_awning(x, w, lot.get("tears", []), lot.get("awning_color", "red"), AWNING_STYLES[aw],
-				NEON_COLORS[_lot_hash(x, "glow") % NEON_COLORS.size()])
+				NEON_COLORS[_lot_hash(x, "glow") % NEON_COLORS.size()], _collapses_on(x, AWNING_STYLES[aw]))
 		"balcony":
 			_build_slab(x, w, BALCONY_Y, 2.4, false)
 		"arcade":
@@ -580,7 +663,8 @@ func _awning_drip_y(s: Dictionary) -> float:
 	return _awning_y(s, AWNING_DEPTH) - float(s["valance_h"]) - 0.02
 
 
-func _build_awning(x: float, w: float, tears: Array, color_name: String, s: Dictionary, glow_col: Color) -> void:
+func _build_awning(x: float, w: float, tears: Array, color_name: String, s: Dictionary, glow_col: Color,
+		collapses: Array) -> void:
 	var cols: Array = AWNING_COLORS.get(color_name, AWNING_COLORS["red"])
 	# Drawn for every style so the shared rng sequence (facades, signs) doesn't depend on the style.
 	var grime := rng.randf_range(0.3, 0.8)
@@ -600,8 +684,13 @@ func _build_awning(x: float, w: float, tears: Array, color_name: String, s: Dict
 		var b: float = x + sg[1]
 		if b - a < 0.05:
 			continue
+		var slump := {}         # {right: the slumping edge is the segment's right end, reach}
+		for g in collapses:
+			if is_equal_approx(float(g["edge"]), a) or is_equal_approx(float(g["edge"]), b):
+				slump = {"right": is_equal_approx(float(g["edge"]), b), "reach": absf(float(g["x"]) - float(g["edge"]))}
 		var mi := MeshInstance3D.new()
-		mi.mesh = _awning_mesh(s, sg[0], b - a, w, s["ends"] and sg[0] <= 0.0, s["ends"] and sg[1] >= w)
+		mi.mesh = _awning_mesh(s, sg[0], b - a, w, s["ends"] and sg[0] <= 0.0 and not (slump and not slump["right"]),
+			s["ends"] and sg[1] >= w and not (slump and slump["right"]), slump)
 		for i in mi.mesh.get_surface_count():
 			mi.set_surface_override_material(i, mats[i])
 		mi.position = Vector3(a, 0.0, 0.0)
@@ -612,14 +701,18 @@ func _build_awning(x: float, w: float, tears: Array, color_name: String, s: Dict
 			var mid := p0 + d * 0.5
 			_cover_box(Vector3(b - a, 0.06, d.length() + 0.02),
 				Transform3D(Basis.from_euler(Vector3(atan2(-d.y, d.x), 0, 0)), Vector3((a + b) * 0.5, mid.y, mid.x)))
-		_drips(a, b, _awning_drip_y(s), AWNING_DEPTH + 0.05)
-	# Torn flaps hanging into tears.
+		var span := minf(COLLAPSE_SPAN, b - a)
+		_drips(a + (span if slump and not slump["right"] else 0.0), b - (span if slump and slump["right"] else 0.0),
+			_awning_drip_y(s), AWNING_DEPTH + 0.05)
+	# Torn flaps hanging into tears, unless the canvas there has slumped into the tear instead.
 	var fy := _awning_y(s, AWNING_DEPTH)
 	for t in sorted_tears:
+		if collapses.any(func(g): return is_equal_approx(float(g["edge"]), x + float(t[0]))):
+			continue
 		var flap := _box(Vector3((float(t[1]) - float(t[0])) * 0.35, 0.6, 0.02),
 			Vector3(x + float(t[0]) + 0.2, fy - 0.2, AWNING_DEPTH - 0.4), mats[0])
 		flap.rotation = Vector3(0.3, 0, 0.25)
-	_awning_frame(s, x, w, glow_col)
+	_awning_frame(s, x, w, glow_col, collapses)
 
 
 ## [canopy material, valance material], matching the mesh's surfaces.
@@ -661,7 +754,10 @@ func _awning_materials(s: Dictionary, cols: Array, w: float, grime: float) -> Ar
 ## Canopy (surface 0, plus closed side cheeks) and valance (surface 1, if the style has one) for one
 ## tear-free segment. Local x 0..w; u0 is the segment's offset within the full awning so stripes and
 ## corrugations line up across tears. UV.y: 0..1 wall to front on the canopy, 1..2 down the valance.
-func _awning_mesh(s: Dictionary, u0: float, w: float, full_w: float, end_l: bool, end_r: bool) -> ArrayMesh:
+## `slump` ({right, reach}, or empty) lets the canvas at one end fall away from its frame: its front
+## corner drops, swings back toward the wall and hangs out `reach` past the end, where the stream is.
+func _awning_mesh(s: Dictionary, u0: float, w: float, full_w: float, end_l: bool, end_r: bool,
+		slump := {}) -> ArrayMesh:
 	var zs := _awning_zs(s)
 	var tin: bool = s["fabric"] == "tin"
 	var sag: float = s["sag"]
@@ -675,7 +771,10 @@ func _awning_mesh(s: Dictionary, u0: float, w: float, full_w: float, end_l: bool
 		var y := _awning_y(s, zs[j]) - sag * (sin(v * PI) + 0.3 * sin(xl / w * PI * maxf(1.0, w / 1.5)) * v)
 		if tin:
 			y += 0.025 * sin((u0 + xl) / 0.2 * TAU)
-		return Vector3(xl, y, zs[j])
+		var p := Vector3(xl, y, zs[j])
+		if slump:
+			p += _slump_offset(slump, xl, w, v)
+		return p
 	var nx := maxi(2, int(w / (0.04 if tin else 0.25)))
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -726,8 +825,8 @@ func _awning_mesh(s: Dictionary, u0: float, w: float, full_w: float, end_l: bool
 		var xb := w * (i + 1) / vnx
 		var pa: Vector3 = pos.call(xa, last)
 		var pb: Vector3 = pos.call(xb, last)
-		var ha: float = hem.call(xa)
-		var hb: float = hem.call(xb)
+		var ha: float = hem.call(xa) * _valance_left(slump, xa, w)
+		var hb: float = hem.call(xb) * _valance_left(slump, xb, w)
 		st.set_uv(Vector2((u0 + xa) / full_w, 1.0)); st.add_vertex(pa)
 		st.set_uv(Vector2((u0 + xb) / full_w, 1.0)); st.add_vertex(pb)
 		st.set_uv(Vector2((u0 + xb) / full_w, 1.0 + hb / vh)); st.add_vertex(pb + Vector3(0, -hb, 0.03))
@@ -738,7 +837,24 @@ func _awning_mesh(s: Dictionary, u0: float, w: float, full_w: float, end_l: bool
 	return st.commit(mesh)
 
 
-func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color) -> void:
+func _slump_k(slump: Dictionary, xl: float, w: float, v: float) -> float:
+	var d: float = (w - xl) if slump["right"] else xl
+	var t := clampf(1.0 - d / minf(COLLAPSE_SPAN, w), 0.0, 1.0)
+	return t * t * (3.0 - 2.0 * t) * v
+
+
+func _slump_offset(slump: Dictionary, xl: float, w: float, v: float) -> Vector3:
+	var k := _slump_k(slump, xl, w, v)
+	return Vector3((1.0 if slump["right"] else -1.0) * float(slump["reach"]) * k * k * k,
+		-COLLAPSE_DROP * k * k, -(AWNING_DEPTH - COLLAPSE_Z) * k * k)
+
+
+## Fraction of the valance still hanging at xl: it has torn away along the slumped corner.
+func _valance_left(slump: Dictionary, xl: float, w: float) -> float:
+	return 1.0 if slump.is_empty() else 1.0 - _slump_k(slump, xl, w, 1.0)
+
+
+func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color, collapses: Array) -> void:
 	var wy := _awning_y(s, 0.0)
 	var fy := _awning_y(s, AWNING_DEPTH)
 	var chrome := _mat("chrome", Color(0.82, 0.84, 0.88), 0.12, 1.0)
@@ -746,6 +862,12 @@ func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color) -> void:
 		"arms":
 			var frame := _mat("frame", Color(0.15, 0.15, 0.15), 0.4, 0.8)
 			for fx in [x + 0.1, x + w - 0.1]:
+				if collapses.any(func(g): return absf(float(g["edge"]) - fx) < 0.2):
+					# The arm that let go: snapped part-way out, the outer piece hanging off it.
+					var mid := Vector2(AWNING_DEPTH * 0.45, lerpf(wy, fy, 0.45) - 0.05)
+					_strut(fx, Vector2(0.0, wy - 0.05), mid, 0.04, frame)
+					_strut(fx, mid, mid + Vector2(0.3, -0.62), 0.035, frame)
+					continue
 				_strut(fx, Vector2(0.0, wy - 0.05), Vector2(AWNING_DEPTH, fy - 0.05), 0.04, frame)
 		"brackets":
 			# Rusty steel knee braces kept close to the wall (clear of the walker), and a front gutter.

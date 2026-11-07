@@ -13,8 +13,8 @@ var par_time := 60.0
 var elapsed := 0.0
 var finished := false
 
-var gutters: Array = []        # x positions
-var gutter_visuals: Array = [] # [x, column MeshInstance3D, splash GPUParticles3D]
+var gutters: Array = []        # x positions, as LevelBuilder resolved them
+var gutter_visuals: Array = [] # [x, column MeshInstance3D, splash GPUParticles3D, source height]
 var puddles: Array = []        # [x0, x1, deep]
 var sun_zones: Array = []      # [x0, x1] rain-free span (the break, widened to meet nearby cover)
 var dry_zones: Array = []      # [x0, x1, rate, needs_closed_umbrella]
@@ -135,8 +135,6 @@ func _parse_features() -> void:
 	for f in data.get("features", []):
 		var x: float = f["x"]
 		match f["type"]:
-			"gutter":
-				gutters.append(x)
 			"puddle":
 				puddles.append([x - f.get("w", 1.0) * 0.5, x + f.get("w", 1.0) * 0.5, f.get("deep", false)])
 			"sun":
@@ -148,6 +146,8 @@ func _parse_features() -> void:
 			"fire_barrel":
 				var w2: float = f.get("w", 1.8)
 				dry_zones.append([x - w2 * 0.5, x + w2 * 0.5, Tun.f("dry_vent_rate") * 1.2, false])
+	for g in builder.gutters:
+		gutters.append(g["x"])
 	_join_sun_to_cover()
 
 
@@ -279,11 +279,11 @@ func _write_trace() -> void:
 ## When the umbrella is catching a gutter stream, cut the falling column off at the canopy and
 ## move its splash up onto the umbrella, so what you see matches what you hear.
 func _update_gutter_streams() -> void:
-	const TOP := 2.78
 	for gv in gutter_visuals:
 		var gx: float = gv[0]
 		var col: MeshInstance3D = gv[1]
 		var sp: GPUParticles3D = gv[2]
+		var top: float = gv[3]
 		var bottom := 0.02
 		if absf(gx - player.position.x) < 1.6 and player.gutter_on_umbrella > 0.0:
 			# canopy surface height at the stream (dome: highest at the shaft)
@@ -291,8 +291,8 @@ func _update_gutter_streams() -> void:
 			var r: float = maxf(player.umbrella.current_radius(), 0.01)
 			var d := clampf(absf(gx - c.x) / r, 0.0, 1.0)
 			bottom = c.y + 0.15 - 0.3 * d * d
-		var h := TOP - bottom
-		col.scale.y = h / 2.75
+		var h := top - bottom
+		col.scale.y = h
 		col.position.y = bottom + h * 0.5
 		sp.position.y = bottom + 0.03
 
