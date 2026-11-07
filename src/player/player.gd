@@ -181,9 +181,8 @@ func _physics_process(delta: float) -> void:
 		target = 0.0
 	speed = move_toward(speed, target, Tun.f("speed_response") * delta)
 	run_amount = clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0)
-	_prev_x = position.x
-	position.x += speed * delta
-	position.y = level.ground_y(position.x)
+	# Position is integrated per render frame in _process (smooth at any refresh rate);
+	# physics only decides the speed.
 	_footsteps(delta)
 
 	# --- wetness ----------------------------------------------------------------------------
@@ -206,13 +205,17 @@ func _physics_process(delta: float) -> void:
 	if wet >= Tun.f("wet_max"):
 		_defeat()
 		return
+	_prev_x = position.x
 	if position.x >= level.end_x:
 		_begin_entering()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if visual == null:
 		return
+	if state == State.WALK or state == State.STOPPED:
+		position.x += speed * delta
+		position.y = level.ground_y(position.x)
 	visual.set_motion(speed, run_amount)
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
 	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt, droop)

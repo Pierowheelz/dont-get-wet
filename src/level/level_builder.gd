@@ -415,7 +415,8 @@ func _kit_facade(x: float, w: float, style: String, floors: int) -> bool:
 			cx += float(cap["width"])
 	# Back mass so the building has depth when seen from crossings.
 	var height := 4.0 + floors * 3.2
-	_box(Vector3(w, height, 8.0), Vector3(x + w * 0.5, height * 0.5, -4.6),
+	# Inset from the lot edges so its faces never sit coplanar with kit/side-wall faces (z-fighting).
+	_box(Vector3(maxf(w - 0.24, 0.1), height - 0.05, 8.0), Vector3(x + w * 0.5, height * 0.5 - 0.03, -4.7),
 		_material_res("brick_brown", _mat("back", Color(0.3, 0.24, 0.2), 0.9)))
 	return true
 
@@ -811,7 +812,8 @@ func _place_side(m: Dictionary, x: float, y: float, z: float, facing: float, fit
 	var n := _instance(m["scene"])
 	if n == null:
 		return
-	n.position = Vector3(x, y, z)
+	# Nudge out into the side street so the wall face isn't coplanar with the facade modules' ends.
+	n.position = Vector3(x + facing * 0.04, y, z)
 	var sc := 1.0
 	if fit_depth > 0.0:
 		sc = fit_depth / float(m["width"])

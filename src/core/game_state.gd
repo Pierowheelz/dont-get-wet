@@ -47,7 +47,7 @@ func _ready() -> void:
 			_shot_dir = a.substr(11)
 	load_game()   # after args: the autopilot must never read or write the player's save
 	if current_level != "":
-		_jump_to_level.call_deferred()
+		get_tree().process_frame.connect(_jump_to_level, CONNECT_ONE_SHOT)
 
 
 ## `--level=ID` launches straight into a level (exported builds can't override the main scene).
@@ -70,6 +70,10 @@ var _fps_log := false
 
 
 func _process(delta: float) -> void:
+	if _fps_log and delta > 0.05:
+		var lvl := get_tree().current_scene
+		var px: float = lvl.player.position.x if lvl and lvl.get("player") else -1.0
+		print("HITCH %.0f ms at t=%.1f x=%.1f" % [delta * 1000.0, Time.get_ticks_msec() / 1000.0, px])
 	if _fps_log:
 		_fps_t += delta
 		if _fps_t > 2.0:

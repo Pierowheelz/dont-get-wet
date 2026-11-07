@@ -4,8 +4,8 @@ extends Node3D
 ## the curb) as a foreground occluder. They never affect gameplay.
 
 const MANIFEST := "res://assets/characters/pedestrians/peds.json"
-const LANE_BACK := 0.55
-const LANE_FRONT := 2.85
+const LANE_BACK := 1.0     # clear of wall props (vending machines, benches, crates ≤ ~0.8 m)
+const LANE_FRONT := 2.45   # clear of curb props (lamps, meters, hydrants at z ≈ 3.2)
 
 var level: Node
 var _walkers: Array = []
@@ -27,6 +27,19 @@ func _ready() -> void:
 		(_walkers if p["kind"] == "walker" else _standers).append(load(p["scene"]))
 	_rng.seed = hash(String(level.level_id)) + 7
 	_place_standers()
+	_prewarm()
+
+
+## Instance every walker variant once, just off-camera, so first-spawn shader compiles happen
+## during the level fade-in rather than mid-play.
+func _prewarm() -> void:
+	var i := 0
+	for ps in _walkers:
+		var n: Node3D = ps.instantiate()
+		n.position = Vector3(-6.0 - i, 0.0, 0.6)
+		level.world.add_child(n)
+		get_tree().create_timer(1.5).timeout.connect(n.queue_free)
+		i += 1
 
 
 func _place_standers() -> void:
@@ -39,9 +52,19 @@ func _place_standers() -> void:
 			continue
 		if _rng.randf() > 0.55:
 			continue
+		var sx := x + float(lot["w"]) * _rng.randf_range(0.2, 0.8)
+		var blocked := false
+		for pr in level.data.get("props", []):
+			if absf(float(pr["x"]) - sx) < 1.3:
+				blocked = true
+		for f in level.data.get("features", []):
+			if absf(float(f["x"]) - sx) < 1.5:
+				blocked = true
+		if blocked:
+			continue
 		last = x
 		var n: Node3D = _standers[_rng.randi() % _standers.size()].instantiate()
-		n.position = Vector3(x + float(lot["w"]) * _rng.randf_range(0.2, 0.8), 0.0, 0.45)
+		n.position = Vector3(sx, 0.0, 0.45)
 		n.rotation.y = -PI * 0.5 + _rng.randf_range(-0.5, 0.5)   # roughly facing the street
 		level.world.add_child(n)
 		if n.has_method("setup"):
