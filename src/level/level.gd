@@ -244,8 +244,6 @@ func _process(delta: float) -> void:
 	if player:
 		_first_encounters()
 		_update_gutter_streams()
-	if Game.autopilot and player and OS.has_environment("DGW_TRACE") and player.position.x > float(OS.get_environment("DGW_TRACE")) and int(_t * 10.0) != int((_t - delta) * 10.0):
-		print("x=%.1f wind=%.2f exp=%.2f open=%.2f tilt=%.2f sta=%.0f wet=%.1f gut=%.2f gumb=%.2f exh=%s" % [player.position.x, wind(player.position.x), player.exposure, player.open, player.tilt, player.stamina, player.wet, player.gutter_hit, player.gutter_on_umbrella, player.exhausted])
 	if Game.autopilot and Game.trace_path != "" and player:
 		_write_trace()
 	if Game.autopilot and player and int(_t / 10.0) != int((_t - delta) / 10.0):
