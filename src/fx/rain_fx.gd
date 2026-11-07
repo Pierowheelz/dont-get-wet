@@ -22,7 +22,8 @@ func _ready() -> void:
 
 	_mat = ShaderMaterial.new()
 	_mat.shader = shader
-	_rain = _make_layer(_mat, 16000, Vector3(16.0, 7.0, 5.5), 0.42, 0.010, 0.33)
+	var low: bool = Game.settings.get("low_quality", false)
+	_rain = _make_layer(_mat, 7000 if low else 16000, Vector3(16.0, 7.0, 5.5), 0.42, 0.010, 0.33)
 	add_child(_rain)
 	_rain.sub_emitter = _rain.get_path_to(_splash)
 

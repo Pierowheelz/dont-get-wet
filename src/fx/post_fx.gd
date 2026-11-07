@@ -8,5 +8,7 @@ func _ready() -> void:
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://src/fx/painterly.gdshader")
+	if Game.settings.get("low_quality", false):
+		mat.set_shader_parameter("radius", 2)
 	rect.material = mat
 	add_child(rect)

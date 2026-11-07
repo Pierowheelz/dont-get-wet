@@ -325,6 +325,7 @@ func _settings() -> void:
 	_page.add_child(UIStyle.label("SETTINGS", &"HeaderSmall", 0, UIStyle.AMBER))
 	var p := _toggle_row("Painterly filter", "painterly", func(on: bool) -> void: _set_painterly(on))
 	_toggle_row("Touch controls", "touch_controls", Callable())
+	_toggle_row("Low graphics (Steam Deck / laptops)", "low_quality", Callable())
 	_slider_row("Music", "music")
 	_slider_row("Sound effects", "sfx")
 	var reset := _btn("Reset progress…", _confirm_reset, &"RowButton")

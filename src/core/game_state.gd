@@ -21,7 +21,7 @@ var debug_lazy := false             # --lazy: autopilot never opens the umbrella
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
 var last_result: Dictionary = {}
-var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false}
+var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false}
 
 
 func _ready() -> void:
@@ -31,6 +31,8 @@ func _ready() -> void:
 	autopilot = args.has("--autopilot")
 	debug_lazy = args.has("--lazy")
 	debug_human = args.has("--human")
+	if args.has("--low"):
+		settings["low_quality"] = true
 	for a in args:
 		if a.begins_with("--level="):
 			current_level = a.substr(8)

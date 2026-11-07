@@ -355,6 +355,12 @@ func _setup_environment() -> void:
 	env.adjustment_enabled = true
 	env.adjustment_saturation = lerpf(0.82, 1.05, neon)
 	env.adjustment_contrast = 1.05
+	if Game.settings.get("low_quality", false):
+		env.ssr_enabled = false
+		env.ssao_enabled = false
+		env.volumetric_fog_enabled = false
+		env.fog_density = 0.02
+		env.glow_intensity = 0.5
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -363,7 +369,7 @@ func _setup_environment() -> void:
 	moon.light_color = Color(0.55, 0.66, 0.92).lerp(Color(0.5, 0.55, 1.0), float(data.get("neon", 0.0)))
 	moon.light_energy = 0.5
 	moon.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
-	moon.shadow_enabled = true
+	moon.shadow_enabled = not Game.settings.get("low_quality", false)
 	moon.directional_shadow_max_distance = 40.0
 	moon.light_volumetric_fog_energy = 0.3
 	add_child(moon)

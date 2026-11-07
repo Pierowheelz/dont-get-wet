@@ -900,7 +900,7 @@ func _lamp_light(x: float) -> void:
 	sl.spot_range = 9.0
 	sl.spot_angle = 55.0
 	sl.light_volumetric_fog_energy = 2.0
-	sl.shadow_enabled = true
+	sl.shadow_enabled = not Game.settings.get("low_quality", false)
 	sl.position = Vector3(x, 5.0, 2.2)
 	sl.rotation = Vector3(-PI * 0.5, 0, 0)
 	root.add_child(sl)
