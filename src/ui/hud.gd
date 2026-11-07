@@ -187,7 +187,7 @@ func _process(delta: float) -> void:
 	var p: Player = level.player
 	_wet = lerpf(_wet, p.wet / Tun.f("wet_max"), 1.0 - exp(-12.0 * delta))
 	_sta = lerpf(_sta, p.stamina / Tun.f("stamina_max"), 1.0 - exp(-14.0 * delta))
-	_drying_a = move_toward(_drying_a, 1.0 if p.drying > 0.0 and p.wet > 0.0 else 0.0, delta * 3.0)
+	_drying_a = move_toward(_drying_a, 1.0 if p.drying > 0.1 else 0.0, delta * 3.0)
 	var t: float = level.elapsed
 	_time_lbl.text = UIStyle.fmt_time(t, true)
 	_time_lbl.add_theme_color_override("font_color", C_TEXT if t <= float(level.par_time) else C_TEXT.lerp(C_STA, 0.6))

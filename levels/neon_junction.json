@@ -15,7 +15,7 @@
   {"name": "Tube Street", "x0": 51.5, "x1": 77.5, "teaches": "the first car, in a calm wind: tilt the umbrella forward at the kerb, cross 7 m, recover under the subway balcony"},
   {"name": "The Gutter Gauntlet", "x0": 189.0, "x1": 215.79999999999995, "teaches": "four gutters in 1.2 m seams between neon googie awnings: the umbrella stays up and upright (not tilted into the rising tailwind) for 20 m"},
   {"name": "Junction Square", "x0": 232.79999999999995, "x1": 266.79999999999995, "teaches": "a 14 m crossing with a car at the gust peak (deep puddles at both kerbs), then 16 m of Hotel Orbit balconies and a vent"},
-  {"name": "The Neon Mile and the Bubble Mall", "x0": 351.79999999999995, "x1": 412.99999999999994, "teaches": "finale into the headwind: 18 m of torn marquees with gutters in the tears, a vent and a breath under the Rocketeer, Last Avenue's car with a deep puddle at the far kerb, then chrome bubble canopies and a vent before the inn"}
+  {"name": "The Neon Mile and the Bubble Mall", "x0": 351.79999999999995, "x1": 412.99999999999994, "teaches": "finale into the headwind: 18 m of torn marquees with gutters in the tears, a breath under the Rocketeer, Last Avenue's car with a deep puddle at the far kerb, then chrome bubble canopies before the inn"}
  ],
  "lots": [
   {"x": 0.0, "w": 6.0, "style": "shop_lit", "cover": "awning", "floors": 4, "sign": "ORBIT CAFE", "awning_color": "teal", "awning_style": "bubble", "neon": true},
@@ -113,13 +113,10 @@
   {"type": "gutter", "x": 281.29999999999995},
   {"type": "puddle", "x": 292.79999999999995, "w": 1.4, "deep": true},
   {"type": "puddle", "x": 310.99999999999994, "w": 1.4},
-  {"type": "vent", "x": 327.79999999999995, "w": 1.6},
   {"type": "gutter", "x": 356.19999999999993},
   {"type": "gutter", "x": 363.4},
   {"type": "puddle", "x": 368.19999999999993, "w": 1.0},
-  {"type": "vent", "x": 372.49999999999994, "w": 1.6},
-  {"type": "puddle", "x": 394.79999999999995, "w": 1.4, "deep": true},
-  {"type": "vent", "x": 402.99999999999994, "w": 1.6}
+  {"type": "puddle", "x": 394.79999999999995, "w": 1.4, "deep": true}
  ],
  "props": [
   {"id": "lamp_post", "x": 5.5},

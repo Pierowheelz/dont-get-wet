@@ -15,7 +15,7 @@
   {"name": "Weir Lane", "x0": 77.0, "x1": 131.5, "teaches": "the first long gap (14 m) as the headwind builds, 13 m of cover to recover, a gutter seam, a puddle gap"},
   {"name": "Mill Road Gas", "x0": 131.5, "x1": 202.0, "teaches": "two long gaps into the wind (the 15 m kiln yard, then the loading dock and Quarry Road, 18 m with a car), then the one big breather: canopy, kiosk and the warm garage"},
   {"name": "The Long Field", "x0": 202.0, "x1": 276.0, "teaches": "open field where the sun breaks are the only rest: close in each, reopen in time. 23 m with one break, the barn and its gutter, then 25 m with two"},
-  {"name": "The last mile", "x0": 276.0, "x1": 414.0, "teaches": "full headwind: torn tin and gutters at the junkyard, County Line (car), the torn motel, a last 20 m field with one sun break, a gutter at the Roadhouse door"}
+  {"name": "The last mile", "x0": 276.0, "x1": 414.0, "teaches": "full headwind: torn tin and gutters at the junkyard, County Line (car), the torn motel, a last field split by a tin shed, a gutter at the Roadhouse door"}
  ],
  "lots": [
   {"x": 0.0, "w": 8.0, "style": "warehouse", "cover": "awning", "floors": 2, "sign": "HOLLIS", "awning_color": "brown", "awning_style": "tin"},
@@ -67,7 +67,9 @@
   {"x": 345.0, "w": 6.0, "style": "shop_lit", "cover": "awning", "floors": 1, "sign": "LAUNDRY", "awning_color": "blue", "awning_style": "pennant"},
   {"x": 351.0, "w": 6.0, "style": "shuttered", "cover": "awning", "floors": 1, "sign": "BAIT", "awning_color": "orange", "awning_style": "tin"},
   {"x": 357.0, "w": 4.0, "style": "shuttered", "cover": "awning", "floors": 1, "awning_color": "orange", "awning_style": "tin"},
-  {"x": 361.0, "w": 18.0, "style": "vacant", "cover": "none", "floors": 0},
+  {"x": 361.0, "w": 7.0, "style": "vacant", "cover": "none", "floors": 0},
+  {"x": 368.0, "w": 4.0, "style": "shuttered", "cover": "awning", "floors": 1, "awning_color": "brown", "awning_style": "tin"},
+  {"x": 372.0, "w": 7.0, "style": "vacant", "cover": "none", "floors": 0},
   {"x": 379.0, "w": 5.0, "style": "shop_lit", "cover": "awning", "floors": 1, "sign": "LIQUOR", "awning_color": "green", "awning_style": "pennant"},
   {"x": 384.0, "w": 8.0, "style": "warehouse", "cover": "awning", "floors": 1, "sign": "MOTORS", "awning_color": "red", "awning_style": "tin"},
   {"x": 392.0, "w": 6.0, "style": "shop_lit", "cover": "awning", "floors": 2, "sign": "GENERAL STORE", "awning_color": "green", "awning_style": "wide_stripe"},
@@ -103,7 +105,6 @@
   {"type": "gutter", "x": 333.25},
   {"type": "puddle", "x": 342.0, "w": 1.2},
   {"type": "puddle", "x": 364.5, "w": 1.2},
-  {"type": "sun", "x": 366.0, "w": 6.0},
   {"type": "puddle", "x": 373.5, "w": 1.0},
   {"type": "puddle", "x": 376.5, "w": 1.2, "deep": true},
   {"type": "puddle", "x": 401.0, "w": 1.2, "deep": true},

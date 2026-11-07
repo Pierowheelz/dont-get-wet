@@ -14,7 +14,7 @@
   {"name": "The Penny Arcade", "x0": 0.0, "x1": 29.0, "teaches": "walking under continuous cover: a lit colonnade of pinball and skee-ball"},
   {"name": "Bell Street", "x0": 29.0, "x1": 85.5, "teaches": "first car: short gaps to warm up, then headlights at a 6 m crossing reached under the malt-shop awning; tilt forward, then 18 m of Rialto marquee to recover"},
   {"name": "Orbit Avenue", "x0": 132.5, "x1": 165.5, "teaches": "harder car: an open bus-stop kerb, then a 10 m crossing with a deep puddle at the kerb, then motel balconies"},
-  {"name": "The Flatiron Diner", "x0": 176.5, "x1": 222.5, "teaches": "double crossing: a car down each of two side streets, 11 m of diner awning between them to retilt"},
+  {"name": "The Flatiron Diner", "x0": 176.5, "x1": 222.5, "teaches": "double crossing: a car down each of two side streets, 11 m of diner awning between them to retilt, then a fire barrel under the flats"},
   {"name": "The Boulevard", "x0": 265.5, "x1": 330.0, "teaches": "final exam: torn neon awnings, a gutter right at the kerb, the widest crossing with a deep puddle, a last gutter at the inn"}
  ],
  "lots": [
@@ -91,8 +91,8 @@
   {"type": "puddle", "x": 142.7, "w": 1.4, "deep": true},
   {"type": "puddle", "x": 168.0, "w": 1.0},
   {"type": "puddle", "x": 207.3, "w": 1.4, "deep": true},
+  {"type": "fire_barrel", "x": 212.5, "w": 1.8},
   {"type": "puddle", "x": 224.1, "w": 1.0},
-  {"type": "sun", "x": 225.5, "w": 6.0},
   {"type": "puddle", "x": 254.5, "w": 1.2, "deep": true},
   {"type": "gutter", "x": 292.25},
   {"type": "puddle", "x": 294.2, "w": 1.6, "deep": true},

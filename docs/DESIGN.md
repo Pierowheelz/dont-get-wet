@@ -67,7 +67,9 @@ Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger
 ### Wetness (0–100)
 
 - Increases with rain exposure × rain intensity, gutter streams, car splashes and puddle steps.
-- Decreases **only** in sunny patches and warm air (vents, fires).
+- Decreases **only** in sunny patches and warm air (vents, fires), at full rate above 90 and
+  exponentially slower below it. Drying rescues a soaked run but never repays time spent waiting.
+  On the early streets none sits in the final third.
 - Resets between levels (the character spends the night at the inn).
 - Reaching 100 → **fail sequence**: drop umbrella, scrolling stops, sad walk off the left of the
   screen, "You got wet" screen with Restart / Map / Menu. Full level restart, no checkpoints.
@@ -144,8 +146,8 @@ moving toward the country thins out buildings.
   after that the run can't select streets on the other side. The main menu shows "← Continue" and
   "Continue →" (or "← Start" / "Start →" for a direction with no run yet), and each run can be
   restarted on its own.
-- **Score** (0–1000): `dryness_score = 700 × (1 − wetness/100)`, `time_score = 300 × clamp(par / time)`
-  where par = length / base walk speed. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
+- **Score** (0–1000): `dryness_score = 250 × (1 − wetness/100)`, `time_score = 750 × clamp(par / time)`
+  where par = length / 1.2 m/s. Time matters three times as much as dryness. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
 - **Tokens** = `floor(score × 0.0065)` (≈ S 6, A 5–6, B 5, C 4), paid only for improving on your best
   score for that street (so replays can earn more, never farm).
 - Best scores shown on the map and in the main menu's level replay list (the active run's streets).

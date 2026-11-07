@@ -32,6 +32,8 @@
   "wet_car_splash": 20.0,
   "dry_sun_rate": 3.0,
   "dry_vent_rate": 4.5,
+  "dry_full_above": 0.9,
+  "dry_falloff": 10.0,
 
   "camera_distance": 7.2,
   "camera_height": 2.6,
@@ -40,9 +42,9 @@
   "camera_lead": 1.9,
   "player_z": 1.6,
 
-  "par_speed": 1.3,
-  "score_dry_weight": 700,
-  "score_time_weight": 300,
+  "par_speed": 1.2,
+  "score_dry_weight": 250,
+  "score_time_weight": 750,
   "upgrade_costs": [6, 12, 18],
   "tokens_per_point": 0.0065,
   "upgrade_sturdy_drain_mult": [1.0, 0.8, 0.65, 0.5],
