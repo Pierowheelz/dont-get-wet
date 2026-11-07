@@ -20,7 +20,8 @@ class Street:
         self.lots, self.crossings, self.features, self.props, self.set_pieces = [], [], [], [], []
         self.end_x = None
 
-    def lot(self, tag, w, style, cover, sign=None, color=None, floors=2, tears=None, awning_style=None):
+    def lot(self, tag, w, style, cover, sign=None, color=None, floors=2, tears=None, awning_style=None,
+            neon=False):
         lot = {"x": self.x, "w": float(w), "style": style, "cover": cover, "floors": floors}
         if sign:
             lot["sign"] = sign
@@ -30,11 +31,16 @@ class Street:
                 lot["awning_style"] = awning_style
         if tears:
             lot["tears"] = tears
+        if neon:
+            lot["neon"] = True
         self.lots.append(lot)
         self._place(tag, w)
 
-    def xing(self, tag, w):
-        self.crossings.append({"x": self.x, "w": float(w)})
+    def xing(self, tag, w, car=False):
+        c = {"x": self.x, "w": float(w)}
+        if car:
+            c["car"] = True
+        self.crossings.append(c)
         self._place(tag, w)
 
     def _place(self, tag, w):

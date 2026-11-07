@@ -3,11 +3,6 @@
 from street import Street
 
 
-def car_xing(s, tag, w):
-    """A side street with traffic; street.py's xing() has no car option."""
-    s.xing(tag, w)
-    s.crossings[-1]["car"] = True
-
 
 s = Street("mill_road", "Mill Road",
            "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through.",
@@ -77,7 +72,7 @@ s.lot("liquor", 5, "shop_lit", "awning", sign="LIQUOR", color="green", floors=1,
 s.lot("motors", 8, "warehouse", "awning", sign="MOTORS", color="red", floors=1, awning_style="tin")
 s.lot("store", 6, "shop_lit", "awning", sign="GENERAL STORE", color="green", floors=2, awning_style="wide_stripe")
 s.lot("verge", 6, "vacant", "none", floors=0)
-car_xing(s, "county", 10)
+s.xing("county", 10, car=True)
 s.lot("inn", 8, "inn", "awning", sign="ROADHOUSE INN", color="red", floors=2, awning_style="wide_stripe")
 s.lot("barn2", 8, "warehouse", "awning", color="brown", floors=1, awning_style="tin")
 s.door("inn")
