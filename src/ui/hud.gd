@@ -238,8 +238,8 @@ func _draw_meters(ci: Control) -> void:
 	if danger:
 		ci.draw_rect(Rect2(bar_x - 3, 31, bar_w + 6, 22), Color(C_BAD, 0.35 * pulse), false, 2.0)
 
-	# Stamina: amber bar, red when exhausted.
-	var sta_col := C_BAD if p.exhausted else C_STA
+	# Stamina: amber bar, reddening when low, red when exhausted.
+	var sta_col := C_BAD if p.exhausted else (C_STA.lerp(C_BAD, 0.45) if _sta <= Tun.f("stop_threshold") else C_STA)
 	var y0 := 86.0
 	_bolt(ci, Vector2(34, y0 + 22), 34.0, sta_col)
 	_caption(ci, Vector2(bar_x, y0 + 8), "EXHAUSTED" if p.exhausted else "STAMINA", fc, 20, Color(sta_col if p.exhausted else C_TEXT, 0.85), shadow)

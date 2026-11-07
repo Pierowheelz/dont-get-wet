@@ -485,7 +485,7 @@ func _autopilot(delta: float) -> Array:
 	var rd0 := rain_dir()
 	var tl0 := clampf(-atan2(rd0.x, -rd0.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
 	if state == State.STOPPED:
-		return [1.0 if exposure > 0.2 else 0.0, 0.0, tl0, stamina < Tun.f("stamina_max") - 0.01]
+		return [0.0, 0.0, tl0, stamina < Tun.f("stamina_max") - 0.01]
 	var danger := false
 	var dx := -0.4
 	while dx <= lead:
