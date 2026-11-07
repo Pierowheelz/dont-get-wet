@@ -484,7 +484,7 @@ func _buttons(holder: Container, buttons: Array, size: Vector2) -> Button:
 
 func show_result(r: Dictionary) -> void:
 	if Game.debug_auto_continue:
-		get_tree().create_timer(2.0).timeout.connect(Game.goto_map)
+		get_tree().create_timer(2.0).timeout.connect(Game.goto_after_result)
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.03, 0.05, 0.0)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -509,7 +509,7 @@ func show_result(r: Dictionary) -> void:
 	hv.add_theme_constant_override("separation", -8)
 	hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(hv)
-	hv.add_child(UIStyle.label("SHELTER REACHED", &"KickerLabel", 24))
+	hv.add_child(UIStyle.label("THE LAST STREET  ·  SHELTER REACHED" if r.get("city_completed", false) else "SHELTER REACHED", &"KickerLabel", 24))
 	hv.add_child(UIStyle.label(String(level.data.get("name", "")).to_upper(), &"HeaderLabel", 84))
 	# Grade stamp (slams in after the count-up).
 	var grade := String(r["grade"])
@@ -575,7 +575,7 @@ func show_result(r: Dictionary) -> void:
 	btns.add_theme_constant_override("separation", 16)
 	v.add_child(btns)
 	var first := _buttons(btns, [
-		["Continue", Game.goto_map],
+		["Continue", Game.goto_after_result],
 		["Replay", func() -> void: Game.play_level(level.level_id)],
 	], Vector2(250, 66))
 

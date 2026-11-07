@@ -4,6 +4,7 @@ extends Node
 const SAVE_PATH := "user://save.json"
 const INDEX_PATH := "res://levels/index.json"
 const UPGRADES := [&"sturdy", &"wide", &"light"]
+const FEEDBACK_URL := "https://github.com/Pierowheelz/dont-get-wet/issues/new?template=feedback.yml"
 
 signal tokens_changed(tokens: int)
 
@@ -15,13 +16,15 @@ var best: Dictionary = {}           # id -> {score, wet, time, grade}
 var tokens := 0
 var upgrades := {&"sturdy": 0, &"wide": 0, &"light": 0}
 var completed: Array = []
+var finale_seen := false            # the city-complete ending has played once
 var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
 var debug_lazy := false             # --lazy: autopilot never opens the umbrella (testing defeat)
 var trace_path := ""                # --trace=PATH: autopilot writes a JSON-lines run trace
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
-var debug_auto_continue := false    # --auto-continue: result screen presses Continue (testing)
+var debug_auto_continue := false    # --auto-continue: result screen and ending press Continue (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
+var debug_seeded := false           # --completed=...: progress is fake, so never write the save
 var last_result: Dictionary = {}
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false}
 
@@ -54,8 +57,28 @@ func _ready() -> void:
 		if a.begins_with("--shot-dir="):
 			_shot_dir = a.substr(11)
 	load_game()   # after args: the autopilot must never read or write the player's save
+	for a in args:
+		if a.begins_with("--completed="):
+			_seed_completed(a.substr(12))
 	if current_level != "":
 		get_tree().process_frame.connect(_jump_to_level, CONNECT_ONE_SHOT)
+
+
+## --completed=id[:score],... marks streets walked for this run only (testing the finale).
+## An optional score also seeds that street's best, so the ending has grades to show.
+func _seed_completed(spec: String) -> void:
+	debug_seeded = true
+	for item in spec.split(",", false):
+		var parts := item.split(":")
+		var id := parts[0]
+		if not nodes.has(id):
+			push_warning("--completed: unknown street %s" % id)
+			continue
+		if not completed.has(id):
+			completed.append(id)
+		if parts.size() > 1:
+			var sc := int(parts[1])
+			best[id] = {"score": sc, "wet": 0.0, "time": 0.0, "grade": grade_for(sc)}
 
 
 ## `--level=ID` launches straight into a level (exported builds can't override the main scene).
@@ -127,6 +150,19 @@ func neighbors(id: String) -> Array:
 	return nodes.get(id, {}).get("neighbors", [])
 
 
+## The city is complete once every street on the map has been walked.
+func city_complete() -> bool:
+	return not nodes.is_empty() and nodes.keys().all(func(id: String) -> bool: return completed.has(id))
+
+
+## Sum of the best score on every street.
+func total_score() -> int:
+	var total := 0
+	for id: String in best:
+		total += int(best[id].get("score", 0))
+	return total
+
+
 func can_select(id: String) -> bool:
 	if not completed.has(current_node):
 		return id == current_node     # finish where you are before moving on
@@ -191,13 +227,15 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	var earned := maxi(0, int(floor(score * k)) - int(floor(prev_score * k)))
 	tokens += earned
 	var is_best := score > prev_score
+	var was_complete := city_complete()
 	if is_best:
 		best[id] = {"score": score, "wet": wet_pct, "time": time, "grade": grade_for(score)}
 	if not completed.has(id):
 		completed.append(id)
 	current_node = id
 	last_result = {"id": id, "score": score, "wet": wet_pct, "time": time, "par": par,
-		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score}
+		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score,
+		"city_completed": not was_complete and city_complete()}
 	save_game()
 	tokens_changed.emit(tokens)
 	return last_result
@@ -206,11 +244,11 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 # --- persistence --------------------------------------------------------------
 
 func save_game() -> void:
-	if autopilot:
+	if autopilot or debug_seeded:
 		return
 	var d := {"current_node": current_node, "best": best, "tokens": tokens,
 		"upgrades": {"sturdy": upgrades[&"sturdy"], "wide": upgrades[&"wide"], "light": upgrades[&"light"]},
-		"completed": completed, "settings": settings}
+		"completed": completed, "finale_seen": finale_seen, "settings": settings}
 	# Write to a temp file then swap it in, so a crash mid-write can't corrupt the save.
 	var tmp := SAVE_PATH + ".tmp"
 	var f := FileAccess.open(tmp, FileAccess.WRITE)
@@ -252,6 +290,7 @@ func load_game() -> void:
 	var c: Variant = d.get("completed")
 	if c is Array:
 		completed = c.filter(func(e: Variant) -> bool: return e is String and nodes.has(e))
+	finale_seen = d.get("finale_seen") == true
 	var st: Variant = d.get("settings")
 	if st is Dictionary:
 		for k in settings:
@@ -265,6 +304,7 @@ func reset_progress() -> void:
 	tokens = 0
 	upgrades = {&"sturdy": 0, &"wide": 0, &"light": 0}
 	completed = []
+	finale_seen = false
 	save_game()
 
 
@@ -382,6 +422,28 @@ func _level_scenes() -> PackedStringArray:
 func goto_map() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://src/ui/map_screen.tscn")
+
+
+## After a street's score screen: the ending plays once, the first time the city is complete.
+func goto_after_result() -> void:
+	if city_complete() and not finale_seen:
+		goto_finale()
+	else:
+		goto_map()
+
+
+func goto_finale() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://src/ui/finale.tscn")
+
+
+## The feedback issue form, with the game version prefilled into its `version` field.
+func feedback_url() -> String:
+	return FEEDBACK_URL + "&version=" + String(ProjectSettings.get_setting("application/config/version", "")).uri_encode()
+
+
+func open_feedback() -> void:
+	OS.shell_open(feedback_url())
 
 
 func goto_menu() -> void:

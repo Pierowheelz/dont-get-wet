@@ -48,7 +48,12 @@ func _ready() -> void:
 	head.add_theme_constant_override("separation", -6)
 	add_child(head)
 	head.add_child(UIStyle.label("WHERE TO TONIGHT?", &"KickerLabel"))
-	head.add_child(UIStyle.label("THE CITY", &"HeaderLabel", 84))
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 36)
+	head.add_child(title_row)
+	title_row.add_child(UIStyle.label("THE CITY", &"HeaderLabel", 84))
+	if Game.city_complete():
+		title_row.add_child(_complete_badge())
 
 	# Map area
 	_map = Control.new()
@@ -101,6 +106,35 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+
+
+## Gold "city complete" mark beside the title once every street has been walked.
+func _complete_badge() -> Control:
+	var badge := PanelContainer.new()
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(UIStyle.GOLD, 0.08)
+	sb.border_color = Color(UIStyle.GOLD, 0.75)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 20
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 8
+	badge.add_theme_stylebox_override("panel", sb)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 12)
+	badge.add_child(h)
+	var icon := DrawBox.new(func(ci: Control) -> void:
+		UIStyle.draw_umbrella(ci, ci.size * 0.5 + Vector2(0, 3), 36.0, UIStyle.GOLD), Vector2(40, 44))
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(icon)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", -4)
+	h.add_child(v)
+	v.add_child(UIStyle.label("CITY COMPLETE", &"KickerLabel", 26, UIStyle.GOLD))
+	v.add_child(UIStyle.label("ALL %d STREETS  ·  TOTAL %d" % [Game.nodes.size(), Game.total_score()], &"CaptionLabel", 18))
+	return badge
 
 
 # --- map --------------------------------------------------------------------------------------

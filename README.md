@@ -11,6 +11,8 @@ Open the umbrella under rain, close it under cover to get your breath back, hurr
 tilt into the wind, and watch out for passing cars.
 
 > **Alpha v0.1.0** — an early version. Expect rough edges, and tell us what you think!
+> Use **Send feedback** on the title screen, or [fill in the feedback form](../../issues/new?template=feedback.yml)
+> (which streets you played, how you played, what felt good and what didn't).
 
 ![Neon Junction](docs/screenshots/neon_junction.jpg)
 
@@ -102,7 +104,9 @@ tools/posture_sheet.sh OUT.png               # walker posture contact sheet
 ```
 
 Debug game args (after `--`): `--level=ID`, `--autopilot`, `--human`, `--lazy` (never opens the
-umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`.
+umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`, `--auto-continue`
+(score screen and ending press Continue), `--completed=ID[:SCORE],...` (marks streets walked for this
+run only; never saved).
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 

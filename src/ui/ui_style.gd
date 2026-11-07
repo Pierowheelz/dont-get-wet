@@ -126,7 +126,7 @@ static func draw_inn(ci: CanvasItem, c: Vector2, s: float, col: Color, lit: Colo
 
 
 ## Little walking man (stick figure in a coat) for progress bars / map markers; base at `c`.
-static func draw_walker(ci: CanvasItem, c: Vector2, s: float, col: Color, phase: float) -> void:
+static func draw_walker(ci: CanvasItem, c: Vector2, s: float, col: Color, phase: float, umbrella_open := 1.0) -> void:
 	var w := maxf(1.5, s * 0.1)
 	var hip := c + Vector2(0, -s * 0.42)
 	var neck := c + Vector2(0, -s * 0.8)
@@ -138,4 +138,4 @@ static func draw_walker(ci: CanvasItem, c: Vector2, s: float, col: Color, phase:
 	# arm up holding the umbrella
 	var hand := neck + Vector2(s * 0.12, -s * 0.08)
 	ci.draw_line(neck + Vector2(0, s * 0.05), hand, col, w, true)
-	draw_umbrella(ci, hand + Vector2(0, -s * 0.28), s * 0.75, col)
+	draw_umbrella(ci, hand + Vector2(0, -s * 0.28), s * 0.75, col, umbrella_open)

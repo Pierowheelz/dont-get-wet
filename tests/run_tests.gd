@@ -34,6 +34,25 @@ func _place(x: float, open: float, tilt := 0.0) -> float:
 	return p._rain_exposure()
 
 
+func _test_city_complete() -> void:
+	var kept := [Game.completed.duplicate(), Game.best.duplicate(true), Game.tokens, Game.current_node]
+	Game.completed = Game.nodes.keys().filter(func(id: String) -> bool: return id != "main_street")
+	Game.best = {}
+	check(not Game.city_complete(), "four of five streets walked: city not complete")
+	var r := Game.finish_level("main_street", 0.0, 100.0, 100.0)
+	check(Game.city_complete() and r["city_completed"], "finishing the last street completes the city")
+	r = Game.finish_level("main_street", 0.0, 100.0, 100.0)
+	check(not r["city_completed"], "replaying a street afterwards doesn't complete it again")
+	var url := Game.feedback_url()
+	print("  feedback url: ", url)
+	check(url.contains("template=feedback.yml") and url.ends_with("&version=%s" % ProjectSettings.get_setting("application/config/version")),
+		"feedback link opens the form with the version filled in")
+	Game.completed = kept[0]
+	Game.best = kept[1]
+	Game.tokens = kept[2]
+	Game.current_node = kept[3]
+
+
 func _run() -> void:
 	Game.current_level = "main_street"
 	Game.autopilot = true
@@ -71,5 +90,6 @@ func _run() -> void:
 		p.receive_splash(src, 28.0)
 		print("  splash open=%.1f tilt=%.2f -> wet %.1f" % [cfg[0], cfg[1], p.wet])
 	print("umbrella center ", p.umbrella.canopy_center(), " player ", p.global_position, " radius ", p.umbrella.current_radius())
+	_test_city_complete()
 	print("\n%s (%d failures)" % ["PASSED" if failures == 0 else "FAILED", failures])
 	get_tree().quit(1 if failures > 0 else 0)

@@ -1,0 +1,55 @@
+name: Playtest feedback
+description: Tell us how the alpha played. Every answer is optional except the version.
+title: "Feedback: "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for playing **Don't Get Wet**. Short answers are fine. Skip anything you like.
+  - type: checkboxes
+    id: streets
+    attributes:
+      label: Which streets did you play?
+      options:
+        - label: Main Street
+        - label: Canal Row
+        - label: Mill Road
+        - label: Arcade Lane
+        - label: Neon Junction
+  - type: dropdown
+    id: input
+    attributes:
+      label: How did you play?
+      multiple: true
+      options:
+        - Gamepad
+        - Keyboard and mouse
+        - Touch screen
+        - Steam Deck
+  - type: input
+    id: device
+    attributes:
+      label: Device and system
+      description: For example "Windows 11 laptop", "Steam Deck (Game Mode)", "Linux desktop".
+  - type: textarea
+    id: good
+    attributes:
+      label: What felt good?
+  - type: textarea
+    id: bad
+    attributes:
+      label: What felt bad or confusing?
+  - type: textarea
+    id: bugs
+    attributes:
+      label: Bugs
+      description: What happened, on which street, and what you expected instead. Screenshots help.
+  - type: input
+    id: version
+    attributes:
+      label: Game version
+      description: Shown at the bottom right of the title screen. The in-game "Send feedback" button fills this in.
+      placeholder: "0.1.0"
+    validations:
+      required: true
