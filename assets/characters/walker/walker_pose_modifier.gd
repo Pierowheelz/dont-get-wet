@@ -41,6 +41,7 @@ const ELBOW_POLE := Vector3(0.25, -1.0, 0.35)   # elbow down, slightly forward a
 # right-hand grip; the hand rides up as the canopy spreads.
 const RUNNER_LOW := 0.12
 const RUNNER_HIGH := 0.47
+const SIDE_OUT := 0.14     # sideways hand offset at full tilt (see _solve_umbrella_arm)
 const OPEN_TIP := deg_to_rad(20.0)  # opened / closed at ~70° above horizontal (20° off vertical)
 const RUNNER_PUSH_FWD := 0.12    # right hand holds the umbrella this much further out meanwhile
 const RUNNER_FINGER_DIR := Vector3(0.3, 0.0, 1.0)   # knuckles point across the body to the right
@@ -290,6 +291,9 @@ func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float
 	var p := Vector3(neck_c.x + HOLD_FWD, neck_c.y + HOLD_DROP, HOLD_POS.z)
 	p.x += 0.03 * tilt_now     # the shaft tilts at the wrist; the arm barely moves
 	p.y += -0.04 * absf(tilt_now) - 0.24 * droop
+	# Near full tilt the shaft is horizontal at chest height and, tipped back, would run through his
+	# torso; push the hand out to the camera side so it passes in front of the body instead.
+	p.z += SIDE_OUT * smoothstep(0.85, Tun.f("umbrella_max_tilt"), absf(tilt_now))
 	p.z += 0.07 * droop
 	# Opening / closing: hold it out a little ahead, so the folded canopy isn't in his face.
 	var fid := fiddle()

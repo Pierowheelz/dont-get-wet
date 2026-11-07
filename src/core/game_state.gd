@@ -21,6 +21,7 @@ var trace_path := ""                # --trace=PATH: autopilot writes a JSON-line
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
 var debug_auto_continue := false    # --auto-continue: result screen presses Continue (testing)
 var debug_confirm_upgrade := &""    # --confirm-upgrade=light opens the map with that buy prompt up (testing)
+var debug_tilt := NAN              # --tilt=-1..1 holds the umbrella open at that tilt (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
 var last_result: Dictionary = {}
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false, "fullscreen": true}
@@ -47,6 +48,8 @@ func _ready() -> void:
 			save_path = a.substr(7)
 		if a.begins_with("--confirm-upgrade="):
 			debug_confirm_upgrade = StringName(a.substr(18))
+		if a.begins_with("--tilt="):
+			debug_tilt = float(a.substr(7))
 		if a.begins_with("--wet="):
 			debug_start_wet = float(a.substr(6))
 		if a.begins_with("--shots="):
