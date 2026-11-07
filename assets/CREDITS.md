@@ -19,7 +19,18 @@ No third-party recordings or samples are used, so there is nothing to attribute.
   https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html and
   https://extensions.blender.org/add-ons/mpfb/ — Licence: **CC0 1.0** (assets and MPFB output).
   Rebuild script: `assets/characters/walker/source/build_walker.py`.
-- `anim/UAL1_Standard.glb` and the extracted `anim/{idle,walk,walk_formal,jog,sprint}.res`:
+- `anim/mocap/{walk,brisk,jog,idle}.res` (the locomotion in use) and their sources
+  `source/cmu/{35_01,16_21,16_35,77_02}.bvh`: **CMU Graphics Lab Motion Capture Database**,
+  http://mocap.cs.cmu.edu/ — created with funding from NSF EIA-0196217. Licence: free for use in
+  research and commercial projects ("Use this data! This data is free for use in research and
+  commercial projects worldwide." — see `source/cmu/READMEFIRST.txt`). BVH conversion by
+  **Bruce Hahne** (cgspeed.com MotionBuilder-friendly release, 2010; same terms), obtained from
+  the mirror https://github.com/una-dinosauria/cmu-mocap. Clips: 35_01 "walk" (subject 35),
+  16_21 "walk" (subject 16, brisk), 16_35 "run/jog" (subject 16), 77_02 "standing" (subject 77).
+  Retargeted, trimmed to one loop and made in-place by `tools/mocap/build_clips.sh` (original
+  tooling, this project).
+- `anim/UAL1_Standard.glb` and the extracted `anim/{idle,walk,walk_formal,jog,sprint}.res`
+  (previous locomotion, no longer referenced by the walker or pedestrians):
   **Universal Animation Library [Standard]** by **Quaternius**. Source:
   https://quaternius.itch.io/universal-animation-library — Licence: **CC0 1.0**.
 - Procedural umbrella arm/slump/breathing layer, materials and hair shader: original (this project).
@@ -67,7 +78,7 @@ All fonts from **Google Fonts** (https://github.com/google/fonts), licence **SIL
 ## Pedestrians — `assets/characters/pedestrians/`
 
 Models `models/ped_*.glb` built with **MPFB2 2.0.18** (rebuild: `source/build_ped.py` + `source/peds_spec.json`).
-Animations reuse the walker's extracted Quaternius UAL clips (CC0, credited above).
+Animations reuse the walker's CMU motion-capture clips (credited above).
 
 - MakeHuman **system assets** (base mesh, skins, eyes, eyebrows, lashes, `short01/02/04` hair, `fedora01`,
   `male_casualsuit01/03/05`, `female_sportsuit01`, `shoes01/04/05`) — MakeHuman team — CC0 —

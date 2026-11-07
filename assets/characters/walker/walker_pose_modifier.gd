@@ -2,7 +2,10 @@ extends SkeletonModifier3D
 ## Procedural layer applied on top of the locomotion AnimationTree (runs after the mixer).
 ## - spine/neck slump (sad), bent-over heavy breathing (stopped / catching breath)
 ## - right arm: analytic two-bone IK to the umbrella-holding pose, blended by `raise`
-## - left arm: reduced swing (carrying the closed umbrella), fists around the handles
+## - left arm: slightly damped swing (carrying the closed umbrella), fists around the handles
+## The base locomotion is natural motion capture with the posture already normalised (neutral
+## pelvis / lower spine, level head; tools/mocap/retarget.py), so this layer no longer re-poses the
+## torso, legs or swinging arms - it only adds the overlays above.
 ## All targets are authored in the *character* frame (+X forward, +Y up, +Z = character's right).
 
 # Driven by walker.gd every frame.
@@ -11,12 +14,17 @@ var tilt := 0.0
 var droop := 0.0
 var sad := 0.0
 var breath := 0.0      # 0..1 weight of the "catching breath" overlay
-var run := 0.0         # 0 walk .. 1 run (allows a little more forward lean)
-@export var hip_back := -0.11   # rad the pelvis is pitched back to bring the legs under the body
-@export var pelvis_tilt := 0.3   # rad of posterior pelvic tilt (tucks the backside under)
-@export var arm_swing := 0.95      # free-arm swing per unit of thigh swing (opposite leg)
-@export var stride_scale := 0.82   # leg swing amplitude kept (cadence is raised to match)
-@export var knee_ease := 0.65  # fraction of the clip's knee bend removed
+var run := 0.0         # gait position: 0 walk .. 0.5 brisk .. 1 jog
+var stride := 1.0      # leg swing amplitude kept (walker.gd shortens the cycle to match)
+@export var hip_back := 0.0      # rad the pelvis is pitched back (legs counter-rotated: no)
+@export var pelvis_tilt := 0.16   # rad of posterior pelvic tilt (tucks the backside under)
+@export_range(0.0, 1.0) var posture_fix := 0.0   # per-frame torso straightening (0 = trust the clip)
+@export_range(0.0, 1.0) var head_level := 0.5    # per-frame head stabilisation (eyes level)
+@export var toe_swing_max := -0.12  # rad of toe-up allowed while the foot swings
+@export var toe_target := -0.3   # planted foot pitch (rad, + = toes up)
+@export var knee_unbend := 0.17     # rad of knee flexion removed (clip retarget offset)
+@export var free_arm_swing := 0.55  # free-arm swing per unit thigh swing (opposite leg)
+@export_range(0.0, 1.0) var carry_damp := 0.25   # left (umbrella-carrying) arm swing damping
 var time := 0.0
 var char_from_skel := Transform3D.IDENTITY
 
@@ -177,14 +185,11 @@ func _process_modification_with_delta(_delta: float) -> void:
 	_rot_global(skel, _b["RightShoulder"], fwd_axis, -shrug - sad * 0.06)
 
 	# --- Arms toward a limp hang: carrying the closed umbrella (left), defeated (both) --------
-	var left_hang := clampf(0.35 + sad * 0.5 + breath * 0.5, 0.0, 0.9)
+	# Hurrying with a closed umbrella: that arm pumps less (keeps the umbrella from flailing).
+	var left_hang := clampf(carry_damp + 0.4 * run + sad * 0.5 + breath * 0.5, 0.0, 0.9)
 	var right_hang := clampf(sad * 0.75 + breath * 0.5, 0.0, 0.9)
-	# The formal-walk clip holds the elbows at ~100°: let the carrying arm hang nearly straight
-	# and swing like a pendulum.
-	_slerp_to(skel, _b["LeftUpperArm"], _hang["LeftUpperArm"], left_hang)
-	_slerp_to(skel, _b["LeftLowerArm"], _hang["LeftLowerArm"], maxf(left_hang, 0.85 * (1.0 - 0.5 * run)))
-	_swing(skel, "Left", right_axis, 0.3 * (1.0 - sad), 0.22)
-	_set_elbow(skel, "Left", right_axis, lerpf(0.18, 0.5, run))   # nearly straight; hand by the thigh
+	for n in ["LeftUpperArm", "LeftLowerArm"]:
+		_slerp_to(skel, _b[n], _hang[n], left_hang)
 	for n in ["RightUpperArm", "RightLowerArm"]:
 		_slerp_to(skel, _b[n], _hang[n], right_hang)
 
@@ -194,42 +199,56 @@ func _process_modification_with_delta(_delta: float) -> void:
 	if w > 0.001:
 		_solve_umbrella_arm(skel, skel_from_char, w)
 
-	# --- Legs: shorten the clip's long stride (the walker plays it faster to match) -------------
+	# --- Legs: slow walking takes shorter steps (walker.gd lowers the cycle length to match) ----
+	if stride < 0.999:
+		for side in ["Left", "Right"]:
+			var ul := skel.find_bone(side + "UpperLeg")
+			var hp := char_from_skel * skel.get_bone_global_pose(ul).origin
+			var kp := char_from_skel * skel.get_bone_global_pose(skel.find_bone(side + "LowerLeg")).origin
+			var ld := (kp - hp).normalized()
+			var thigh := atan2(ld.x, -ld.y)
+			_rot_global(skel, ul, right_axis, -(1.0 - stride) * thigh)
+
+	# --- Knees: the retargeted clips carry ~10° of extra knee flexion through the cycle (a half-
+	# squat look). Straighten every frame by up to `knee_unbend`, never past 3° (walker lifts the
+	# model to keep the feet on the ground).
 	for side in ["Left", "Right"]:
 		var ul := skel.find_bone(side + "UpperLeg")
-		var hp := char_from_skel * skel.get_bone_global_pose(ul).origin
-		var kp := char_from_skel * skel.get_bone_global_pose(skel.find_bone(side + "LowerLeg")).origin
-		var ld := (kp - hp).normalized()
-		var thigh := atan2(ld.x, -ld.y)
-		_rot_global(skel, ul, right_axis, -(1.0 - stride_now()) * thigh)
-	# --- Legs: ease the clip's deep knee bend (it reads as a sneaking step) ----------------------
-	# Only on the leg under/ahead of the body (stance & heel strike); the trailing leg keeps its
-	# bend so the heel lifts and the foot rolls onto the toes.
-	for side in ["Left", "Right"]:
 		var kn := skel.find_bone(side + "LowerLeg")
-		if kn < 0:
-			continue
-		var hp := char_from_skel * skel.get_bone_global_pose(skel.find_bone(side + "UpperLeg")).origin
-		var kp := char_from_skel * skel.get_bone_global_pose(kn).origin
-		var ld := (kp - hp).normalized()
-		var thigh := atan2(ld.x, -ld.y)
-		var stance := smoothstep(-0.25, 0.0, thigh)
-		_slerp_to(skel, kn, skel.get_bone_rest(kn).basis.get_rotation_quaternion(), knee_ease * stance * lerpf(1.0, 1.2, run))
-	# --- Free right arm: relax the formal clip's 90° elbow toward a natural hang ----------------
-	if w < 0.999 and _hang.has("RightLowerArm"):
-		var free := (1.0 - w)
-		_slerp_to(skel, _b["RightLowerArm"], _hang["RightLowerArm"], 0.85 * free * (1.0 - 0.5 * run))
-		_swing(skel, "Right", right_axis, lerpf(arm_swing, arm_swing * 1.2, run) * free * (1.0 - 0.7 * sad), lerpf(0.4, 0.3, run))
-		# Relaxed elbow: a little bend at the back of the swing, more as the arm comes forward.
-		var fwd := clampf(_arm_angle(skel, "Right"), 0.0, 0.6)
-		# Walk: soft elbow (~15–30°). Hurry: a pumping arm bent ~80°, hand no higher than the ribs.
-		var bend := lerpf(lerpf(0.28, 0.5, fwd / 0.6), 1.35, run)
-		var cur_bend := _elbow_bend(skel, "Right")
-		_set_elbow(skel, "Right", right_axis, lerpf(cur_bend, bend, free))
+		var ft := skel.find_bone(side + "Foot")
+		var hp := skel.get_bone_global_pose(ul).origin
+		var kp := skel.get_bone_global_pose(kn).origin
+		var ap := skel.get_bone_global_pose(ft).origin
+		var thigh := (kp - hp).normalized()
+		var shin := (ap - kp).normalized()
+		var flex := thigh.angle_to(shin)
+		var undo := minf(knee_unbend * (1.0 - 0.5 * run), maxf(flex - deg_to_rad(3.0), 0.0))
+		var axis := shin.cross(thigh)
+		if undo > 0.0 and axis.length_squared() > 1e-8:
+			_rot_global(skel, kn, axis.normalized(), undo)
+
+	# --- Feet: the clips hold the toes ~5–11° up when planted; turn the feet down to flat ------
+	for side in ["Left", "Right"]:
+		var ft := skel.find_bone(side + "Foot")
+		var fp := char_from_skel * skel.get_bone_global_pose(ft).origin
+		var tp := char_from_skel * skel.get_bone_global_pose(skel.find_bone(side + "Toes")).origin
+		var d := tp - fp
+		var pitch := atan2(d.y, Vector2(d.x, d.z).length())     # + = toes up
+		# Planted: flat. Swing / heel strike: the capture flicks the toes up a lot — allow only a
+		# little dorsiflexion (toe_swing_max) so the toes never point up at the camera.
+		var planted := 1.0 - smoothstep(0.09, 0.2, fp.y)
+		var allowed := lerpf(toe_swing_max, toe_target, planted)
+		var corr := clampf(pitch - allowed, 0.0, 0.8)
+		# For a bone pointing forward (+X), a positive rotation about the right axis lifts it.
+		_rot_global(skel, ft, right_axis, -corr)
+
+	# --- Free arm: swing back behind the hip as the same-side leg comes forward ----------------
+	if w < 0.5:
+		_swing(skel, "Right", right_axis, free_arm_swing * (1.0 - 2.0 * w) * (1.0 - 0.7 * sad), 0.4)
 
 	# --- Fists ---------------------------------------------------------------------------------
 	_curl_hand(skel, "Left", 1.0)
-	_curl_hand(skel, "Right", 0.3 + 0.7 * w)
+	_curl_hand(skel, "Right", lerpf(0.35 + 0.25 * run, 1.0, w))
 
 
 func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float) -> void:
@@ -347,9 +366,9 @@ func _set_elbow(skel: Skeleton3D, side: String, right_axis: Vector3, bend: float
 	_rot_global(skel, la, axis.normalized(), cur.angle_to(target))
 
 
-## Effective stride scale: hurrying uses shorter, quicker steps.
+## Effective stride scale (kept for callers of the old API).
 func stride_now() -> float:
-	return lerpf(stride_scale, stride_scale * 0.82, run)
+	return stride
 
 
 ## Swing an upper arm from the shoulder, opposite to the same-side leg (the formal-walk clip
@@ -390,20 +409,25 @@ func _align_posture(skel: Skeleton3D, right_axis: Vector3) -> void:
 		var th := skel.find_bone(side + "UpperLeg")
 		if th >= 0:
 			_rot_global(skel, th, right_axis, -tilt_p)
-	var torso_target := lerpf(0.045, 0.05, run) + 0.07 * maxf(tilt, 0.0) * raise   # lean into the wind   # the walker also leans the whole body when running
-	for k in 2:
-		var d := (_lean(skel, _b["Hips"], _b["Neck"]) - torso_target) * w
-		_rot_global(skel, _b["Spine"], right_axis, d * 0.34)
-		_rot_global(skel, _b["Chest"], right_axis, d * 0.33)
-		_rot_global(skel, _b["UpperChest"], right_axis, d * 0.33)
-	# Neck: neck → head close to vertical (ears over shoulders).
-	for k in 2:
-		var nd := (_lean(skel, _b["Neck"], _b["Head"]) - lerpf(-0.03, -0.02, run)) * w
-		_rot_global(skel, _b["Neck"], right_axis, nd)
-	# Head: keep the face level — the head bone's up axis near vertical.
+	# ...and bring the upper body back over it at the lower spine: flattens the lumbar curve so
+	# the belly no longer pushes forward, without leaning the chest back.
+	_rot_global(skel, _b["Spine"], right_axis, -tilt_p)
+	# Optional per-frame straightening (off by default: the mocap clips carry a natural posture).
+	if posture_fix > 0.0:
+		var torso_target := lerpf(0.045, 0.1, run)
+		for k in 2:
+			var d := (_lean(skel, _b["Hips"], _b["Neck"]) - torso_target) * w * posture_fix
+			_rot_global(skel, _b["Spine"], right_axis, d * 0.34)
+			_rot_global(skel, _b["Chest"], right_axis, d * 0.33)
+			_rot_global(skel, _b["UpperChest"], right_axis, d * 0.33)
+	# Lean into the wind when holding the umbrella tilted forward (upper body only).
+	var wind := -0.07 * maxf(tilt, 0.0) * raise * w
+	_rot_global(skel, _b["Chest"], right_axis, wind * 0.5)
+	_rot_global(skel, _b["UpperChest"], right_axis, wind * 0.5)
+	# Head: keep the face level — the head bone's up axis near vertical (eyes very slightly down).
 	var hb := char_from_skel.basis * skel.get_bone_global_pose(_b["Head"]).basis.orthonormalized()
 	var up := hb * _head_up_local
-	var hd := (atan2(up.x, up.y) - 0.2) * w    # eyes level / very slightly down, not chin-up
+	var hd := (atan2(up.x, up.y) - 0.2) * w * head_level
 	_rot_global(skel, _b["Head"], right_axis, hd)
 
 

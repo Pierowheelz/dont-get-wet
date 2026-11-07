@@ -112,18 +112,34 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var smoke_w := pulse(t + 2.0, 8.0, 3.0, 0.7) if smoke else 0.0
 
 	# Torso & head. Forward pitch = negative rotation about the character's +Z axis.
-	_rot_global(skel, _b["Spine"], right_axis, 0.04 - hunch * 0.10)
+	# (The mocap clips already have a neutral, upright posture; only overlays are added here.)
+	_rot_global(skel, _b["Spine"], right_axis, -hunch * 0.10)
 	_rot_global(skel, _b["Chest"], right_axis, -hunch * 0.06)
-	_rot_global(skel, _b["Neck"], right_axis, 0.12 - hunch * 0.04 - watch_w * 0.15)
-	_rot_global(skel, _b["Head"], right_axis, 0.05 - hunch * 0.18 - watch_w * 0.30 + smoke_w * 0.06)
+	_rot_global(skel, _b["Neck"], right_axis, -hunch * 0.04 - watch_w * 0.15)
+	_rot_global(skel, _b["Head"], right_axis, -hunch * 0.18 - watch_w * 0.30 + smoke_w * 0.06)
 	if look_around > 0.0:
 		var yaw := (sin(t * 0.37) * 0.6 + sin(t * 0.91 + 1.3) * 0.25) * look_around * (1.0 - watch_w)
 		_rot_global(skel, _b["Neck"], up_axis, yaw * 0.4)
 		_rot_global(skel, _b["Head"], up_axis, yaw * 0.6)
 
+	# Feet: in this rig the rest pose leaves the toes ~17° up; flatten planted feet and keep the
+	# toes from pointing up during the swing (same correction as the player walker).
+	for side in ["Left", "Right"]:
+		var ft := skel.find_bone(side + "Foot")
+		var tb := skel.find_bone(side + "Toes")
+		if ft < 0 or tb < 0:
+			continue
+		var fp := char_from_skel * skel.get_bone_global_pose(ft).origin
+		var tp := char_from_skel * skel.get_bone_global_pose(tb).origin
+		var d := tp - fp
+		var pitch := atan2(d.y, Vector2(d.x, d.z).length())
+		var planted := 1.0 - smoothstep(0.09, 0.2, fp.y)
+		var allowed := lerpf(-0.12, -0.3, planted)
+		_rot_global(skel, ft, right_axis, -clampf(pitch - allowed, 0.0, 0.8))
+
 	# Arms: calmer swing when carrying something / hurrying hands near the body.
-	var left_hang := 0.3 + hunch * 0.2
-	var right_hang := 0.3 + hunch * 0.2
+	var left_hang := 0.1 + hunch * 0.3
+	var right_hang := 0.1 + hunch * 0.3
 	for n in ["LeftUpperArm", "LeftLowerArm"]:
 		_slerp_to(skel, _b[n], _hang[n], left_hang)
 	for n in ["RightUpperArm", "RightLowerArm"]:

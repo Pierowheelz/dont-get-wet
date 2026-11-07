@@ -1,5 +1,5 @@
 extends SceneTree
-## Measures metres per gait cycle of the walker's walk/jog blend at several jog weights
+## Measures metres per gait cycle of the walker's walk/brisk/jog blend at several gait positions
 ## (planted-foot backward speed while the tree runs at exactly 1 cycle per second).
 func _initialize():
 	var w: Node3D = load("res://assets/characters/walker/walker.tscn").instantiate()
@@ -13,7 +13,7 @@ func _initialize():
 	var toes := [skel.find_bone("LeftToes"), skel.find_bone("RightToes")]
 	var out := []
 	for jw in [0.0, 0.25, 0.5, 0.75, 1.0]:
-		tree.set(&"parameters/run/blend_amount", jw)
+		tree.set(&"parameters/gait/blend_position", jw)
 		tree.set(&"parameters/ts/scale", 1.0)
 		tree.set(&"parameters/stop/blend_amount", 0.0)
 		var N := 200
@@ -35,6 +35,6 @@ func _initialize():
 		speeds.sort()
 		var med: float = speeds[speeds.size() / 2] if speeds.size() > 0 else 0.0
 		out.append(snappedf(med, 0.01))
-		print("jog_w=%.2f  m/cycle=%.3f  samples=%d  p25=%.2f p75=%.2f" % [jw, med, speeds.size(), speeds[speeds.size() / 4], speeds[3 * speeds.size() / 4]])
+		print("gait=%.2f  m/cycle=%.3f  samples=%d  p25=%.2f p75=%.2f" % [jw, med, speeds.size(), speeds[speeds.size() / 4], speeds[3 * speeds.size() / 4]])
 	print("CYCLE_M := ", out)
 	quit()

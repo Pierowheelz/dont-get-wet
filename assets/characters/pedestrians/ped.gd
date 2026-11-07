@@ -4,20 +4,12 @@ extends Node3D
 ##   set_walking(speed_mps) 0 = stand (idle behaviour), > 0 = walk (jog blend when hurrying)
 ##   kind                   &"walker" or &"stander"
 ## Model: MakeHuman/MPFB2 (CC0/CC-BY assets, see assets/CREDITS.md); animations: the walker's
-## extracted Quaternius UAL clips (CC0), retargeted at import via SkeletonProfileHumanoid.
+## CMU motion-capture locomotion (assets/characters/walker/locomotion.gd).
 ## Faces +X, feet at the origin, no root motion (the owner moves the node).
 
 const PoseModifier := preload("res://assets/characters/pedestrians/ped_pose_modifier.gd")
 const UMBRELLA := preload("res://assets/characters/pedestrians/umbrella/umbrella.tscn")
-const ANIMS := {
-	&"walk": preload("res://assets/characters/walker/anim/walk_formal.res"),
-	&"jog": preload("res://assets/characters/walker/anim/jog.res"),
-	&"idle": preload("res://assets/characters/walker/anim/idle.res"),
-}
-## Metres per gait cycle at jog weight 0, .25, .5, .75, 1 on the walker (hips height 0.973 m);
-## scaled by this body's hips height. See assets/characters/walker/test/measure_blend.gd.
-const CYCLE_M := [1.38, 2.52, 3.78, 4.94, 5.81]
-const REF_HIPS := 0.9728
+const Loco := preload("res://assets/characters/walker/locomotion.gd")
 
 @export var kind: StringName = &"walker"
 @export var umbrella := false
@@ -43,7 +35,7 @@ var _mod: Node
 var _umbrella: Node3D
 var _speed := 0.0
 var _stop_s := 1.0
-var _jog_s := 0.0
+var _gait_s := 0.0
 var _t := 0.0
 var _stride_scale := 1.0
 var _mats := {}  # Material -> mesh name (for tinting)
@@ -59,37 +51,14 @@ func _build() -> void:
 		return
 	_model = $Model
 	_skel = _model.find_child("GeneralSkeleton", true, false) as Skeleton3D
-	_stride_scale = _skel.motion_scale / REF_HIPS
+	_stride_scale = _skel.motion_scale / Loco.REF_HIPS
 
-	_tree = AnimationTree.new()
-	_tree.name = "AnimationTree"
-	var lib := AnimationLibrary.new()
-	for k in ANIMS:
-		lib.add_animation(k, ANIMS[k])
-	_tree.add_animation_library(&"", lib)
-	var bt := AnimationNodeBlendTree.new()
-	var run := AnimationNodeBlend2.new()
-	run.sync = true
-	bt.add_node(&"walk", _clip(&"walk", true))
-	bt.add_node(&"jog", _clip(&"jog", true))
-	bt.add_node(&"run", run)
-	bt.add_node(&"ts", AnimationNodeTimeScale.new())
-	bt.add_node(&"idle", _clip(&"idle", false))
-	bt.add_node(&"stop", AnimationNodeBlend2.new())
-	bt.connect_node(&"run", 0, &"walk")
-	bt.connect_node(&"run", 1, &"jog")
-	bt.connect_node(&"ts", 0, &"run")
-	bt.connect_node(&"stop", 0, &"ts")
-	bt.connect_node(&"stop", 1, &"idle")
-	bt.connect_node(&"output", 0, &"stop")
-	_tree.tree_root = bt
-	add_child(_tree)
-	_tree.root_node = _tree.get_path_to(_model)
+	_tree = Loco.build_tree(_model, self)
 
 	_mod = PoseModifier.new()
 	_mod.name = "PoseModifier"
 	_skel.add_child(_mod)
-	_mod.setup(_skel, ANIMS[&"idle"], _stride_scale)
+	_mod.setup(_skel, Loco.ANIMS[&"idle"], _stride_scale)
 	_mod.hold_pos.z += umbrella_side_offset
 	var rel := Transform3D.IDENTITY
 	var n: Node = _skel
@@ -109,17 +78,6 @@ func _build() -> void:
 		_attach(&"RightHand", _mod.hand_r_offset).add_child(_make_cigarette())
 	_setup_materials()
 	_apply(0.0)
-
-
-func _clip(anim: StringName, normalised: bool) -> AnimationNodeAnimation:
-	var a := AnimationNodeAnimation.new()
-	a.animation = anim
-	if normalised:
-		a.use_custom_timeline = true
-		a.timeline_length = 1.0
-		a.stretch_time_scale = true
-		a.loop_mode = Animation.LOOP_LINEAR
-	return a
 
 
 func _attach(bone: StringName, offset: Transform3D) -> Node3D:
@@ -299,16 +257,11 @@ func _apply(delta: float) -> void:
 	var walking := _speed > 0.05
 	var k := 1.0 - exp(-delta * 5.0) if delta > 0.0 else 1.0
 	_stop_s = lerpf(_stop_s, 0.0 if walking else 1.0, k)
-	# Hurrying: blend toward the jog above ~1.7 m/s (capped like the player walker).
-	var jog_target := clampf((_speed - 1.7) / 1.5, 0.0, 1.0) * 0.5
-	_jog_s = lerpf(_jog_s, jog_target, k)
-	var x := clampf(_jog_s, 0.0, 1.0) * (CYCLE_M.size() - 1)
-	var i := mini(int(x), CYCLE_M.size() - 2)
-	var cycle_m := minf(lerpf(CYCLE_M[i], CYCLE_M[i + 1], x - i), lerpf(1.39, 2.9, _jog_s * 2.0))
-	cycle_m *= _stride_scale
-	_tree.set(&"parameters/run/blend_amount", _jog_s)
-	_tree.set(&"parameters/ts/scale", _speed / cycle_m)
-	_tree.set(&"parameters/stop/blend_amount", _stop_s)
+	# Gait mix whose natural speed matches (relative to body size), at a no-skate cadence.
+	var rel_speed := _speed / _stride_scale
+	_gait_s = lerpf(_gait_s, Loco.gait_for_speed(rel_speed), k)
+	var cycle_m := Loco.cycle_length(_gait_s) * _stride_scale
+	Loco.set_params(_tree, _gait_s, _speed / cycle_m, _stop_s)
 	_mod.time = _t
 	_mod.hunch = hunch * (1.0 - _stop_s)
 	_mod.look_around = _stop_s * (0.4 if umbrella else 1.0)

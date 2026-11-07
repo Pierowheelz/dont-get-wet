@@ -1,27 +1,14 @@
 extends Node3D
+@export var foot_lift := 0.032
 ## Player character visual — implements docs/CONTRACTS.md §1.
-## Model: MakeHuman/MPFB2 (CC0), animations: Quaternius Universal Animation Library (CC0),
-## retargeted at import via SkeletonProfileHumanoid. Umbrella arm, slump, breathing and fists are
-## procedural (walker_pose_modifier.gd) layered on top of the locomotion AnimationTree.
+## Model: MakeHuman/MPFB2 (CC0). Locomotion: CMU motion capture (walk / brisk walk / jog / idle,
+## see locomotion.gd), retargeted by tools/mocap/build_clips.sh. Umbrella arm, slump, breathing and
+## fists are procedural (walker_pose_modifier.gd) layered on top of the locomotion AnimationTree.
 
 const PoseModifier := preload("res://assets/characters/walker/walker_pose_modifier.gd")
 const HAIR_SHADER := preload("res://assets/characters/walker/walker_hair.gdshader")
-const ANIMS := {
-	&"walk": preload("res://assets/characters/walker/anim/walk_formal.res"),
-	&"jog": preload("res://assets/characters/walker/anim/jog.res"),
-	&"idle": preload("res://assets/characters/walker/anim/idle.res"),
-}
-
-## The UAL jog is a long, deep-kneed stride; a full blend reads as a sprint/lunge. Running is a
-## phase-locked walk/jog mix that tops out at this jog weight (a hurried office-worker trot).
-@export var foot_lift_walk := 0.045
-@export var foot_lift_run := 0.1
-@export_range(0.0, 1.0) var jog_blend_max := 0.26
-## Ground distance (m) covered by one full gait cycle at jog weight 0, 0.25, 0.5, 0.75, 1.0.
-## Measured on this skeleton with test/measure_blend.gd (planted-foot speed at 1 cycle/s).
-const CYCLE_M := [1.38, 2.52, 3.78, 4.94, 5.81]
-const SAD_STRIDE := 0.85
-const MAX_RUN_CYCLE_M := 2.35  # shorter, shuffling steps when defeated
+const Loco := preload("res://assets/characters/walker/locomotion.gd")
+const SAD_STRIDE := 0.85   # shorter, shuffling steps when defeated
 
 @onready var _model: Node3D = $Model
 var _skel: Skeleton3D
@@ -33,6 +20,7 @@ var _grip_l: Node3D
 var _speed := 0.0
 var _run := 0.0
 var _run_s := 0.0
+var _gait_s := 0.0
 var _stopped := false
 var _stop_s := 0.0
 var _breath_s := 0.0
@@ -59,43 +47,14 @@ func _build() -> void:
 		_model = $Model
 	_skel = _model.find_child("GeneralSkeleton", true, false) as Skeleton3D
 
-	# Locomotion tree: walk/jog normalised to a 1 s timeline and phase-locked (both start on a left
-	# heel strike), so one TimeScale (= gait cycles per second) drives both with no foot drift.
-	_tree = AnimationTree.new()
-	_tree.name = "AnimationTree"
-	var lib := AnimationLibrary.new()
-	for k in ANIMS:
-		lib.add_animation(k, ANIMS[k])
-	_tree.add_animation_library(&"", lib)
-	var bt := AnimationNodeBlendTree.new()
-	var walk := _clip(&"walk", true)
-	var jog := _clip(&"jog", true)
-	var idle := _clip(&"idle", false)
-	var run := AnimationNodeBlend2.new()
-	run.sync = true
-	var ts := AnimationNodeTimeScale.new()
-	var stop := AnimationNodeBlend2.new()
-	bt.add_node(&"walk", walk, Vector2(0, 0))
-	bt.add_node(&"jog", jog, Vector2(0, 200))
-	bt.add_node(&"run", run, Vector2(250, 100))
-	bt.add_node(&"ts", ts, Vector2(450, 100))
-	bt.add_node(&"idle", idle, Vector2(450, 300))
-	bt.add_node(&"stop", stop, Vector2(650, 150))
-	bt.connect_node(&"run", 0, &"walk")
-	bt.connect_node(&"run", 1, &"jog")
-	bt.connect_node(&"ts", 0, &"run")
-	bt.connect_node(&"stop", 0, &"ts")
-	bt.connect_node(&"stop", 1, &"idle")
-	bt.connect_node(&"output", 0, &"stop")
-	_tree.tree_root = bt
-	add_child(_tree)
-	_tree.root_node = _tree.get_path_to(_model)
-	_tree.active = true
+	# Locomotion tree: walk / brisk / jog normalised to a 1 s timeline and phase-locked (all start on
+	# a left heel strike), so one TimeScale (= gait cycles per second) drives them with no foot drift.
+	_tree = Loco.build_tree(_model, self)
 
 	_mod = PoseModifier.new()
 	_mod.name = "PoseModifier"
 	_skel.add_child(_mod)
-	_mod.setup(_skel, ANIMS[&"idle"])
+	_mod.setup(_skel, Loco.ANIMS[&"idle"])
 	var rel := Transform3D.IDENTITY
 	var n: Node = _skel
 	while n != self and n is Node3D:
@@ -107,18 +66,6 @@ func _build() -> void:
 	_grip_l = _make_grip(&"LeftHand", _mod.grip_l_offset, "GripLeft")
 	_setup_materials()
 	_apply_params(0.0)
-
-
-func _clip(anim: StringName, normalised: bool) -> AnimationNodeAnimation:
-	var n := AnimationNodeAnimation.new()
-	n.animation = anim
-	if normalised:
-		n.use_custom_timeline = true
-		n.timeline_length = 1.0
-		n.stretch_time_scale = true
-		n.start_offset = 0.0
-		n.loop_mode = Animation.LOOP_LINEAR
-	return n
 
 
 func _make_grip(bone: StringName, offset: Transform3D, grip_name: String) -> Node3D:
@@ -229,34 +176,30 @@ func _apply_params(delta: float) -> void:
 	var sad_target := 1.0 if _mood == &"sad" else 0.0
 	_sad_s = lerpf(_sad_s, sad_target, k_slow) if delta > 0.0 else sad_target
 
-	# Gait cycles per second so the planted foot moves at the ground speed (no skating).
-	var jog_w := _run_s * jog_blend_max
-	# The jog's natural stride is too long for our run speeds; past ~2.9 m/cycle we keep a believable
-	# cadence instead and accept a little slide during the jog's very short ground contacts.
-	var cycle_m: float = minf(cycle_length(jog_w), lerpf(1.39, MAX_RUN_CYCLE_M, _run_s)) * float(_mod.stride_now())
-	cycle_m *= lerpf(1.0, SAD_STRIDE, _sad_s * (1.0 - _run_s))
+	# Gait: pick the clip mix whose natural speed matches, then play it at the cadence that moves
+	# the planted foot at exactly the ground speed (no skating). Slow / defeated walking takes
+	# shorter steps (the pose modifier shortens the leg swing by the same factor).
+	var g_target := Loco.gait_for_speed(_speed)
+	_gait_s = lerpf(_gait_s, g_target, k_fast) if delta > 0.0 else g_target
+	var stride := Loco.slow_stride(_speed) * lerpf(1.0, SAD_STRIDE, _sad_s * (1.0 - _run_s))
+	var cycle_m: float = Loco.cycle_length(_gait_s) * stride
 	var cps := maxf(_speed, 0.0) / cycle_m
-	_tree.set(&"parameters/run/blend_amount", jog_w)
-	_tree.set(&"parameters/ts/scale", cps)
-	_tree.set(&"parameters/stop/blend_amount", _stop_s)
+	Loco.set_params(_tree, _gait_s, cps, _stop_s)
 
-	_mod.run = _run
+	_mod.run = _gait_s
+	_mod.stride = stride
 	_mod.raise = _raise
 	_mod.tilt = _tilt
 	_mod.droop = _droop
 	_mod.sad = _sad_s * (1.0 - _run_s)
-	# Hurrying leans the whole body forward from the ankles (not just a fold at the waist).
-	_model.rotation.z = -lerpf(0.055, 0.15, _run_s)   # slight whole-body lean from the ankles
-	_model.position.y = lerpf(foot_lift_walk, foot_lift_run, _run_s)   # keep toes out of the ground
+	_model.position.y = foot_lift   # straighter knees (pose modifier) make the legs a little longer
 	_mod.breath = _breath_s
 	_mod.time = _t
 
 
-## Metres travelled per gait cycle for a given jog blend weight (linear table lookup).
-static func cycle_length(jog_w: float) -> float:
-	var x := clampf(jog_w, 0.0, 1.0) * (CYCLE_M.size() - 1)
-	var i := mini(int(x), CYCLE_M.size() - 2)
-	return lerpf(CYCLE_M[i], CYCLE_M[i + 1], x - i)
+## Metres travelled per gait cycle at gait position `g` (0 walk .. 1 jog).
+static func cycle_length(g: float) -> float:
+	return Loco.cycle_length(g)
 
 
 # --- Contract API (docs/CONTRACTS.md §1) ----------------------------------------------------------
