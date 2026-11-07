@@ -44,6 +44,15 @@ func _ready() -> void:
 		if a.begins_with("--shot-dir="):
 			_shot_dir = a.substr(11)
 	load_game()   # after args: the autopilot must never read or write the player's save
+	if current_level != "":
+		_jump_to_level.call_deferred()
+
+
+## `--level=ID` launches straight into a level (exported builds can't override the main scene).
+func _jump_to_level() -> void:
+	var cs := get_tree().current_scene
+	if cs and cs.scene_file_path == "res://src/ui/main_menu.tscn":
+		play_level(current_level)
 
 
 # --- debug screenshots: --shots=1.0,2.5 --shot-dir=/abs/path (quits after the last) ----------
