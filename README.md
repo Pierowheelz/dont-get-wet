@@ -51,6 +51,7 @@ A gamepad is recommended, but keyboard and mouse work too.
 - **Close it under cover** (awnings, balconies) — stamina only comes back while it's closed.
 - **Watch for gutters, wind and cars.** Keep the umbrella upright under overflowing gutters, tilt it
   into slanting rain, and tilt it forward when headlights come — cars splash!
+- **Hold Stop to stand still.** Catch your breath under cover, or wait for a gap in the traffic. He walks on when you let go, and you can keep the umbrella up while you wait.
 - **Sunny breaks dry you off** — close the umbrella and enjoy them.
 - Beat your best score on a street to earn tokens for umbrella upgrades.
 
@@ -60,7 +61,7 @@ A gamepad is recommended, but keyboard and mouse work too.
 |---|---|---|
 | Open umbrella (hold — press lightly to half-open) | RT | Right mouse button or Space |
 | Hurry (press fully to run) | LT | Shift (W for a brisk walk) |
-| Stop for a breather (when puffed out) | LB | S |
+| Hold to stand still (catch your breath, or wait for the coast to clear) | LB | S |
 | Tilt the umbrella | Either stick | Q / E or mouse wheel |
 | Pause | Start | Esc |
 | Restart the street | Back | R |
