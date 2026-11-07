@@ -93,14 +93,16 @@ Builds: export the **Linux** and **Windows Desktop** presets (to `build/linux/` 
 ```sh
 python3 tools/level_gen.py                   # regenerate first-draft level layouts into levels/*.json
 tools/playtest.sh [--human] [level ...]      # autopilot bot plays levels headless, prints score & wetness sources
-godot --headless --path . res://tests/run_tests.tscn   # rain-exposure / umbrella / splash tests
+godot --headless --path . res://tests/run_tests.tscn -- --save=/tmp/dgw/save.json   # rain, umbrella, splash, runs & save tests
 tools/shots.sh OUT_DIR "1,3,5" res://src/level/level.tscn --autopilot --level=main_street --start-x=40
+tools/shots.sh OUT_DIR "3.5" res://src/ui/main_menu.tscn --save=/tmp/dgw/save.json   # menu against a test save
 python3 tools/grid.py sheet.png OUT_DIR/shot_*.png      # contact sheet of screenshots
 tools/posture_sheet.sh OUT.png               # walker posture contact sheet
 ```
 
 Debug game args (after `--`): `--level=ID`, `--autopilot`, `--human`, `--lazy` (never opens the
-umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`.
+umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`, `--save=ABS_PATH`
+(read and write this save file instead of the player's own).
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 

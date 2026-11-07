@@ -116,12 +116,12 @@ func _build_nodes() -> void:
 		var n: Dictionary = Game.nodes[id]
 		var b := NodeButton.new()
 		_map.add_child(b)
-		b.setup(id, n, Game.best.get(id, {}))
+		b.setup(id, n, Game.run.best.get(id, {}))
 		b.pressed.connect(func() -> void: _pick(id))
 		b.focus_entered.connect(func() -> void: _show_card(id))
 		b.mouse_entered.connect(func() -> void: b.grab_focus())
 		_buttons[id] = b
-		if Game.can_select(id) and (focus_btn == null or (id != Game.current_node and not Game.completed.has(id))):
+		if Game.can_select(id) and (focus_btn == null or (id != Game.run.current_node and not Game.run.completed.has(id))):
 			focus_btn = b
 	# Left/right walks the map in order, and steps across into the shop from the rightmost node.
 	var ids: Array = _buttons.keys()
@@ -135,7 +135,7 @@ func _build_nodes() -> void:
 			b.focus_neighbor_right = (_buttons[ids[i + 1]] as Button).get_path()
 		elif not _shop_buttons.is_empty():
 			b.focus_neighbor_right = _shop_buttons[0].get_path()
-	var back_to_map: Button = _buttons.get(Game.current_node, _buttons[ids[-1]])
+	var back_to_map: Button = _buttons.get(Game.run.current_node, _buttons[ids[-1]])
 	for sb: Button in _shop_buttons:
 		sb.focus_neighbor_left = back_to_map.get_path()
 	_menu_btn.focus_neighbor_left = back_to_map.get_path()
@@ -159,6 +159,7 @@ func _pick(id: String) -> void:
 		_shake(_buttons[id])
 		return
 	_busy = true
+	Game.choose(id)
 	_sound.play(&"ui_confirm")
 	UISound.stop_menu_music(get_tree(), 0.9)
 	var tw := create_tween()
@@ -185,7 +186,7 @@ func _draw_routes(ci: Control) -> void:
 				continue
 			var b := _map_point(nb)
 			var open := Game.can_select(id) and Game.can_select(nb)
-			var walked := Game.completed.has(id) and Game.completed.has(nb)
+			var walked := Game.run.completed.has(id) and Game.run.completed.has(nb)
 			var col := Color(UIStyle.CREAM, 0.22)
 			if walked:
 				col = Color(UIStyle.CREAM, 0.55)
@@ -194,8 +195,8 @@ func _draw_routes(ci: Control) -> void:
 			ci.draw_line(a, b, Color(0, 0, 0, 0.45), 11.0, true)
 			_dashed(ci, a, b, col, 5.0, 16.0, 10.0, _t * 18.0 if open else 0.0)
 	# Current position: a little walker under an umbrella above the marker, bobbing.
-	if Game.nodes.has(Game.current_node):
-		var p := _map_point(Game.current_node) + Vector2(0, -NodeButton.R - 16.0 + sin(_t * 3.0) * 3.0)
+	if Game.nodes.has(Game.run.current_node):
+		var p := _map_point(Game.run.current_node) + Vector2(0, -NodeButton.R - 16.0 + sin(_t * 3.0) * 3.0)
 		UIStyle.draw_walker(ci, p, 46.0, UIStyle.AMBER, _t * 6.0)
 	# Leader line from the preview card down to the focused street.
 	if _card_id != "" and _card.modulate.a > 0.05:
@@ -203,7 +204,7 @@ func _draw_routes(ci: Control) -> void:
 		var top := _card.position + Vector2(0, _card.size.y) - _map.position
 		var from := Vector2(clampf(np.x, top.x + 20.0, top.x + _card.size.x - 20.0), top.y)
 		var to := np + Vector2(0, -NodeButton.R - 12.0)
-		if _card_id == Game.current_node:
+		if _card_id == Game.run.current_node:
 			to.y -= 62.0
 		var a := _card.modulate.a
 		if to.y > from.y + 8.0:
@@ -243,7 +244,7 @@ func _show_card(id: String) -> void:
 		_card.remove_child(c)
 		c.queue_free()
 	var n: Dictionary = Game.nodes[id]
-	var best: Dictionary = Game.best.get(id, {})
+	var best: Dictionary = Game.run.best.get(id, {})
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 28)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -254,7 +255,7 @@ func _show_card(id: String) -> void:
 	left.add_theme_constant_override("separation", 4)
 	left.custom_minimum_size = Vector2(390, 0)
 	row.add_child(left)
-	var kick := "YOU ARE HERE" if id == Game.current_node else ("WALKED" if Game.completed.has(id) else "UNEXPLORED")
+	var kick := "YOU ARE HERE" if id == Game.run.current_node else ("WALKED" if Game.run.completed.has(id) else "UNEXPLORED")
 	left.add_child(UIStyle.label(kick, &"KickerLabel", 20))
 	left.add_child(UIStyle.label(String(n.get("name", id)).to_upper(), &"HeaderLabel", 56))
 	var blurb := UIStyle.label(String(n.get("blurb", "")), &"BodyLabel", 22)
@@ -300,12 +301,13 @@ func _show_card(id: String) -> void:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(spacer)
 	if not Game.can_select(id):
-		var far := UIStyle.label("Too far — walk a neighbouring street first.", &"ItalicLabel", 21, Color(UIStyle.DANGER, 0.95))
+		var why := "This run heads the other way." if Game.other_way(id) else "Too far — walk a neighbouring street first."
+		var far := UIStyle.label(why, &"ItalicLabel", 21, Color(UIStyle.DANGER, 0.95))
 		far.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		far.custom_minimum_size = Vector2(290, 0)
 		right.add_child(far)
 	else:
-		right.add_child(UIStyle.label("WALK THIS STREET  ▸" if not Game.completed.has(id) else "WALK IT AGAIN  ▸", &"KickerLabel", 22, UIStyle.CREAM))
+		right.add_child(UIStyle.label("WALK THIS STREET  ▸" if not Game.run.completed.has(id) else "WALK IT AGAIN  ▸", &"KickerLabel", 22, UIStyle.CREAM))
 	_place_card(id, true)
 
 
@@ -387,7 +389,7 @@ func _build_shop() -> void:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_shop.add_child(note)
 	_shop.add_child(HSeparator.new())
-	for u: StringName in Game.UPGRADES:
+	for u: StringName in Run.UPGRADES:
 		var b := _upgrade_button(u)
 		_shop_buttons.append(b)
 		_shop.add_child(b)
@@ -477,9 +479,9 @@ func _upgrade_button(u: StringName) -> Button:
 			need.text = "FULLY UPGRADED"
 		else:
 			cost_lbl.text = str(cost)
-			var ok := Game.tokens >= cost
+			var ok := Game.run.tokens >= cost
 			cost_lbl.add_theme_color_override("font_color", UIStyle.GOLD if ok else Color(UIStyle.DANGER, 0.85))
-			need.text = "BUY" if ok else "NEED %d MORE" % (cost - Game.tokens)
+			need.text = "BUY" if ok else "NEED %d MORE" % (cost - Game.run.tokens)
 			need.add_theme_color_override("font_color", Color(UIStyle.GOLD, 0.8) if ok else UIStyle.MUTED)
 			v.modulate.a = 1.0 if ok else 0.62
 			icon.modulate.a = v.modulate.a
@@ -512,7 +514,7 @@ func _draw_token(ci: CanvasItem, c: Vector2, r: float) -> void:
 
 
 func _refresh_tokens() -> void:
-	_tokens_lbl.text = str(Game.tokens)
+	_tokens_lbl.text = str(Game.run.tokens)
 	for c in _umb_stats.get_children():
 		c.queue_free()
 	_stat(_umb_stats, "CANOPY", "%.2f m" % Game.umbrella_radius())

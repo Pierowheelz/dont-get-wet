@@ -138,7 +138,7 @@ func _ready() -> void:
 		_root.add_child(_touch)
 
 	Inputs.device_changed.connect(_on_device_changed)
-	if level.level_id == Game.start_node and not Game.completed.has(level.level_id):
+	if level.level_id == Game.start_node and not Game.run.completed.has(level.level_id):
 		_show_tutorial()
 
 
@@ -529,7 +529,7 @@ func show_result(r: Dictionary) -> void:
 		tok_row.add_child(c)
 		coins.append(c)
 	if earned > 0:
-		tokens_lbl.text = "+%d token%s   ·   you have %d" % [earned, "" if earned == 1 else "s", Game.tokens]
+		tokens_lbl.text = "+%d token%s   ·   you have %d" % [earned, "" if earned == 1 else "s", Game.run.tokens]
 	elif r["best"]:
 		tokens_lbl.text = "No new tokens — a token for every 100 points above your old best."
 	else:
