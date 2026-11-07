@@ -37,6 +37,9 @@ func _ready() -> void:
 	_key(&"pause", KEY_ESCAPE)
 	_key(&"pause", KEY_P)
 	_button(&"restart", JOY_BUTTON_BACK)
+	# Godot's built-in UI actions have no gamepad face buttons by default: A = select, B = back.
+	_button(&"ui_accept", JOY_BUTTON_A)
+	_button(&"ui_cancel", JOY_BUTTON_B)
 	_key(&"restart", KEY_R)
 
 
@@ -55,6 +58,9 @@ func _axis(action: StringName, axis: JoyAxis, dir: float) -> void:
 
 func _button(action: StringName, button: JoyButton) -> void:
 	_ensure(action)
+	for e in InputMap.action_get_events(action):
+		if e is InputEventJoypadButton and e.button_index == button:
+			return
 	var ev := InputEventJoypadButton.new()
 	ev.button_index = button
 	InputMap.action_add_event(action, ev)
