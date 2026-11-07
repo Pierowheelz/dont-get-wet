@@ -4,8 +4,8 @@
  "blurb": "Edge of town. Long stretches of open sky, and the sun sometimes breaks through.",
  "aesthetic": "outskirts",
  "neon": 0.0,
- "length": 428.5,
- "end_x": 416.0,
+ "length": 427.0,
+ "end_x": 414.5,
  "rain": [
   [
    0.0,
@@ -13,11 +13,11 @@
   ],
   [
    0.5,
-   1.25
+   1.15
   ],
   [
    1.0,
-   1.25
+   1.15
   ]
  ],
  "wind": [
@@ -27,11 +27,11 @@
   ],
   [
    0.5,
-   0.5
+   0.4
   ],
   [
    1.0,
-   0.5
+   0.4
   ]
  ],
  "gusts": true,
@@ -156,13 +156,13 @@
   },
   {
    "x": 66.0,
-   "w": 6.5,
+   "w": 6.0,
    "style": "vacant",
    "cover": "none",
    "floors": 0
   },
   {
-   "x": 72.5,
+   "x": 72.0,
    "w": 4.0,
    "style": "shuttered",
    "cover": "awning",
@@ -170,7 +170,7 @@
    "awning_color": "orange"
   },
   {
-   "x": 76.5,
+   "x": 76.0,
    "w": 7.5,
    "style": "shop_dark",
    "cover": "awning",
@@ -179,7 +179,7 @@
    "awning_color": "orange"
   },
   {
-   "x": 84.0,
+   "x": 83.5,
    "w": 3.0,
    "style": "boarded",
    "cover": "awning",
@@ -187,7 +187,7 @@
    "awning_color": "green"
   },
   {
-   "x": 97.5,
+   "x": 97.0,
    "w": 6.5,
    "style": "shuttered",
    "cover": "awning",
@@ -196,7 +196,7 @@
    "awning_color": "green"
   },
   {
-   "x": 104.0,
+   "x": 103.5,
    "w": 5.0,
    "style": "shop_lit",
    "cover": "awning",
@@ -205,7 +205,7 @@
    "awning_color": "blue"
   },
   {
-   "x": 109.0,
+   "x": 108.5,
    "w": 3.0,
    "style": "shop_dark",
    "cover": "awning",
@@ -214,7 +214,7 @@
    "awning_color": "brown"
   },
   {
-   "x": 112.0,
+   "x": 111.5,
    "w": 4.0,
    "style": "shuttered",
    "cover": "none",
@@ -222,15 +222,15 @@
    "sign": "PHOTO"
   },
   {
-   "x": 116.0,
-   "w": 2.0,
+   "x": 115.5,
+   "w": 1.5,
    "style": "shop_dark",
    "cover": "none",
    "floors": 3,
    "sign": "BOOKS"
   },
   {
-   "x": 118.0,
+   "x": 117.0,
    "w": 4.5,
    "style": "boarded",
    "cover": "awning",
@@ -238,7 +238,7 @@
    "awning_color": "red"
   },
   {
-   "x": 122.5,
+   "x": 121.5,
    "w": 3.0,
    "style": "shuttered",
    "cover": "awning",
@@ -247,7 +247,7 @@
    "awning_color": "blue"
   },
   {
-   "x": 125.5,
+   "x": 124.5,
    "w": 6.5,
    "style": "shuttered",
    "cover": "awning",
@@ -256,7 +256,7 @@
    "awning_color": "green"
   },
   {
-   "x": 132.0,
+   "x": 131.0,
    "w": 6.0,
    "style": "shop_lit",
    "cover": "none",
@@ -264,7 +264,7 @@
    "sign": "DINER"
   },
   {
-   "x": 138.0,
+   "x": 137.0,
    "w": 4.0,
    "style": "shop_lit",
    "cover": "awning",
@@ -273,7 +273,7 @@
    "awning_color": "red"
   },
   {
-   "x": 142.0,
+   "x": 141.0,
    "w": 6.0,
    "style": "shop_dark",
    "cover": "awning",
@@ -282,7 +282,7 @@
    "awning_color": "red"
   },
   {
-   "x": 148.0,
+   "x": 147.0,
    "w": 5.0,
    "style": "shuttered",
    "cover": "awning",
@@ -290,14 +290,14 @@
    "awning_color": "teal"
   },
   {
-   "x": 153.0,
-   "w": 8.0,
+   "x": 152.0,
+   "w": 7.0,
    "style": "vacant",
    "cover": "none",
    "floors": 0
   },
   {
-   "x": 161.0,
+   "x": 159.0,
    "w": 5.5,
    "style": "wall",
    "cover": "awning",
@@ -305,7 +305,7 @@
    "awning_color": "teal"
   },
   {
-   "x": 166.5,
+   "x": 164.5,
    "w": 6.5,
    "style": "doorway",
    "cover": "awning",
@@ -319,14 +319,14 @@
    ]
   },
   {
-   "x": 173.0,
+   "x": 171.0,
    "w": 7.5,
    "style": "vacant",
    "cover": "none",
    "floors": 0
   },
   {
-   "x": 180.5,
+   "x": 178.5,
    "w": 4.0,
    "style": "shuttered",
    "cover": "awning",
@@ -335,192 +335,196 @@
    "awning_color": "brown"
   },
   {
-   "x": 184.5,
+   "x": 182.5,
    "w": 4.5,
    "style": "wall",
    "cover": "arcade",
    "floors": 3
   },
   {
-   "x": 197.0,
-   "w": 4.0,
+   "x": 187.0,
+   "w": 2.5,
+   "style": "vacant",
+   "cover": "none",
+   "floors": 0
+  },
+  {
+   "x": 189.5,
+   "w": 3.5,
    "style": "shuttered",
    "cover": "awning",
-   "floors": 2,
-   "sign": "FLORIST",
+   "floors": 3,
    "awning_color": "teal"
   },
   {
-   "x": 201.0,
-   "w": 3.0,
-   "style": "shop_lit",
+   "x": 193.0,
+   "w": 6.0,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "orange",
+   "tears": [
+    [
+     3.6,
+     4.6
+    ]
+   ]
+  },
+  {
+   "x": 207.5,
+   "w": 7.5,
+   "style": "boarded",
    "cover": "awning",
    "floors": 2,
-   "sign": "LAUNDROMAT",
+   "awning_color": "red"
+  },
+  {
+   "x": 215.0,
+   "w": 3.5,
+   "style": "shuttered",
+   "cover": "arcade",
+   "floors": 2,
+   "sign": "LAUNDROMAT"
+  },
+  {
+   "x": 218.5,
+   "w": 2.0,
+   "style": "vacant",
+   "cover": "none",
+   "floors": 0
+  },
+  {
+   "x": 220.5,
+   "w": 6.5,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 3,
+   "sign": "FLORIST",
+   "awning_color": "blue"
+  },
+  {
+   "x": 227.0,
+   "w": 3.0,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 1,
+   "sign": "PAWN",
    "awning_color": "brown"
   },
   {
-   "x": 204.0,
-   "w": 6.5,
+   "x": 230.0,
+   "w": 8.0,
+   "style": "shuttered",
+   "cover": "none",
+   "floors": 1,
+   "sign": "RADIO & TV"
+  },
+  {
+   "x": 238.0,
+   "w": 3.5,
+   "style": "shop_dark",
+   "cover": "none",
+   "floors": 3,
+   "sign": "GROCERY"
+  },
+  {
+   "x": 241.5,
+   "w": 6.0,
+   "style": "doorway",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "red"
+  },
+  {
+   "x": 247.5,
+   "w": 3.0,
+   "style": "shop_lit",
+   "cover": "arcade",
+   "floors": 3,
+   "sign": "SHOES"
+  },
+  {
+   "x": 250.5,
+   "w": 7.0,
+   "style": "vacant",
+   "cover": "none",
+   "floors": 0
+  },
+  {
+   "x": 257.5,
+   "w": 4.0,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 3,
+   "sign": "SODA",
+   "awning_color": "red"
+  },
+  {
+   "x": 261.5,
+   "w": 4.5,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "CLEANERS",
+   "awning_color": "red"
+  },
+  {
+   "x": 266.0,
+   "w": 3.0,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 2,
+   "sign": "PAWN"
+  },
+  {
+   "x": 269.0,
+   "w": 6.0,
    "style": "boarded",
-   "cover": "none",
-   "floors": 3
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "red"
   },
   {
-   "x": 210.5,
-   "w": 1.5,
-   "style": "wall",
-   "cover": "none",
-   "floors": 3
-  },
-  {
-   "x": 212.0,
-   "w": 7.5,
-   "style": "wall",
+   "x": 275.0,
+   "w": 3.0,
+   "style": "boarded",
    "cover": "awning",
    "floors": 2,
    "awning_color": "orange"
   },
   {
-   "x": 219.5,
-   "w": 3.0,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 2,
-   "sign": "WATCH REPAIR",
-   "awning_color": "green"
-  },
-  {
-   "x": 222.5,
-   "w": 4.0,
-   "style": "shop_dark",
-   "cover": "none",
-   "floors": 1,
-   "sign": "PAWN"
-  },
-  {
-   "x": 226.5,
-   "w": 6.0,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 4,
-   "sign": "GROCERY"
-  },
-  {
-   "x": 232.5,
-   "w": 3.0,
+   "x": 278.0,
+   "w": 2.5,
    "style": "boarded",
-   "cover": "arcade",
-   "floors": 2
-  },
-  {
-   "x": 235.5,
-   "w": 5.0,
-   "style": "wall",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "teal"
-  },
-  {
-   "x": 240.5,
-   "w": 7.5,
-   "style": "wall",
    "cover": "none",
    "floors": 2
   },
   {
-   "x": 248.0,
-   "w": 3.5,
-   "style": "shop_lit",
-   "cover": "none",
-   "floors": 3,
-   "sign": "SHOES"
-  },
-  {
-   "x": 251.5,
-   "w": 4.0,
-   "style": "boarded",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "blue"
-  },
-  {
-   "x": 255.5,
-   "w": 6.0,
-   "style": "wall",
-   "cover": "none",
-   "floors": 4
-  },
-  {
-   "x": 261.5,
-   "w": 4.0,
-   "style": "doorway",
-   "cover": "none",
-   "floors": 1
-  },
-  {
-   "x": 265.5,
-   "w": 1.5,
-   "style": "boarded",
-   "cover": "none",
-   "floors": 4
-  },
-  {
-   "x": 267.0,
-   "w": 3.5,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "GIFTS",
-   "awning_color": "blue"
-  },
-  {
-   "x": 270.5,
-   "w": 3.0,
-   "style": "shuttered",
-   "cover": "arcade",
-   "floors": 3
-  },
-  {
-   "x": 273.5,
-   "w": 5.5,
-   "style": "shop_dark",
-   "cover": "none",
-   "floors": 1,
-   "sign": "SHOES"
-  },
-  {
-   "x": 279.0,
-   "w": 4.0,
-   "style": "wall",
-   "cover": "none",
-   "floors": 4
-  },
-  {
-   "x": 283.0,
-   "w": 5.0,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "teal"
-  },
-  {
-   "x": 288.0,
-   "w": 7.0,
+   "x": 280.5,
+   "w": 6.5,
    "style": "shop_dark",
    "cover": "awning",
    "floors": 3,
-   "sign": "DINER",
-   "awning_color": "brown",
-   "tears": [
-    [
-     2.1,
-     3.6
-    ]
-   ]
+   "sign": "NEWS",
+   "awning_color": "brown"
   },
   {
-   "x": 305.5,
+   "x": 287.0,
+   "w": 3.5,
+   "style": "boarded",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "red"
+  },
+  {
+   "x": 290.5,
+   "w": 2.5,
+   "style": "vacant",
+   "cover": "none",
+   "floors": 0
+  },
+  {
+   "x": 293.0,
    "w": 6.0,
    "style": "doorway",
    "cover": "awning",
@@ -528,7 +532,7 @@
    "awning_color": "blue"
   },
   {
-   "x": 311.5,
+   "x": 299.0,
    "w": 4.0,
    "style": "shop_dark",
    "cover": "awning",
@@ -537,115 +541,101 @@
    "awning_color": "green"
   },
   {
-   "x": 315.5,
-   "w": 7.5,
-   "style": "vacant",
-   "cover": "none",
-   "floors": 0
-  },
-  {
-   "x": 323.0,
-   "w": 5.5,
+   "x": 313.5,
+   "w": 3.5,
    "style": "shuttered",
    "cover": "awning",
    "floors": 3,
    "awning_color": "teal"
   },
   {
-   "x": 328.5,
-   "w": 7.5,
-   "style": "vacant",
-   "cover": "none",
-   "floors": 0
-  },
-  {
-   "x": 336.0,
-   "w": 3.5,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 1,
-   "sign": "RADIO & TV",
-   "awning_color": "orange"
-  },
-  {
-   "x": 339.5,
+   "x": 317.0,
    "w": 6.0,
    "style": "boarded",
    "cover": "awning",
-   "floors": 3,
-   "awning_color": "orange"
+   "floors": 4,
+   "awning_color": "teal",
+   "tears": [
+    [
+     3.7,
+     4.7
+    ]
+   ]
   },
   {
-   "x": 345.5,
+   "x": 323.0,
+   "w": 3.5,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 3,
+   "sign": "LOANS",
+   "awning_color": "teal"
+  },
+  {
+   "x": 326.5,
    "w": 5.5,
    "style": "shuttered",
    "cover": "none",
-   "floors": 4,
-   "sign": "TOBACCO"
+   "floors": 2,
+   "sign": "CLEANERS"
   },
   {
-   "x": 351.0,
-   "w": 6.5,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 3,
-   "sign": "NEWS"
-  },
-  {
-   "x": 357.5,
-   "w": 4.0,
+   "x": 332.0,
+   "w": 5.5,
    "style": "shuttered",
    "cover": "awning",
    "floors": 2,
+   "sign": "TOBACCO",
    "awning_color": "orange"
   },
   {
-   "x": 361.5,
-   "w": 3.0,
-   "style": "shop_dark",
-   "cover": "awning",
-   "floors": 4,
-   "sign": "WATCH REPAIR",
-   "awning_color": "orange"
-  },
-  {
-   "x": 364.5,
+   "x": 337.5,
    "w": 7.0,
-   "style": "doorway",
+   "style": "wall",
    "cover": "none",
    "floors": 2
   },
   {
-   "x": 371.5,
-   "w": 3.0,
-   "style": "wall",
+   "x": 344.5,
+   "w": 4.0,
+   "style": "boarded",
    "cover": "none",
-   "floors": 4
+   "floors": 2
   },
   {
-   "x": 374.5,
-   "w": 6.0,
-   "style": "shop_lit",
-   "cover": "balcony",
+   "x": 348.5,
+   "w": 5.5,
+   "style": "shuttered",
+   "cover": "awning",
    "floors": 1,
-   "sign": "RADIO & TV"
+   "sign": "NEWS",
+   "awning_color": "orange"
   },
   {
-   "x": 380.5,
+   "x": 354.0,
+   "w": 3.5,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "RECORDS",
+   "awning_color": "green"
+  },
+  {
+   "x": 357.5,
    "w": 6.5,
    "style": "vacant",
    "cover": "none",
    "floors": 0
   },
   {
-   "x": 387.0,
-   "w": 3.0,
+   "x": 364.0,
+   "w": 2.0,
    "style": "vacant",
    "cover": "none",
    "floors": 0
   },
   {
-   "x": 390.0,
+   "x": 366.0,
    "w": 6.0,
    "style": "shuttered",
    "cover": "awning",
@@ -654,7 +644,7 @@
    "awning_color": "teal"
   },
   {
-   "x": 396.0,
+   "x": 372.0,
    "w": 5.0,
    "style": "doorway",
    "cover": "awning",
@@ -662,7 +652,7 @@
    "awning_color": "red"
   },
   {
-   "x": 401.0,
+   "x": 377.0,
    "w": 3.0,
    "style": "wall",
    "cover": "awning",
@@ -670,24 +660,55 @@
    "awning_color": "teal"
   },
   {
-   "x": 404.0,
-   "w": 4.5,
+   "x": 380.0,
+   "w": 3.0,
+   "style": "wall",
+   "cover": "none",
+   "floors": 3
+  },
+  {
+   "x": 383.0,
+   "w": 4.0,
    "style": "boarded",
    "cover": "awning",
    "floors": 2,
+   "awning_color": "teal"
+  },
+  {
+   "x": 387.0,
+   "w": 3.0,
+   "style": "wall",
+   "cover": "arcade",
+   "floors": 2
+  },
+  {
+   "x": 398.5,
+   "w": 4.0,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 3,
+   "sign": "BAKERY",
    "awning_color": "brown"
   },
   {
-   "x": 408.5,
+   "x": 402.5,
+   "w": 4.5,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 1,
+   "sign": "LOANS",
+   "awning_color": "green"
+  },
+  {
+   "x": 407.0,
    "w": 3.0,
-   "style": "shop_lit",
+   "style": "boarded",
    "cover": "awning",
    "floors": 3,
-   "sign": "CAFE",
    "awning_color": "blue"
   },
   {
-   "x": 411.5,
+   "x": 410.0,
    "w": 9.0,
    "style": "inn",
    "cover": "awning",
@@ -696,29 +717,34 @@
    "awning_color": "red"
   },
   {
-   "x": 420.5,
+   "x": 419.0,
    "w": 8.0,
    "style": "shop_dark",
    "cover": "awning",
-   "floors": 3,
-   "sign": "DINER",
+   "floors": 2,
+   "sign": "LIQUOR",
    "awning_color": "green"
   }
  ],
  "crossings": [
   {
-   "x": 87.0,
+   "x": 86.5,
    "w": 10.5,
    "car": true
   },
   {
-   "x": 189.0,
-   "w": 8.0,
+   "x": 199.0,
+   "w": 8.5,
    "car": true
   },
   {
-   "x": 295.0,
+   "x": 303.0,
    "w": 10.5,
+   "car": true
+  },
+  {
+   "x": 390.0,
+   "w": 8.5,
    "car": true
   }
  ],
@@ -749,341 +775,361 @@
   },
   {
    "type": "puddle",
-   "x": 67.97,
+   "x": 67.84,
    "w": 1.0
   },
   {
    "type": "fire_barrel",
-   "x": 69.25,
+   "x": 69.0,
    "w": 1.8
   },
   {
    "type": "puddle",
-   "x": 88.2,
+   "x": 87.7,
    "w": 1.6,
    "deep": true
   },
   {
    "type": "gutter",
-   "x": 131.75
+   "x": 130.75
   },
   {
    "type": "sun",
-   "x": 132.5,
+   "x": 131.5,
    "w": 5.0
   },
   {
+   "type": "puddle",
+   "x": 158.39,
+   "w": 1.0
+  },
+  {
    "type": "sun",
-   "x": 173.5,
+   "x": 171.5,
    "w": 6.5
   },
   {
    "type": "vent",
-   "x": 182.5,
+   "x": 180.5,
    "w": 1.6
   },
   {
    "type": "gutter",
-   "x": 188.75
+   "x": 186.75
   },
   {
    "type": "puddle",
-   "x": 190.2,
+   "x": 187.92,
+   "w": 1.0
+  },
+  {
+   "type": "gutter",
+   "x": 198.75
+  },
+  {
+   "type": "puddle",
+   "x": 200.2,
    "w": 1.6,
    "deep": true
   },
   {
+   "type": "vent",
+   "x": 211.25,
+   "w": 1.6
+  },
+  {
    "type": "gutter",
-   "x": 203.75
+   "x": 218.25
+  },
+  {
+   "type": "gutter",
+   "x": 229.75
   },
   {
    "type": "puddle",
-   "x": 205.16,
+   "x": 237.12,
+   "w": 1.0
+  },
+  {
+   "type": "puddle",
+   "x": 267.55,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 240.25
+   "x": 277.75
+  },
+  {
+   "type": "gutter",
+   "x": 290.25
   },
   {
    "type": "puddle",
-   "x": 250.28,
+   "x": 292.11,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 255.25
+   "x": 302.75
   },
   {
    "type": "puddle",
-   "x": 257.0,
-   "w": 1.0
-  },
-  {
-   "type": "gutter",
-   "x": 273.25
-  },
-  {
-   "type": "puddle",
-   "x": 277.88,
-   "w": 1.0
-  },
-  {
-   "type": "gutter",
-   "x": 294.75
-  },
-  {
-   "type": "puddle",
-   "x": 296.2,
+   "x": 304.2,
    "w": 1.6,
    "deep": true
   },
   {
+   "type": "vent",
+   "x": 320.0,
+   "w": 1.6
+  },
+  {
    "type": "gutter",
-   "x": 315.25
+   "x": 326.25
   },
   {
    "type": "sun",
-   "x": 316.0,
-   "w": 6.5
-  },
-  {
-   "type": "gutter",
-   "x": 328.25
+   "x": 327.0,
+   "w": 4.5
   },
   {
    "type": "puddle",
-   "x": 332.15,
-   "w": 1.0
-  },
-  {
-   "type": "fire_barrel",
-   "x": 351.5,
-   "w": 1.8
-  },
-  {
-   "type": "gutter",
-   "x": 364.25
-  },
-  {
-   "type": "puddle",
-   "x": 373.11,
+   "x": 342.01,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 380.25
+   "x": 357.25
   },
   {
    "type": "puddle",
-   "x": 383.61,
+   "x": 360.31,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 403.75
+   "x": 379.75
+  },
+  {
+   "type": "puddle",
+   "x": 380.83,
+   "w": 1.0
+  },
+  {
+   "type": "gutter",
+   "x": 389.75
+  },
+  {
+   "type": "puddle",
+   "x": 391.2,
+   "w": 1.6,
+   "deep": true
+  },
+  {
+   "type": "gutter",
+   "x": 406.75
   }
  ],
  "props": [
+  {
+   "id": "bench",
+   "x": 5.56
+  },
   {
    "id": "lamp_post",
    "x": 6.0
   },
   {
-   "id": "newspaper_box",
-   "x": 20.04
+   "id": "lamp_post",
+   "x": 21.6
   },
   {
    "id": "lamp_post",
-   "x": 20.96
-  },
-  {
-   "id": "newspaper_box",
-   "x": 22.56
-  },
-  {
-   "id": "bench",
-   "x": 27.92
+   "x": 34.32
   },
   {
    "id": "lamp_post",
-   "x": 35.59
-  },
-  {
-   "id": "lamp_post",
-   "x": 48.78
-  },
-  {
-   "id": "bench",
-   "x": 60.7
-  },
-  {
-   "id": "lamp_post",
-   "x": 61.56
-  },
-  {
-   "id": "lamp_post",
-   "x": 75.07
-  },
-  {
-   "id": "mailbox",
-   "x": 76.59
-  },
-  {
-   "id": "lamp_post",
-   "x": 87.99
-  },
-  {
-   "id": "lamp_post",
-   "x": 101.07
-  },
-  {
-   "id": "newspaper_box",
-   "x": 107.7
-  },
-  {
-   "id": "mailbox",
-   "x": 111.36
-  },
-  {
-   "id": "lamp_post",
-   "x": 118.77
-  },
-  {
-   "id": "lamp_post",
-   "x": 133.54
-  },
-  {
-   "id": "parking_meter",
-   "x": 135.69
-  },
-  {
-   "id": "lamp_post",
-   "x": 150.71
+   "x": 47.13
   },
   {
    "id": "trash_can",
-   "x": 153.67
+   "x": 63.75
   },
   {
    "id": "lamp_post",
-   "x": 165.56
-  },
-  {
-   "id": "hydrant",
-   "x": 172.76
+   "x": 64.83
   },
   {
    "id": "lamp_post",
-   "x": 182.69
+   "x": 77.86
   },
   {
    "id": "lamp_post",
-   "x": 195.48
-  },
-  {
-   "id": "lamp_post",
-   "x": 212.98
-  },
-  {
-   "id": "parking_meter",
-   "x": 216.35
-  },
-  {
-   "id": "lamp_post",
-   "x": 225.11
-  },
-  {
-   "id": "parking_meter",
-   "x": 231.64
-  },
-  {
-   "id": "parking_meter",
-   "x": 232.78
+   "x": 93.66
   },
   {
    "id": "bench",
-   "x": 236.46
-  },
-  {
-   "id": "hydrant",
-   "x": 236.77
+   "x": 96.69
   },
   {
    "id": "lamp_post",
-   "x": 237.53
+   "x": 110.82
   },
   {
-   "id": "lamp_post",
-   "x": 251.34
-  },
-  {
-   "id": "mailbox",
-   "x": 261.26
-  },
-  {
-   "id": "bench",
-   "x": 262.89
-  },
-  {
-   "id": "lamp_post",
-   "x": 268.8
-  },
-  {
-   "id": "mailbox",
-   "x": 276.12
-  },
-  {
-   "id": "lamp_post",
-   "x": 284.91
-  },
-  {
-   "id": "lamp_post",
-   "x": 299.52
-  },
-  {
-   "id": "lamp_post",
-   "x": 316.06
-  },
-  {
-   "id": "mailbox",
-   "x": 324.85
-  },
-  {
-   "id": "lamp_post",
-   "x": 332.69
-  },
-  {
-   "id": "lamp_post",
-   "x": 348.0
-  },
-  {
-   "id": "mailbox",
-   "x": 355.12
-  },
-  {
-   "id": "lamp_post",
-   "x": 360.18
-  },
-  {
-   "id": "lamp_post",
-   "x": 375.62
+   "id": "newspaper_box",
+   "x": 119.2
   },
   {
    "id": "parking_meter",
-   "x": 380.47
+   "x": 126.38
+  },
+  {
+   "id": "bench",
+   "x": 127.04
   },
   {
    "id": "lamp_post",
-   "x": 391.41
+   "x": 128.14
   },
   {
    "id": "lamp_post",
-   "x": 404.17
+   "x": 142.02
+  },
+  {
+   "id": "hydrant",
+   "x": 152.86
   },
   {
    "id": "lamp_post",
-   "x": 418.67
+   "x": 159.18
+  },
+  {
+   "id": "lamp_post",
+   "x": 174.44
+  },
+  {
+   "id": "lamp_post",
+   "x": 189.48
+  },
+  {
+   "id": "lamp_post",
+   "x": 204.42
+  },
+  {
+   "id": "lamp_post",
+   "x": 218.55
+  },
+  {
+   "id": "lamp_post",
+   "x": 233.85
+  },
+  {
+   "id": "lamp_post",
+   "x": 246.71
+  },
+  {
+   "id": "trash_can",
+   "x": 255.22
+  },
+  {
+   "id": "lamp_post",
+   "x": 262.01
+  },
+  {
+   "id": "lamp_post",
+   "x": 278.19
+  },
+  {
+   "id": "newspaper_box",
+   "x": 284.76
+  },
+  {
+   "id": "lamp_post",
+   "x": 292.65
+  },
+  {
+   "id": "newspaper_box",
+   "x": 299.23
+  },
+  {
+   "id": "hydrant",
+   "x": 301.85
+  },
+  {
+   "id": "lamp_post",
+   "x": 309.25
+  },
+  {
+   "id": "hydrant",
+   "x": 309.32
+  },
+  {
+   "id": "lamp_post",
+   "x": 326.25
+  },
+  {
+   "id": "trash_can",
+   "x": 326.8
+  },
+  {
+   "id": "bench",
+   "x": 337.47
+  },
+  {
+   "id": "lamp_post",
+   "x": 340.93
+  },
+  {
+   "id": "lamp_post",
+   "x": 354.56
+  },
+  {
+   "id": "parking_meter",
+   "x": 364.61
+  },
+  {
+   "id": "lamp_post",
+   "x": 368.89
+  },
+  {
+   "id": "parking_meter",
+   "x": 380.01
+  },
+  {
+   "id": "lamp_post",
+   "x": 380.94
+  },
+  {
+   "id": "newspaper_box",
+   "x": 384.04
+  },
+  {
+   "id": "newspaper_box",
+   "x": 387.04
+  },
+  {
+   "id": "lamp_post",
+   "x": 397.08
+  },
+  {
+   "id": "newspaper_box",
+   "x": 397.18
+  },
+  {
+   "id": "bench",
+   "x": 408.79
+  },
+  {
+   "id": "lamp_post",
+   "x": 410.23
+  },
+  {
+   "id": "bench",
+   "x": 412.48
+  },
+  {
+   "id": "lamp_post",
+   "x": 424.96
   }
  ]
 }

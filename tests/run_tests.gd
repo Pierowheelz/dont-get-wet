@@ -57,8 +57,19 @@ func _run() -> void:
 	check(e > 0.95, "open sky, umbrella closed: exposure %.2f ~ 1" % e)
 	e = await _place(open_x, 1.0)
 	check(e < 0.4, "open sky, umbrella open: exposure %.2f < 0.4" % e)
-	var e_half := await _place(open_x, 0.5)
-	check(e_half > e and e_half < 0.95, "half-open umbrella protects partially: %.2f" % e_half)
+	var sweep := []
+	for o in [0.1, 0.2, 0.3, 0.4, 0.5, 0.7]:
+		sweep.append("%.1f:%.2f" % [o, await _place(open_x, o)])
+	print("  exposure by open amount: ", " ".join(sweep))
+	var e_part := await _place(open_x, 0.3)
+	check(e_part > e and e_part < 0.95, "partly-open umbrella protects partially: %.2f" % e_part)
+	# Car splash: forward tilt should shield most of it.
+	for cfg in [[0.0, 0.0], [1.0, 0.0], [1.0, 0.85]]:
+		await _place(open_x, cfg[0], cfg[1])
+		p.wet = 0.0
+		var src := Vector3(p.position.x + 2.6, 2.1, p.position.z)
+		p.receive_splash(src, 28.0)
+		print("  splash open=%.1f tilt=%.2f -> wet %.1f" % [cfg[0], cfg[1], p.wet])
 	print("umbrella center ", p.umbrella.canopy_center(), " player ", p.global_position, " radius ", p.umbrella.current_radius())
 	print("\n%s (%d failures)" % ["PASSED" if failures == 0 else "FAILED", failures])
 	get_tree().quit(1 if failures > 0 else 0)

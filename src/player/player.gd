@@ -43,7 +43,8 @@ var gutter_hit := 0.0
 var exhausted := false
 var hurry := 0.0
 var drying := 0.0                  # current dry rate (for FX)
-var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0}
+var sheltered := false             # head is under fixed cover (awning/balcony)
+var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "dried": 0.0}
 
 var visual: Node3D
 var umbrella: Umbrella
@@ -67,6 +68,15 @@ func _ready() -> void:
 	umbrella.top_level = true
 	add_child(umbrella)
 	_prev_x = position.x
+	# Soft fill light so the walker reads against the dark street.
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(0.85, 0.88, 1.0)
+	fill.light_energy = 0.7
+	fill.omni_range = 3.2
+	fill.omni_attenuation = 1.5
+	fill.position = Vector3(0.4, 1.9, 1.4)
+	fill.light_specular = 0.3
+	add_child(fill)
 
 
 func _physics_process(delta: float) -> void:
@@ -150,13 +160,18 @@ func _physics_process(delta: float) -> void:
 	_update_umbrella()
 	var intensity: float = level.rain_intensity(position.x)
 	exposure = _rain_exposure() if intensity > 0.0 else 0.0
+	var head := _sample_world(SAMPLES[0][0])
+	sheltered = _cast(head, head - rain_dir() * 30.0, COVER_MASK)
 	var gain := exposure * intensity * Tun.f("wet_rain_rate")
 	if exposure > 0.05:
 		stats["exposure_time"] += delta
+	stats["wet_rain"] += gain * delta
 	gutter_hit = _gutter_exposure()
 	gain += gutter_hit * Tun.f("wet_gutter_rate")
+	stats["wet_gutter"] += gutter_hit * Tun.f("wet_gutter_rate") * delta
 	_check_puddles()
 	drying = level.dry_rate(position.x)
+	stats["dried"] += minf(drying * delta, wet)
 	wet = clampf(wet + (gain - drying) * delta, 0.0, Tun.f("wet_max"))
 	if wet >= Tun.f("wet_max"):
 		_defeat()
@@ -250,6 +265,7 @@ func _check_puddles() -> void:
 				amt *= 1.6
 			wet += amt
 			stats["puddles"] += 1
+			stats["wet_puddle"] += amt
 			puddle_stepped.emit(global_position + Vector3(0.2, 0, 0), running)
 
 
@@ -267,6 +283,7 @@ func receive_splash(source: Vector3, amount: float) -> void:
 	var got := amount * hit / total
 	wet = minf(wet + got, Tun.f("wet_max"))
 	stats["splashes"] += 1
+	stats["wet_splash"] += got
 	splashed.emit(got)
 
 
@@ -348,8 +365,10 @@ func _exposed_at(x: float, height := 1.6) -> bool:
 ## Returns [umbrella, hurry, tilt, stop].
 func _autopilot(delta: float) -> Array:
 	var lead := maxf(speed, Tun.f("walk_speed")) * Game.umbrella_open_time() + 0.6
+	var rd0 := rain_dir()
+	var tl0 := clampf(-atan2(rd0.x, -rd0.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
 	if state == State.STOPPED:
-		lead = 0.2
+		return [1.0 if exposure > 0.2 else 0.0, 0.0, tl0, false]
 	var danger := false
 	var dx := -0.4
 	while dx <= lead:
@@ -366,11 +385,16 @@ func _autopilot(delta: float) -> Array:
 	_ap_hold = 0.35 if danger else maxf(0.0, _ap_hold - delta)
 	var u := 1.0 if (danger or _ap_hold > 0.0) else 0.0
 	var h := 0.0
-	if not danger and stamina > 55.0 and open <= 0.0:
+	if not danger and stamina > 80.0 and open <= 0.0:
 		h = 0.5
 	var rd := rain_dir()
 	var tl := clampf(-atan2(rd.x, -rd.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
 	if car_ahead:
 		tl = 1.0
-	var stop := stamina < 20.0 and not danger and open <= 0.0
+	var stop := false
+	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered:
+		stop = true
+		for off in [-0.9, -0.45, 0.0, 0.45, 0.9]:
+			if _exposed_at(position.x + off) or _exposed_at(position.x + off, 0.5):
+				stop = false
 	return [u, h, tl, stop]

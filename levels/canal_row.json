@@ -4,8 +4,8 @@
  "blurb": "Warehouses and loading docks by the canal. Fewer awnings, and the wind is picking up.",
  "aesthetic": "industrial",
  "neon": 0.0,
- "length": 328.0,
- "end_x": 315.5,
+ "length": 327.0,
+ "end_x": 314.5,
  "rain": [
   [
    0.0,
@@ -104,14 +104,14 @@
   },
   {
    "x": 41.5,
-   "w": 2.5,
+   "w": 2.0,
    "style": "shop_lit",
    "cover": "none",
    "floors": 4,
    "sign": "RECORDS"
   },
   {
-   "x": 44.0,
+   "x": 43.5,
    "w": 6.5,
    "style": "shop_lit",
    "cover": "balcony",
@@ -119,7 +119,7 @@
    "sign": "TOYS"
   },
   {
-   "x": 50.5,
+   "x": 50.0,
    "w": 3.5,
    "style": "shop_lit",
    "cover": "awning",
@@ -128,7 +128,7 @@
    "awning_color": "red"
   },
   {
-   "x": 54.0,
+   "x": 53.5,
    "w": 5.5,
    "style": "wall",
    "cover": "awning",
@@ -136,21 +136,21 @@
    "awning_color": "orange"
   },
   {
-   "x": 59.5,
+   "x": 59.0,
    "w": 5.0,
    "style": "wall",
    "cover": "none",
    "floors": 2
   },
   {
-   "x": 64.5,
-   "w": 2.5,
+   "x": 64.0,
+   "w": 2.0,
    "style": "wall",
    "cover": "none",
    "floors": 3
   },
   {
-   "x": 67.0,
+   "x": 66.0,
    "w": 7.5,
    "style": "shuttered",
    "cover": "awning",
@@ -158,7 +158,7 @@
    "awning_color": "orange"
   },
   {
-   "x": 74.5,
+   "x": 73.5,
    "w": 6.0,
    "style": "shop_dark",
    "cover": "awning",
@@ -167,7 +167,7 @@
    "awning_color": "red"
   },
   {
-   "x": 90.5,
+   "x": 89.5,
    "w": 6.5,
    "style": "shuttered",
    "cover": "awning",
@@ -176,154 +176,145 @@
    "awning_color": "orange"
   },
   {
-   "x": 97.0,
+   "x": 96.0,
    "w": 4.0,
    "style": "wall",
    "cover": "arcade",
    "floors": 1
   },
   {
-   "x": 101.0,
-   "w": 6.0,
+   "x": 100.0,
+   "w": 7.0,
    "style": "boarded",
    "cover": "none",
    "floors": 4
   },
   {
    "x": 107.0,
-   "w": 2.0,
+   "w": 8.0,
    "style": "shop_dark",
-   "cover": "none",
-   "floors": 2,
-   "sign": "GROCERY"
-  },
-  {
-   "x": 109.0,
-   "w": 4.5,
-   "style": "boarded",
    "cover": "awning",
-   "floors": 3,
-   "awning_color": "green"
+   "floors": 2,
+   "sign": "BOOKS",
+   "awning_color": "brown"
   },
   {
-   "x": 113.5,
-   "w": 7.5,
+   "x": 115.0,
+   "w": 5.0,
    "style": "boarded",
    "cover": "awning",
    "floors": 4,
-   "awning_color": "teal"
-  },
-  {
-   "x": 121.0,
-   "w": 3.5,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "BARBER",
-   "awning_color": "brown"
-  },
-  {
-   "x": 124.5,
-   "w": 7.5,
-   "style": "vacant",
-   "cover": "none",
-   "floors": 0
-  },
-  {
-   "x": 132.0,
-   "w": 6.5,
-   "style": "boarded",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "green"
-  },
-  {
-   "x": 138.5,
-   "w": 3.0,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "brown"
-  },
-  {
-   "x": 141.5,
-   "w": 2.5,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 2,
-   "sign": "BOOKS"
-  },
-  {
-   "x": 144.0,
-   "w": 4.0,
-   "style": "boarded",
-   "cover": "awning",
-   "floors": 3,
    "awning_color": "orange"
   },
   {
-   "x": 148.0,
+   "x": 120.0,
+   "w": 6.0,
+   "style": "wall",
+   "cover": "none",
+   "floors": 3
+  },
+  {
+   "x": 126.0,
    "w": 3.5,
-   "style": "shuttered",
-   "cover": "arcade",
-   "floors": 3,
-   "sign": "CLEANERS"
-  },
-  {
-   "x": 151.5,
-   "w": 4.5,
-   "style": "doorway",
-   "cover": "none",
-   "floors": 2
-  },
-  {
-   "x": 156.0,
-   "w": 3.0,
-   "style": "shop_dark",
-   "cover": "none",
-   "floors": 3,
-   "sign": "CHECKS CASHED"
-  },
-  {
-   "x": 159.0,
-   "w": 5.5,
-   "style": "shuttered",
+   "style": "wall",
    "cover": "awning",
    "floors": 2,
-   "awning_color": "red"
+   "awning_color": "brown"
   },
   {
-   "x": 164.5,
-   "w": 5.0,
+   "x": 129.5,
+   "w": 6.5,
    "style": "shop_lit",
    "cover": "awning",
    "floors": 3,
-   "sign": "SHOES",
+   "sign": "SODA",
    "awning_color": "orange",
    "tears": [
     [
-     2.0,
-     3.4
+     2.6,
+     4.0
     ]
    ]
   },
   {
-   "x": 180.0,
-   "w": 6.0,
-   "style": "shop_dark",
+   "x": 136.0,
+   "w": 4.0,
+   "style": "boarded",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "brown"
+  },
+  {
+   "x": 140.0,
+   "w": 3.0,
+   "style": "shop_lit",
+   "cover": "balcony",
+   "floors": 2,
+   "sign": "TAILOR"
+  },
+  {
+   "x": 143.0,
+   "w": 5.0,
+   "style": "shuttered",
+   "cover": "none",
+   "floors": 2,
+   "sign": "FLORIST"
+  },
+  {
+   "x": 148.0,
+   "w": 2.5,
+   "style": "shuttered",
+   "cover": "none",
+   "floors": 3
+  },
+  {
+   "x": 150.5,
+   "w": 4.0,
+   "style": "wall",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "blue"
+  },
+  {
+   "x": 154.5,
+   "w": 4.5,
+   "style": "boarded",
    "cover": "awning",
    "floors": 4,
+   "awning_color": "orange"
+  },
+  {
+   "x": 159.0,
+   "w": 3.0,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "green"
+  },
+  {
+   "x": 173.0,
+   "w": 7.0,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "green"
+  },
+  {
+   "x": 180.0,
+   "w": 6.0,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 2,
    "sign": "BAKERY",
-   "awning_color": "red"
+   "awning_color": "blue"
   },
   {
    "x": 186.0,
    "w": 3.0,
    "style": "shuttered",
-   "cover": "awning",
+   "cover": "none",
    "floors": 2,
-   "sign": "RADIO & TV",
-   "awning_color": "blue"
+   "sign": "HARDWARE"
   },
   {
    "x": 189.0,
@@ -334,226 +325,208 @@
   },
   {
    "x": 193.5,
-   "w": 5.5,
-   "style": "shop_lit",
-   "cover": "none",
-   "floors": 4,
-   "sign": "LAUNDROMAT"
-  },
-  {
-   "x": 199.0,
    "w": 6.0,
-   "style": "shop_dark",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "CAFE",
-   "awning_color": "orange"
-  },
-  {
-   "x": 205.0,
-   "w": 6.5,
-   "style": "shop_lit",
-   "cover": "none",
-   "floors": 2,
-   "sign": "PHOTO"
-  },
-  {
-   "x": 211.5,
-   "w": 1.5,
    "style": "wall",
-   "cover": "none",
-   "floors": 3
-  },
-  {
-   "x": 213.0,
-   "w": 6.5,
-   "style": "doorway",
-   "cover": "balcony",
-   "floors": 4
-  },
-  {
-   "x": 219.5,
-   "w": 3.0,
-   "style": "shuttered",
    "cover": "awning",
    "floors": 2,
+   "awning_color": "teal"
+  },
+  {
+   "x": 199.5,
+   "w": 3.0,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 4,
+   "sign": "LAUNDROMAT",
    "awning_color": "orange"
   },
   {
-   "x": 222.5,
-   "w": 2.5,
+   "x": 202.5,
+   "w": 5.0,
    "style": "vacant",
    "cover": "none",
    "floors": 0
   },
   {
-   "x": 225.0,
-   "w": 4.0,
-   "style": "shop_dark",
+   "x": 207.5,
+   "w": 2.0,
+   "style": "vacant",
+   "cover": "none",
+   "floors": 0
+  },
+  {
+   "x": 209.5,
+   "w": 8.0,
+   "style": "shuttered",
    "cover": "awning",
    "floors": 4,
-   "sign": "NEWS",
-   "awning_color": "teal"
-  },
-  {
-   "x": 229.0,
-   "w": 3.5,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 2,
-   "sign": "FLORIST",
-   "awning_color": "blue"
-  },
-  {
-   "x": 232.5,
-   "w": 2.5,
-   "style": "boarded",
-   "cover": "none",
-   "floors": 3
-  },
-  {
-   "x": 235.0,
-   "w": 7.5,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 2,
-   "sign": "TOBACCO",
+   "sign": "LOANS",
    "awning_color": "red"
   },
   {
-   "x": 242.5,
+   "x": 217.5,
    "w": 3.5,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 2,
-   "sign": "TAILOR",
-   "awning_color": "brown"
-  },
-  {
-   "x": 246.0,
-   "w": 3.0,
-   "style": "shop_dark",
-   "cover": "none",
-   "floors": 4,
-   "sign": "SODA"
-  },
-  {
-   "x": 249.0,
-   "w": 4.0,
    "style": "shuttered",
    "cover": "awning",
    "floors": 2,
-   "sign": "LOANS",
-   "awning_color": "teal"
+   "sign": "BARBER",
+   "awning_color": "blue"
   },
   {
-   "x": 253.0,
+   "x": 221.0,
+   "w": 2.5,
+   "style": "doorway",
+   "cover": "none",
+   "floors": 4
+  },
+  {
+   "x": 223.5,
    "w": 6.0,
-   "style": "shop_dark",
+   "style": "shuttered",
    "cover": "awning",
-   "floors": 2,
-   "sign": "HARDWARE",
-   "awning_color": "blue",
-   "tears": [
-    [
-     3.4,
-     5.0
-    ]
-   ]
+   "floors": 1,
+   "sign": "NEWS",
+   "awning_color": "red"
   },
   {
-   "x": 259.0,
+   "x": 229.5,
+   "w": 3.0,
+   "style": "shuttered",
+   "cover": "balcony",
+   "floors": 3,
+   "sign": "CLEANERS"
+  },
+  {
+   "x": 232.5,
+   "w": 5.0,
+   "style": "vacant",
+   "cover": "none",
+   "floors": 0
+  },
+  {
+   "x": 237.5,
+   "w": 5.5,
+   "style": "vacant",
+   "cover": "none",
+   "floors": 0
+  },
+  {
+   "x": 243.0,
+   "w": 5.0,
+   "style": "doorway",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "brown"
+  },
+  {
+   "x": 248.0,
    "w": 4.5,
    "style": "shop_dark",
    "cover": "awning",
    "floors": 2,
    "sign": "DRUGS",
-   "awning_color": "green",
-   "tears": [
-    [
-     2.8,
-     3.5
-    ]
-   ]
-  },
-  {
-   "x": 263.5,
-   "w": 6.0,
-   "style": "shop_dark",
-   "cover": "none",
-   "floors": 2,
-   "sign": "DINER"
-  },
-  {
-   "x": 269.5,
-   "w": 3.5,
-   "style": "shop_dark",
-   "cover": "none",
-   "floors": 2,
-   "sign": "SODA"
-  },
-  {
-   "x": 273.0,
-   "w": 4.5,
-   "style": "shuttered",
-   "cover": "arcade",
-   "floors": 2
-  },
-  {
-   "x": 277.5,
-   "w": 5.0,
-   "style": "wall",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "blue",
-   "tears": [
-    [
-     1.7,
-     2.9
-    ]
-   ]
-  },
-  {
-   "x": 293.0,
-   "w": 4.5,
-   "style": "wall",
-   "cover": "awning",
-   "floors": 4,
-   "awning_color": "orange"
-  },
-  {
-   "x": 297.5,
-   "w": 5.0,
-   "style": "wall",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "teal",
-   "tears": [
-    [
-     1.0,
-     2.8
-    ]
-   ]
-  },
-  {
-   "x": 302.5,
-   "w": 5.5,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 1,
-   "awning_color": "red"
-  },
-  {
-   "x": 308.0,
-   "w": 3.0,
-   "style": "shop_dark",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "BAKERY",
    "awning_color": "blue"
   },
   {
-   "x": 311.0,
+   "x": 261.0,
+   "w": 4.0,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "CAFE",
+   "awning_color": "green"
+  },
+  {
+   "x": 265.0,
+   "w": 4.0,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "TOBACCO",
+   "awning_color": "brown"
+  },
+  {
+   "x": 269.0,
+   "w": 5.5,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "CHECKS CASHED",
+   "awning_color": "orange",
+   "tears": [
+    [
+     2.1,
+     3.2
+    ]
+   ]
+  },
+  {
+   "x": 274.5,
+   "w": 2.5,
+   "style": "shuttered",
+   "cover": "none",
+   "floors": 2,
+   "sign": "FLORIST"
+  },
+  {
+   "x": 277.0,
+   "w": 5.5,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "brown"
+  },
+  {
+   "x": 282.5,
+   "w": 6.5,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "GROCERY",
+   "awning_color": "teal"
+  },
+  {
+   "x": 289.0,
+   "w": 4.5,
+   "style": "shop_dark",
+   "cover": "none",
+   "floors": 2,
+   "sign": "PHOTO"
+  },
+  {
+   "x": 293.5,
+   "w": 4.5,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 4,
+   "sign": "TOYS"
+  },
+  {
+   "x": 298.0,
+   "w": 4.5,
+   "style": "boarded",
+   "cover": "awning",
+   "floors": 4,
+   "awning_color": "red"
+  },
+  {
+   "x": 302.5,
+   "w": 3.5,
+   "style": "wall",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "green"
+  },
+  {
+   "x": 306.0,
+   "w": 4.0,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "teal"
+  },
+  {
+   "x": 310.0,
    "w": 9.0,
    "style": "inn",
    "cover": "awning",
@@ -562,27 +535,27 @@
    "awning_color": "red"
   },
   {
-   "x": 320.0,
+   "x": 319.0,
    "w": 8.0,
    "style": "shop_dark",
    "cover": "awning",
-   "floors": 2,
-   "sign": "HARDWARE",
+   "floors": 3,
+   "sign": "SHOES",
    "awning_color": "blue"
   }
  ],
  "crossings": [
   {
-   "x": 80.5,
+   "x": 79.5,
    "w": 10.0
   },
   {
-   "x": 169.5,
-   "w": 10.5
+   "x": 162.0,
+   "w": 11.0
   },
   {
-   "x": 282.5,
-   "w": 10.5
+   "x": 252.5,
+   "w": 8.5
   }
  ],
  "features": [
@@ -593,94 +566,98 @@
   },
   {
    "type": "gutter",
-   "x": 59.25
+   "x": 58.75
   },
   {
    "type": "gutter",
-   "x": 80.25
+   "x": 79.25
   },
   {
    "type": "puddle",
-   "x": 86.76,
+   "x": 85.76,
    "w": 1.2
   },
   {
    "type": "puddle",
-   "x": 105.18,
+   "x": 104.84,
    "w": 1.0
-  },
-  {
-   "type": "gutter",
-   "x": 124.25
   },
   {
    "type": "sun",
-   "x": 125.0,
-   "w": 6.5
-  },
-  {
-   "type": "gutter",
-   "x": 141.25
-  },
-  {
-   "type": "gutter",
-   "x": 169.25
+   "x": 120.5,
+   "w": 5.0
   },
   {
    "type": "puddle",
-   "x": 176.61,
-   "w": 1.2
-  },
-  {
-   "type": "gutter",
-   "x": 188.75
-  },
-  {
-   "type": "puddle",
-   "x": 193.77,
-   "w": 1.0
-  },
-  {
-   "type": "gutter",
-   "x": 204.75
-  },
-  {
-   "type": "puddle",
-   "x": 208.05,
-   "w": 1.0
-  },
-  {
-   "type": "puddle",
-   "x": 224.26,
-   "w": 1.0
-  },
-  {
-   "type": "puddle",
-   "x": 234.22,
+   "x": 144.43,
    "w": 1.0
   },
   {
    "type": "vent",
-   "x": 244.25,
+   "x": 156.75,
    "w": 1.6
   },
   {
-   "type": "gutter",
-   "x": 245.75
+   "type": "puddle",
+   "x": 167.06,
+   "w": 1.2
   },
   {
    "type": "puddle",
-   "x": 247.29,
-   "w": 1.0
-  },
-  {
-   "type": "puddle",
-   "x": 268.56,
+   "x": 188.15,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 302.25
+   "x": 202.25
+  },
+  {
+   "type": "puddle",
+   "x": 204.82,
+   "w": 1.0
+  },
+  {
+   "type": "vent",
+   "x": 213.5,
+   "w": 1.6
+  },
+  {
+   "type": "vent",
+   "x": 219.25,
+   "w": 1.6
+  },
+  {
+   "type": "puddle",
+   "x": 222.34,
+   "w": 1.0
+  },
+  {
+   "type": "gutter",
+   "x": 232.25
+  },
+  {
+   "type": "puddle",
+   "x": 257.79,
+   "w": 1.2
+  },
+  {
+   "type": "puddle",
+   "x": 275.81,
+   "w": 1.0
+  },
+  {
+   "type": "puddle",
+   "x": 290.59,
+   "w": 1.0
+  },
+  {
+   "type": "fire_barrel",
+   "x": 293.5,
+   "w": 1.8
+  },
+  {
+   "type": "gutter",
+   "x": 305.75
   }
  ],
  "props": [
@@ -690,151 +667,147 @@
   },
   {
    "id": "lamp_post",
-   "x": 19.19
-  },
-  {
-   "id": "bench",
-   "x": 19.31
-  },
-  {
-   "id": "trash_can",
-   "x": 26.37
+   "x": 18.61
   },
   {
    "id": "lamp_post",
-   "x": 32.55
+   "x": 34.23
   },
   {
    "id": "lamp_post",
-   "x": 47.88
-  },
-  {
-   "id": "bench",
-   "x": 48.97
+   "x": 51.09
   },
   {
    "id": "lamp_post",
-   "x": 60.59
-  },
-  {
-   "id": "bench",
-   "x": 75.18
-  },
-  {
-   "id": "lamp_post",
-   "x": 77.78
-  },
-  {
-   "id": "lamp_post",
-   "x": 93.44
-  },
-  {
-   "id": "lamp_post",
-   "x": 107.07
-  },
-  {
-   "id": "mailbox",
-   "x": 123.82
-  },
-  {
-   "id": "lamp_post",
-   "x": 123.91
-  },
-  {
-   "id": "bench",
-   "x": 127.68
-  },
-  {
-   "id": "lamp_post",
-   "x": 139.21
-  },
-  {
-   "id": "lamp_post",
-   "x": 155.15
-  },
-  {
-   "id": "hydrant",
-   "x": 158.47
-  },
-  {
-   "id": "parking_meter",
-   "x": 164.89
-  },
-  {
-   "id": "lamp_post",
-   "x": 170.43
-  },
-  {
-   "id": "bench",
-   "x": 174.47
-  },
-  {
-   "id": "parking_meter",
-   "x": 175.2
-  },
-  {
-   "id": "bench",
-   "x": 184.91
-  },
-  {
-   "id": "lamp_post",
-   "x": 186.12
-  },
-  {
-   "id": "lamp_post",
-   "x": 201.0
-  },
-  {
-   "id": "lamp_post",
-   "x": 216.38
-  },
-  {
-   "id": "parking_meter",
-   "x": 218.2
-  },
-  {
-   "id": "hydrant",
-   "x": 220.34
-  },
-  {
-   "id": "lamp_post",
-   "x": 228.87
-  },
-  {
-   "id": "lamp_post",
-   "x": 243.01
-  },
-  {
-   "id": "parking_meter",
-   "x": 243.68
-  },
-  {
-   "id": "lamp_post",
-   "x": 257.56
+   "x": 66.46
   },
   {
    "id": "newspaper_box",
-   "x": 257.85
+   "x": 67.08
+  },
+  {
+   "id": "bench",
+   "x": 68.49
+  },
+  {
+   "id": "lamp_post",
+   "x": 82.24
+  },
+  {
+   "id": "lamp_post",
+   "x": 95.57
+  },
+  {
+   "id": "trash_can",
+   "x": 100.68
+  },
+  {
+   "id": "trash_can",
+   "x": 102.32
+  },
+  {
+   "id": "trash_can",
+   "x": 104.21
+  },
+  {
+   "id": "lamp_post",
+   "x": 109.27
+  },
+  {
+   "id": "lamp_post",
+   "x": 123.65
+  },
+  {
+   "id": "lamp_post",
+   "x": 138.62
+  },
+  {
+   "id": "lamp_post",
+   "x": 154.15
+  },
+  {
+   "id": "newspaper_box",
+   "x": 164.51
+  },
+  {
+   "id": "lamp_post",
+   "x": 171.84
+  },
+  {
+   "id": "trash_can",
+   "x": 179.44
+  },
+  {
+   "id": "lamp_post",
+   "x": 184.03
+  },
+  {
+   "id": "trash_can",
+   "x": 188.2
   },
   {
    "id": "hydrant",
-   "x": 258.02
+   "x": 191.6
   },
   {
    "id": "lamp_post",
-   "x": 272.88
+   "x": 196.93
+  },
+  {
+   "id": "parking_meter",
+   "x": 198.35
+  },
+  {
+   "id": "mailbox",
+   "x": 200.29
   },
   {
    "id": "lamp_post",
-   "x": 290.58
+   "x": 213.42
+  },
+  {
+   "id": "bench",
+   "x": 214.18
+  },
+  {
+   "id": "trash_can",
+   "x": 217.83
   },
   {
    "id": "lamp_post",
-   "x": 307.71
+   "x": 228.45
+  },
+  {
+   "id": "parking_meter",
+   "x": 239.06
   },
   {
    "id": "lamp_post",
-   "x": 323.14
+   "x": 240.89
+  },
+  {
+   "id": "lamp_post",
+   "x": 258.73
+  },
+  {
+   "id": "newspaper_box",
+   "x": 272.05
+  },
+  {
+   "id": "trash_can",
+   "x": 274.85
+  },
+  {
+   "id": "lamp_post",
+   "x": 276.29
+  },
+  {
+   "id": "lamp_post",
+   "x": 292.84
+  },
+  {
+   "id": "lamp_post",
+   "x": 310.82
   }
  ]
 }

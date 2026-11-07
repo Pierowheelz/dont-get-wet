@@ -29,7 +29,7 @@ func _ready() -> void:
 	if ResourceLoader.exists(car_path):
 		_body = load(car_path).instantiate()
 	else:
-		_body = _greybox_car()
+		_body = greybox_car()
 	add_child(_body)
 	for side in [-0.65, 0.65]:
 		var sl := SpotLight3D.new()
@@ -49,7 +49,7 @@ func _ready() -> void:
 	add_child(_spray)
 
 
-func _greybox_car() -> Node3D:
+static func greybox_car() -> Node3D:
 	var n := Node3D.new()
 	var paint := StandardMaterial3D.new()
 	paint.albedo_color = Color(0.45, 0.1, 0.08)

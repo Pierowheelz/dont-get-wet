@@ -32,6 +32,7 @@ var sign_font: Font
 var _mats := {}
 var _awning_shader: Shader
 var _scene_cache := {}
+var _drip_mesh: QuadMesh
 
 
 func build(p_root: Node3D, p_data: Dictionary) -> void:
@@ -370,6 +371,7 @@ func _build_awning(x: float, w: float, tears: Array, color_name: String) -> void
 		var xf := Transform3D(Basis.from_euler(Vector3(slope, 0, 0)),
 			Vector3((a + b) * 0.5, (AWNING_WALL_Y + AWNING_FRONT_Y) * 0.5, AWNING_DEPTH * 0.5))
 		_cover_box(Vector3(b - a, 0.06, len), xf)
+		_drips(a, b, AWNING_FRONT_Y - 0.26, AWNING_DEPTH + 0.05)
 	# Torn flaps hanging into tears.
 	for t in sorted_tears:
 		var flap := _box(Vector3((float(t[1]) - float(t[0])) * 0.35, 0.6, 0.02),
@@ -426,11 +428,48 @@ func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, uv0:
 	st.set_uv(Vector2(uv0.x, uv1.y)); st.add_vertex(d)
 
 
+## A line of drips falling from a cover edge: telegraphs exactly where shelter ends.
+func _drips(a: float, b: float, y: float, z: float) -> void:
+	var w := b - a
+	if w < 0.3:
+		return
+	var p := GPUParticles3D.new()
+	p.amount = maxi(4, int(w * 14.0))
+	p.lifetime = 0.75
+	p.randomness = 0.5
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(w * 0.5, 0.01, 0.03)
+	pm.direction = Vector3(0, -1, 0)
+	pm.spread = 2.0
+	pm.initial_velocity_min = 0.5
+	pm.initial_velocity_max = 1.5
+	pm.gravity = Vector3(0, -9.8, 0)
+	pm.scale_min = 0.7
+	pm.scale_max = 1.3
+	p.process_material = pm
+	if _drip_mesh == null:
+		_drip_mesh = QuadMesh.new()
+		_drip_mesh.size = Vector2(0.018, 0.16)
+		var dm := StandardMaterial3D.new()
+		dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		dm.albedo_color = Color(0.75, 0.82, 0.95, 0.55)
+		dm.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+		_drip_mesh.material = dm
+	p.draw_pass_1 = _drip_mesh
+	p.position = Vector3((a + b) * 0.5, y, z)
+	p.visibility_aabb = AABB(Vector3(-w * 0.5 - 0.5, -4.0, -0.5), Vector3(w + 1.0, 4.5, 1.0))
+	root.add_child(p)
+
+
 func _build_slab(x: float, w: float, y: float, depth: float, columns: bool) -> void:
 	var conc := _material_res("concrete", _mat("slab", Color(0.42, 0.4, 0.37), 0.85))
 	_box(Vector3(w, 0.28, depth), Vector3(x + w * 0.5, y, depth * 0.5), conc)
 	_box(Vector3(w, 0.9, 0.08), Vector3(x + w * 0.5, y + 0.6, depth - 0.04), _mat("rail", Color(0.12, 0.12, 0.12), 0.5, 0.7))
 	_cover_box(Vector3(w, 0.28, depth), Transform3D(Basis(), Vector3(x + w * 0.5, y, depth * 0.5)))
+	_drips(x, x + w, y - 0.15, depth + 0.02)
 	if columns:
 		var cx := x + 0.3
 		while cx < x + w:

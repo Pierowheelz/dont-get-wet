@@ -90,6 +90,10 @@ func _ready() -> void:
 			world.add_child(car)
 			cars.append(car)
 
+	var traffic := preload("res://src/level/traffic.gd").new()
+	traffic.level = self
+	add_child(traffic)
+
 	hud = preload("res://src/ui/hud.gd").new()
 	hud.level = self
 	add_child(hud)
@@ -148,7 +152,7 @@ func rain_intensity(x: float) -> float:
 func wind(x: float) -> float:
 	var w := _curve(_wind_curve, x)
 	if _gusts:
-		w *= 1.0 + 0.6 * sin(_t * 0.9) * sin(_t * 0.37 + 1.3)
+		w *= 1.0 + 0.4 * sin(_t * 0.9) * sin(_t * 0.37 + 1.3)
 	return w
 
 
@@ -189,6 +193,8 @@ func _process(delta: float) -> void:
 	if player and player.state != Player.State.DEFEATED and player.state != Player.State.DONE and not finished:
 		elapsed += delta
 	_update_camera(delta)
+	if Game.autopilot and player and OS.has_environment("DGW_TRACE") and player.position.x > float(OS.get_environment("DGW_TRACE")) and int(_t * 2.0) != int((_t - delta) * 2.0):
+		print("x=%.1f wind=%.2f exp=%.2f open=%.2f tilt=%.2f sta=%.0f wet=%.1f gut=%.2f exh=%s" % [player.position.x, wind(player.position.x), player.exposure, player.open, player.tilt, player.stamina, player.wet, player.gutter_hit, player.exhausted])
 	if Game.autopilot and player and int(_t / 10.0) != int((_t - delta) / 10.0):
 		print("t=%.0f x=%.1f wet=%.1f sta=%.1f open=%.2f state=%d" % [_t, player.position.x, player.wet, player.stamina, player.open, player.state])
 	if Input.is_action_just_pressed(&"restart") and not get_tree().paused:

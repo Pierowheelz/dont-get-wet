@@ -194,14 +194,14 @@
   },
   {
    "x": 101.5,
-   "w": 2.5,
+   "w": 1.5,
    "style": "shop_lit",
    "cover": "none",
    "floors": 2,
    "sign": "TOBACCO"
   },
   {
-   "x": 104.0,
+   "x": 103.0,
    "w": 8.0,
    "style": "wall",
    "cover": "awning",
@@ -209,7 +209,7 @@
    "awning_color": "teal"
   },
   {
-   "x": 112.0,
+   "x": 111.0,
    "w": 6.0,
    "style": "shop_dark",
    "cover": "awning",
@@ -218,7 +218,7 @@
    "awning_color": "red"
   },
   {
-   "x": 118.0,
+   "x": 117.0,
    "w": 6.0,
    "style": "shuttered",
    "cover": "none",
@@ -226,14 +226,14 @@
    "sign": "CLEANERS"
   },
   {
-   "x": 124.0,
-   "w": 4.5,
+   "x": 123.0,
+   "w": 3.5,
    "style": "boarded",
    "cover": "none",
    "floors": 2
   },
   {
-   "x": 128.5,
+   "x": 126.5,
    "w": 3.5,
    "style": "doorway",
    "cover": "awning",
@@ -241,7 +241,7 @@
    "awning_color": "orange"
   },
   {
-   "x": 132.0,
+   "x": 130.0,
    "w": 7.5,
    "style": "shop_dark",
    "cover": "awning",
@@ -250,15 +250,15 @@
    "awning_color": "red"
   },
   {
-   "x": 139.5,
-   "w": 4.0,
+   "x": 137.5,
+   "w": 4.5,
    "style": "shop_lit",
    "cover": "balcony",
    "floors": 4,
    "sign": "LOANS"
   },
   {
-   "x": 143.5,
+   "x": 142.0,
    "w": 3.5,
    "style": "shop_lit",
    "cover": "none",
@@ -266,15 +266,15 @@
    "sign": "TOYS"
   },
   {
-   "x": 147.0,
-   "w": 4.5,
+   "x": 145.5,
+   "w": 4.0,
    "style": "shop_dark",
    "cover": "none",
    "floors": 3,
    "sign": "RECORDS"
   },
   {
-   "x": 151.5,
+   "x": 149.5,
    "w": 3.0,
    "style": "shop_dark",
    "cover": "balcony",
@@ -282,14 +282,14 @@
    "sign": "GIFTS"
   },
   {
-   "x": 154.5,
+   "x": 152.5,
    "w": 5.5,
    "style": "shuttered",
    "cover": "arcade",
    "floors": 3
   },
   {
-   "x": 160.0,
+   "x": 158.0,
    "w": 5.0,
    "style": "shuttered",
    "cover": "awning",
@@ -297,7 +297,7 @@
    "awning_color": "green"
   },
   {
-   "x": 175.5,
+   "x": 173.5,
    "w": 7.0,
    "style": "shop_lit",
    "cover": "awning",
@@ -306,7 +306,7 @@
    "awning_color": "brown"
   },
   {
-   "x": 182.5,
+   "x": 180.5,
    "w": 4.0,
    "style": "shuttered",
    "cover": "none",
@@ -314,121 +314,100 @@
    "sign": "PAWN"
   },
   {
-   "x": 186.5,
-   "w": 4.0,
+   "x": 184.5,
+   "w": 4.5,
    "style": "shop_dark",
    "cover": "none",
    "floors": 2,
    "sign": "SHOES"
   },
   {
-   "x": 190.5,
-   "w": 1.5,
-   "style": "doorway",
+   "x": 189.0,
+   "w": 6.5,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "teal"
+  },
+  {
+   "x": 195.5,
+   "w": 7.5,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "LIQUOR",
+   "awning_color": "red"
+  },
+  {
+   "x": 203.0,
+   "w": 5.5,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 2,
+   "sign": "RADIO & TV"
+  },
+  {
+   "x": 208.5,
+   "w": 3.0,
+   "style": "shuttered",
    "cover": "none",
    "floors": 3
   },
   {
-   "x": 192.0,
+   "x": 211.5,
    "w": 4.5,
-   "style": "shop_lit",
+   "style": "wall",
    "cover": "awning",
-   "floors": 4,
-   "sign": "BAKERY",
-   "awning_color": "orange"
+   "floors": 3,
+   "awning_color": "blue"
   },
   {
-   "x": 196.5,
-   "w": 4.5,
-   "style": "doorway",
+   "x": 216.0,
+   "w": 3.5,
+   "style": "wall",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "red"
+  },
+  {
+   "x": 219.5,
+   "w": 7.0,
+   "style": "boarded",
+   "cover": "none",
+   "floors": 2
+  },
+  {
+   "x": 226.5,
+   "w": 6.5,
+   "style": "wall",
+   "cover": "awning",
+   "floors": 1,
+   "awning_color": "teal"
+  },
+  {
+   "x": 233.0,
+   "w": 5.0,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 1,
+   "sign": "SHOES",
+   "awning_color": "blue"
+  },
+  {
+   "x": 238.0,
+   "w": 3.0,
+   "style": "boarded",
    "cover": "arcade",
    "floors": 2
   },
   {
-   "x": 201.0,
-   "w": 8.0,
-   "style": "wall",
-   "cover": "none",
-   "floors": 2
-  },
-  {
-   "x": 209.0,
-   "w": 3.5,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "RADIO & TV",
-   "awning_color": "green"
-  },
-  {
-   "x": 212.5,
+   "x": 241.0,
    "w": 4.0,
-   "style": "boarded",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "blue",
-   "tears": [
-    [
-     1.1,
-     1.8
-    ]
-   ]
-  },
-  {
-   "x": 216.5,
-   "w": 4.5,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 4,
-   "awning_color": "brown",
-   "tears": [
-    [
-     1.8,
-     3.3
-    ]
-   ]
-  },
-  {
-   "x": 221.0,
-   "w": 6.5,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 2
-  },
-  {
-   "x": 227.5,
-   "w": 8.0,
    "style": "shop_lit",
    "cover": "awning",
-   "floors": 2,
-   "sign": "LIQUOR",
+   "floors": 3,
+   "sign": "BAKERY",
    "awning_color": "blue"
-  },
-  {
-   "x": 235.5,
-   "w": 3.5,
-   "style": "doorway",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "red"
-  },
-  {
-   "x": 239.0,
-   "w": 3.0,
-   "style": "shop_dark",
-   "cover": "awning",
-   "floors": 4,
-   "sign": "HARDWARE",
-   "awning_color": "brown"
-  },
-  {
-   "x": 242.0,
-   "w": 3.0,
-   "style": "shop_dark",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "LIQUOR",
-   "awning_color": "red"
   },
   {
    "x": 245.0,
@@ -444,9 +423,9 @@
    "w": 8.0,
    "style": "shop_dark",
    "cover": "awning",
-   "floors": 1,
-   "sign": "CHECKS CASHED",
-   "awning_color": "blue"
+   "floors": 3,
+   "sign": "GROCERY",
+   "awning_color": "brown"
   }
  ],
  "crossings": [
@@ -455,7 +434,7 @@
    "w": 8.5
   },
   {
-   "x": 165.0,
+   "x": 163.0,
    "w": 10.5
   }
  ],
@@ -472,30 +451,34 @@
   },
   {
    "type": "gutter",
-   "x": 117.75
+   "x": 116.75
   },
   {
    "type": "puddle",
-   "x": 168.61,
+   "x": 166.61,
    "w": 1.2
   },
   {
    "type": "gutter",
-   "x": 182.25
+   "x": 180.25
   },
   {
    "type": "gutter",
-   "x": 200.75
+   "x": 202.75
   },
   {
-   "type": "puddle",
-   "x": 203.63,
-   "w": 1.0
+   "type": "vent",
+   "x": 217.75,
+   "w": 1.6
+  },
+  {
+   "type": "gutter",
+   "x": 219.25
   },
   {
    "type": "sun",
-   "x": 221.5,
-   "w": 5.5
+   "x": 220.0,
+   "w": 6.0
   }
  ],
  "props": [
@@ -504,120 +487,120 @@
    "x": 6.0
   },
   {
-   "id": "lamp_post",
-   "x": 20.41
-  },
-  {
-   "id": "lamp_post",
-   "x": 35.98
-  },
-  {
-   "id": "lamp_post",
-   "x": 51.65
-  },
-  {
-   "id": "lamp_post",
-   "x": 64.04
-  },
-  {
-   "id": "bench",
-   "x": 64.27
-  },
-  {
-   "id": "bench",
-   "x": 73.73
-  },
-  {
-   "id": "lamp_post",
-   "x": 80.97
-  },
-  {
-   "id": "lamp_post",
-   "x": 98.81
-  },
-  {
-   "id": "lamp_post",
-   "x": 115.88
-  },
-  {
    "id": "newspaper_box",
-   "x": 130.32
+   "x": 20.45
   },
   {
    "id": "lamp_post",
-   "x": 130.83
+   "x": 21.79
   },
   {
    "id": "lamp_post",
-   "x": 146.22
+   "x": 36.93
   },
   {
    "id": "parking_meter",
-   "x": 148.21
+   "x": 39.03
   },
   {
-   "id": "newspaper_box",
-   "x": 152.08
-  },
-  {
-   "id": "lamp_post",
-   "x": 162.94
+   "id": "trash_can",
+   "x": 52.69
   },
   {
    "id": "lamp_post",
-   "x": 175.77
-  },
-  {
-   "id": "hydrant",
-   "x": 185.84
+   "x": 53.37
   },
   {
    "id": "lamp_post",
-   "x": 193.39
+   "x": 70.38
   },
   {
-   "id": "newspaper_box",
-   "x": 196.82
-  },
-  {
-   "id": "newspaper_box",
-   "x": 201.05
+   "id": "lamp_post",
+   "x": 88.28
   },
   {
    "id": "parking_meter",
-   "x": 207.76
-  },
-  {
-   "id": "lamp_post",
-   "x": 209.23
+   "x": 89.08
   },
   {
    "id": "mailbox",
-   "x": 212.77
+   "x": 90.69
+  },
+  {
+   "id": "lamp_post",
+   "x": 103.61
+  },
+  {
+   "id": "lamp_post",
+   "x": 120.3
   },
   {
    "id": "newspaper_box",
-   "x": 214.74
+   "x": 120.33
   },
   {
    "id": "lamp_post",
-   "x": 222.29
-  },
-  {
-   "id": "parking_meter",
-   "x": 225.1
+   "x": 138.2
   },
   {
    "id": "bench",
-   "x": 229.95
+   "x": 142.35
   },
   {
    "id": "lamp_post",
-   "x": 235.26
+   "x": 154.58
+  },
+  {
+   "id": "parking_meter",
+   "x": 166.02
+  },
+  {
+   "id": "parking_meter",
+   "x": 166.42
   },
   {
    "id": "lamp_post",
-   "x": 248.41
+   "x": 171.89
+  },
+  {
+   "id": "lamp_post",
+   "x": 187.87
+  },
+  {
+   "id": "parking_meter",
+   "x": 190.43
+  },
+  {
+   "id": "lamp_post",
+   "x": 201.87
+  },
+  {
+   "id": "trash_can",
+   "x": 208.56
+  },
+  {
+   "id": "lamp_post",
+   "x": 214.06
+  },
+  {
+   "id": "bench",
+   "x": 218.66
+  },
+  {
+   "id": "lamp_post",
+   "x": 226.77
+  },
+  {
+   "id": "parking_meter",
+   "x": 236.34
+  },
+  {
+   "id": "lamp_post",
+   "x": 242.06
+  },
+  {
+   "id": "lamp_post",
+   "x": 256.55
   }
  ]
 }
