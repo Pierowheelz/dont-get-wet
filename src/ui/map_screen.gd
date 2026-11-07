@@ -15,6 +15,14 @@ const UPGRADE_INFO := {
 	&"light": ["Featherweight", "Opens and closes faster."],
 }
 
+## The stat each upgrade changes: label, display format, display scale, and the Game function
+## that takes an upgrade level. The umbrella row and the buy prompt both read this.
+const UPGRADE_STATS := {
+	&"wide": ["CANOPY", "%.2f m", 1.0, &"umbrella_radius"],
+	&"light": ["OPENS IN", "%.2f s", 1.0, &"umbrella_open_time"],
+	&"sturdy": ["STRAIN", "%d%%", 100.0, &"umbrella_drain_mult"],
+}
+
 var _map: Control             # visible map area; clips the strip
 var _world: Control           # the whole map strip (canvas + routes + nodes), scrolled inside _map
 var _scroll := 0.0
@@ -36,6 +44,7 @@ var _last_shop: Button         # and here on RB
 var _active := &""             # &"map" / &"shop": the panel holding focus; the other dims
 var _umb_stats: HBoxContainer
 var _sound: UISound
+var _dialog: ConfirmDialog
 var _fade: ColorRect
 var _t := 0.0
 var _busy := false
@@ -125,6 +134,8 @@ func _ready() -> void:
 	_map.resized.connect(_layout_nodes)
 	_layout_nodes.call_deferred()
 	_refresh_tokens()
+	if Game.debug_confirm_upgrade != &"":
+		_confirm_upgrade.call_deferred(Game.debug_confirm_upgrade, _shop_buttons[0])
 
 
 func _process(delta: float) -> void:
@@ -573,17 +584,50 @@ func _upgrade_button(u: StringName) -> Button:
 	b.focus_entered.connect(_hide_card)
 	b.mouse_entered.connect(b.grab_focus)
 	b.pressed.connect(func() -> void:
-		if Game.buy_upgrade(u):
-			_sound.play(&"ui_confirm")
-			_sound.play(&"token", -4.0, 1.15)
-			_refresh_tokens()
-			var tw := create_tween()
-			tw.tween_property(b, "modulate", Color(1.5, 1.3, 0.9), 0.08)
-			tw.tween_property(b, "modulate", Color.WHITE, 0.3)
-		else:
+		var cost := Game.upgrade_cost(u)
+		if cost < 0 or Game.run.tokens < cost:
 			_sound.play(&"ui_denied")
-			_shake(b))
+			_shake(b)
+		elif _dialog == null:
+			_confirm_upgrade(u, b))
 	return b
+
+
+func _stat_text(u: StringName, level := -1) -> String:
+	var st: Array = UPGRADE_STATS[u]
+	var v: float = Game.call(st[3], level) * float(st[2])
+	return String(st[1]) % (int(round(v)) if String(st[1]).contains("%d") else v)
+
+
+func _confirm_upgrade(u: StringName, b: Button) -> void:
+	var cost := Game.upgrade_cost(u)
+	var next := Game.upgrade_level(u) + 1
+	var extra := VBoxContainer.new()
+	extra.add_theme_constant_override("separation", 6)
+	extra.add_child(UIStyle.label(String(UPGRADE_STATS[u][0]), &"KickerLabel", 18, UIStyle.MUTED))
+	var change := HBoxContainer.new()
+	change.add_theme_constant_override("separation", 18)
+	change.add_child(UIStyle.label(_stat_text(u), &"StatLabel", 48, UIStyle.CREAM))
+	change.add_child(UIStyle.label("→", &"StatLabel", 48, UIStyle.MUTED))
+	change.add_child(UIStyle.label(_stat_text(u, next), &"StatLabel", 48, UIStyle.GOLD))
+	extra.add_child(change)
+	var price := HBoxContainer.new()
+	price.add_theme_constant_override("separation", 8)
+	var coin := DrawBox.new(func(ci: Control) -> void: _draw_token(ci, ci.size * 0.5, 12.0), Vector2(28, 28))
+	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	price.add_child(coin)
+	price.add_child(UIStyle.label("%d tokens" % cost, &"BodyLabel", 0, UIStyle.GOLD))
+	extra.add_child(price)
+	var info: Array = UPGRADE_INFO.get(u, [String(u), ""])
+	_dialog = ConfirmDialog.open(self, String(info[0]).to_upper() + "?", String(info[1]), "Buy", func() -> void:
+		if not Game.buy_upgrade(u):
+			return
+		_sound.play(&"token", -4.0, 1.15)
+		_refresh_tokens()
+		var tw := create_tween()
+		tw.tween_property(b, "modulate", Color(1.5, 1.3, 0.9), 0.08)
+		tw.tween_property(b, "modulate", Color.WHITE, 0.3), UIStyle.GOLD, extra)
+	_dialog.closed.connect(func() -> void: _dialog = null)
 
 
 func _draw_token(ci: CanvasItem, c: Vector2, r: float) -> void:
@@ -597,9 +641,8 @@ func _refresh_tokens() -> void:
 	_tokens_lbl.text = str(Game.run.tokens)
 	for c in _umb_stats.get_children():
 		c.queue_free()
-	_stat(_umb_stats, "CANOPY", "%.2f m" % Game.umbrella_radius())
-	_stat(_umb_stats, "OPENS IN", "%.2f s" % Game.umbrella_open_time())
-	_stat(_umb_stats, "STRAIN", "%d%%" % int(round(Game.umbrella_drain_mult() * 100.0)))
+	for u: StringName in UPGRADE_STATS:
+		_stat(_umb_stats, UPGRADE_STATS[u][0], _stat_text(u))
 	for b in _shop_buttons:
 		(b.get_meta(&"refresh") as Callable).call()
 
@@ -627,7 +670,7 @@ func _set_active(which: StringName) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _busy:
+	if _busy or _dialog != null:
 		return
 	var target: Button = null
 	if event.is_action_pressed(&"panel_map"):
