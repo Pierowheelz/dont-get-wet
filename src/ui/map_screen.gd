@@ -5,6 +5,9 @@ const Canvas := preload("res://src/ui/city_map_canvas.gd")
 const NodeButton := preload("res://src/ui/map_node_button.gd")
 const SHOP_W := 520.0
 const MARGIN := 64.0
+## The map is a strip this many map-widths long (about five streets on screen); it scrolls to
+## keep the focused street in view.
+const MAP_SPAN := 3.0
 
 const UPGRADE_INFO := {
 	&"sturdy": ["Sturdy frame", "Less stamina drain, less wind load."],
@@ -12,7 +15,10 @@ const UPGRADE_INFO := {
 	&"light": ["Featherweight", "Opens and closes faster."],
 }
 
-var _map: Control             # map area (canvas + routes + nodes)
+var _map: Control             # visible map area; clips the strip
+var _world: Control           # the whole map strip (canvas + routes + nodes), scrolled inside _map
+var _scroll := 0.0
+var _scroll_target := 0.0
 var _canvas: Control
 var _routes: DrawBox
 var _buttons := {}            # id -> NodeButton
@@ -23,6 +29,11 @@ var _shop: VBoxContainer
 var _tokens_lbl: Label
 var _shop_buttons: Array[Button] = []
 var _menu_btn: Button
+var _shop_panel: PanelContainer
+var _legends: Control
+var _last_map: Button          # focus returns here on LB
+var _last_shop: Button         # and here on RB
+var _active := &""             # &"map" / &"shop": the panel holding focus; the other dims
 var _umb_stats: HBoxContainer
 var _sound: UISound
 var _fade: ColorRect
@@ -58,18 +69,35 @@ func _ready() -> void:
 	_map.offset_right = -(SHOP_W + MARGIN + 40.0)
 	_map.offset_bottom = -110
 	_map.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map.clip_contents = true
 	add_child(_map)
+	_world = Control.new()
+	_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map.add_child(_world)
 	_canvas = Canvas.new()
 	_canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map.add_child(_canvas)
+	_world.add_child(_canvas)
 	_routes = DrawBox.new(_draw_routes, Vector2.ZERO, true)
 	_routes.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map.add_child(_routes)
+	_world.add_child(_routes)
+	var edges := DrawBox.new(_draw_edges, Vector2.ZERO, true)
+	edges.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_map.add_child(edges)
+	# Captions under the map (outside it, since the map clips its strip).
+	var legends := Control.new()
+	_legends = legends
+	legends.set_anchors_preset(Control.PRESET_FULL_RECT)
+	legends.offset_left = _map.offset_left
+	legends.offset_right = _map.offset_right
+	legends.offset_top = _map.offset_top
+	legends.offset_bottom = _map.offset_bottom
+	legends.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(legends)
 	var legend_l := UIStyle.label("◂  COUNTRY", &"CaptionLabel")
 	legend_l.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	legend_l.position = Vector2(4, 12)
 	legend_l.grow_vertical = Control.GROW_DIRECTION_END
-	_map.add_child(legend_l)
+	legends.add_child(legend_l)
 	var legend_r := UIStyle.label("CITY CENTRE  ▸", &"CaptionLabel")
 	legend_r.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	legend_r.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -77,13 +105,13 @@ func _ready() -> void:
 	legend_r.offset_left = -300
 	legend_r.offset_top = 12
 	legend_r.offset_bottom = 40
-	_map.add_child(legend_r)
+	legends.add_child(legend_r)
 
 	_build_shop()
 	_build_nodes()
 	_build_card()
 
-	var hints := KeyHints.new([["A", "Enter", "Walk / buy"], ["B", "Esc", "Main menu"]])
+	var hints := KeyHints.new([["A", "Enter", "Walk / buy"], ["LB / RB", "", "Map / upgrades"], ["B", "Esc", "Main menu"]])
 	hints.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	hints.position = Vector2(MARGIN, -62)
 	add_child(hints)
@@ -101,13 +129,23 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_scroll = lerpf(_scroll, _scroll_target, 1.0 - exp(-8.0 * delta))
+	_world.position.x = -_scroll
 
 
 # --- map --------------------------------------------------------------------------------------
 
 func _map_point(id: String) -> Vector2:
 	var p: Array = Game.nodes[id]["map_pos"]
-	return Vector2(float(p[0]), float(p[1])) * _map.size
+	return Vector2(float(p[0]), float(p[1])) * _world.size
+
+
+## Scrolls the strip so `id` sits mid-map (clamped to the strip's ends).
+func _scroll_to(id: String, animate := true) -> void:
+	_scroll_target = clampf(_map_point(id).x - _map.size.x * 0.5, 0.0, maxf(_world.size.x - _map.size.x, 0.0))
+	if not animate:
+		_scroll = _scroll_target
+		_world.position.x = -_scroll
 
 
 func _build_nodes() -> void:
@@ -115,40 +153,68 @@ func _build_nodes() -> void:
 	for id: String in Game.nodes:
 		var n: Dictionary = Game.nodes[id]
 		var b := NodeButton.new()
-		_map.add_child(b)
+		_world.add_child(b)
 		b.setup(id, n, Game.run.best.get(id, {}))
 		b.pressed.connect(func() -> void: _pick(id))
-		b.focus_entered.connect(func() -> void: _show_card(id))
+		b.focus_entered.connect(func() -> void:
+			_last_map = b
+			_set_active(&"map")
+			_show_card(id))
 		b.mouse_entered.connect(func() -> void: b.grab_focus())
 		_buttons[id] = b
 		if Game.can_select(id) and (focus_btn == null or (id != Game.run.current_node and not Game.run.completed.has(id))):
 			focus_btn = b
-	# Left/right walks the map in order, and steps across into the shop from the rightmost node.
-	var ids: Array = _buttons.keys()
-	ids.sort_custom(func(a: String, b: String) -> bool:
-		return float(Game.nodes[a]["map_pos"][0]) < float(Game.nodes[b]["map_pos"][0]))
+	# Left/right walks the map along the road and stops at its ends; the map and the upgrade panel
+	# never hand focus to each other (LB / RB or the mouse switch between them).
+	var ids: Array = Game.map_order().filter(func(id: String) -> bool: return _buttons.has(id))
 	for i in ids.size():
 		var b: Button = _buttons[ids[i]]
-		if i > 0:
-			b.focus_neighbor_left = (_buttons[ids[i - 1]] as Button).get_path()
-		if i < ids.size() - 1:
-			b.focus_neighbor_right = (_buttons[ids[i + 1]] as Button).get_path()
-		elif not _shop_buttons.is_empty():
-			b.focus_neighbor_right = _shop_buttons[0].get_path()
-	var back_to_map: Button = _buttons.get(Game.run.current_node, _buttons[ids[-1]])
-	for sb: Button in _shop_buttons:
-		sb.focus_neighbor_left = back_to_map.get_path()
-	_menu_btn.focus_neighbor_left = back_to_map.get_path()
+		b.focus_neighbor_left = (_buttons[ids[maxi(i - 1, 0)]] as Button).get_path()
+		b.focus_neighbor_right = (_buttons[ids[mini(i + 1, ids.size() - 1)]] as Button).get_path()
+		b.focus_neighbor_top = b.get_path()
+		b.focus_neighbor_bottom = b.get_path()
+	var shop: Array[Button] = _shop_buttons.duplicate()
+	shop.append(_menu_btn)
+	for i in shop.size():
+		var sb := shop[i]
+		sb.focus_neighbor_left = sb.get_path()
+		sb.focus_neighbor_right = sb.get_path()
+		sb.focus_neighbor_top = shop[maxi(i - 1, 0)].get_path()
+		sb.focus_neighbor_bottom = shop[mini(i + 1, shop.size() - 1)].get_path()
+		sb.focus_entered.connect(func() -> void:
+			_last_shop = sb
+			_set_active(&"shop"))
+	_last_map = focus_btn
 	if focus_btn:
 		focus_btn.grab_focus.call_deferred()
 
 
 func _layout_nodes() -> void:
+	_world.size = Vector2(_map.size.x * MAP_SPAN, _map.size.y)
 	for id: String in _buttons:
 		var b: Button = _buttons[id]
 		b.position = _map_point(id) - b.size * 0.5
+	var id := _card_id if _card_id != "" else Game.run.current_node
+	if Game.nodes.has(id):
+		_scroll_to(id, false)
 	if _card_id != "":
 		_place_card(_card_id, false)
+
+
+## Soft fades at the map's ends while there's more road beyond them.
+func _draw_edges(ci: Control) -> void:
+	var w := 110.0
+	var h := ci.size.y
+	var ink := Color(UIStyle.INK, 0.9)
+	var clear := Color(UIStyle.INK, 0.0)
+	if _scroll > 4.0:
+		ci.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, h), Vector2(0, h)]),
+			PackedColorArray([ink, clear, clear, ink]))
+	if _scroll < _world.size.x - _map.size.x - 4.0:
+		var x := ci.size.x
+		ci.draw_polygon(PackedVector2Array([Vector2(x - w, 0), Vector2(x, 0), Vector2(x, h), Vector2(x - w, h)]),
+			PackedColorArray([clear, ink, ink, clear]))
+	ci.draw_rect(Rect2(Vector2.ZERO, ci.size), Color(0.55, 0.7, 0.95, 0.25), false, 2.0)
 
 
 func _pick(id: String) -> void:
@@ -187,6 +253,10 @@ func _draw_routes(ci: Control) -> void:
 			var b := _map_point(nb)
 			var open := Game.can_select(id) and Game.can_select(nb)
 			var walked := Game.run.completed.has(id) and Game.run.completed.has(nb)
+			if Game.is_soon(id) or Game.is_soon(nb):
+				# Roads not built yet: faint dots.
+				_dashed(ci, a, b, Color(UIStyle.CREAM, 0.16), 4.0, 4.0, 12.0, 0.0)
+				continue
 			var col := Color(UIStyle.CREAM, 0.22)
 			if walked:
 				col = Color(UIStyle.CREAM, 0.55)
@@ -201,7 +271,7 @@ func _draw_routes(ci: Control) -> void:
 	# Leader line from the preview card down to the focused street.
 	if _card_id != "" and _card.modulate.a > 0.05:
 		var np := _map_point(_card_id)
-		var top := _card.position + Vector2(0, _card.size.y) - _map.position
+		var top := _card.position + Vector2(0, _card.size.y) - _map.position - _world.position
 		var from := Vector2(clampf(np.x, top.x + 20.0, top.x + _card.size.x - 20.0), top.y)
 		var to := np + Vector2(0, -NodeButton.R - 12.0)
 		if _card_id == Game.run.current_node:
@@ -240,6 +310,7 @@ func _build_card() -> void:
 
 func _show_card(id: String) -> void:
 	_card_id = id
+	_scroll_to(id)
 	for c in _card.get_children():
 		_card.remove_child(c)
 		c.queue_free()
@@ -256,11 +327,19 @@ func _show_card(id: String) -> void:
 	left.custom_minimum_size = Vector2(390, 0)
 	row.add_child(left)
 	var kick := "YOU ARE HERE" if id == Game.run.current_node else ("WALKED" if Game.run.completed.has(id) else "UNEXPLORED")
+	if Game.is_soon(id):
+		kick = "COMING SOON"
 	left.add_child(UIStyle.label(kick, &"KickerLabel", 20))
 	left.add_child(UIStyle.label(String(n.get("name", id)).to_upper(), &"HeaderLabel", 56))
 	var blurb := UIStyle.label(String(n.get("blurb", "")), &"BodyLabel", 22)
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	blurb.custom_minimum_size = Vector2(390, 0)
+	if Game.is_soon(id):
+		blurb.text = "This street isn't open yet."
+		blurb.add_theme_color_override("font_color", UIStyle.MUTED)
+		left.add_child(blurb)
+		_place_card(id, true)
+		return
 	left.add_child(blurb)
 
 	var sep := VSeparator.new()
@@ -334,7 +413,7 @@ func _stat(parent: Container, title: String, value: String) -> Label:
 func _place_card(id: String, animate: bool) -> void:
 	_card.reset_size()
 	var cs := _card.get_combined_minimum_size()
-	var p := _map.position + _map_point(id)
+	var p := _map.position + _map_point(id) - Vector2(_scroll_target, 0.0)
 	var target := Vector2(p.x - cs.x * 0.5, _map.position.y + 18.0)
 	target.x = clampf(target.x, _map.position.x + 18.0, _map.position.x + _map.size.x - cs.x - 18.0)
 	if _card_tween and _card_tween.is_valid():
@@ -361,6 +440,7 @@ func _hide_card() -> void:
 
 func _build_shop() -> void:
 	var panel := PanelContainer.new()
+	_shop_panel = panel
 	panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 	panel.offset_left = -(SHOP_W + MARGIN)
 	panel.offset_right = -MARGIN
@@ -374,7 +454,7 @@ func _build_shop() -> void:
 	var hv := VBoxContainer.new()
 	hv.add_theme_constant_override("separation", -6)
 	hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hv.add_child(UIStyle.label("THE UMBRELLA SHOP", &"KickerLabel"))
+	hv.add_child(UIStyle.label("THORNE & SONS", &"KickerLabel"))
 	hv.add_child(UIStyle.label("UPGRADES", &"HeaderLabel"))
 	head.add_child(hv)
 	var tok := HBoxContainer.new()
@@ -385,6 +465,8 @@ func _build_shop() -> void:
 	tok.add_child(_tokens_lbl)
 	head.add_child(tok)
 	_shop.add_child(head)
+	var motto := UIStyle.label("Umbrellas to measure. No questions asked.", &"ItalicLabel", 21, Color(UIStyle.CREAM, 0.7))
+	_shop.add_child(motto)
 	var note := UIStyle.label("Tokens come from beating your best score on a street.", &"MutedLabel", 20)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_shop.add_child(note)
@@ -409,8 +491,6 @@ func _build_shop() -> void:
 	_menu_btn.mouse_entered.connect(_menu_btn.grab_focus)
 	_menu_btn.focus_entered.connect(_hide_card)
 	_shop.add_child(_menu_btn)
-	_shop_buttons[-1].focus_neighbor_bottom = _menu_btn.get_path()
-	_menu_btn.focus_neighbor_top = _shop_buttons[-1].get_path()
 
 
 func _upgrade_button(u: StringName) -> Button:
@@ -532,6 +612,33 @@ func _back_to_menu() -> void:
 	var tw := create_tween()
 	tw.tween_property(_fade, "color:a", 1.0, 0.35)
 	tw.tween_callback(Game.goto_menu)
+
+
+## Dims whichever of the map and the upgrade panel doesn't hold focus.
+func _set_active(which: StringName) -> void:
+	if which == _active:
+		return
+	_active = which
+	var tw := create_tween().set_parallel()
+	var map_a := 1.0 if which == &"map" else 0.55
+	tw.tween_property(_map, "modulate:a", map_a, 0.2)
+	tw.tween_property(_legends, "modulate:a", map_a, 0.2)
+	tw.tween_property(_shop_panel, "modulate:a", 1.0 if which == &"shop" else 0.6, 0.2)
+
+
+func _input(event: InputEvent) -> void:
+	if _busy:
+		return
+	var target: Button = null
+	if event.is_action_pressed(&"panel_map"):
+		target = _last_map if _last_map else _buttons.get(Game.run.current_node)
+	elif event.is_action_pressed(&"panel_shop"):
+		target = _last_shop if _last_shop else _shop_buttons[0]
+	if target:
+		get_viewport().set_input_as_handled()
+		if not target.has_focus():
+			_sound.play(&"ui_move")
+			target.grab_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:

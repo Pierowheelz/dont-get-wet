@@ -11,6 +11,7 @@ var level: Node
 var _walkers: Array = []
 var _standers: Array = []
 var _active: Array = []        # [node, speed]
+var _figures: Array = []       # [visual, umbrella]: men in the walker's own suit, standing still
 var _next := 6.0
 var _rng := RandomNumberGenerator.new()
 
@@ -26,6 +27,7 @@ func _ready() -> void:
 			continue
 		(_walkers if p["kind"] == "walker" else _standers).append(load(p["scene"]))
 	_rng.seed = hash(String(level.level_id)) + 7
+	_place_figures()
 	_place_standers()
 	_prewarm()
 
@@ -57,7 +59,7 @@ func _place_standers() -> void:
 		for pr in level.data.get("props", []):
 			if absf(float(pr["x"]) - sx) < 1.3:
 				blocked = true
-		for f in level.data.get("features", []):
+		for f in level.data.get("features", []) + level.data.get("figures", []):
 			if absf(float(f["x"]) - sx) < 1.5:
 				blocked = true
 		if blocked:
@@ -73,7 +75,32 @@ func _place_standers() -> void:
 			n.set_walking(0.0)
 
 
+## The level's `figures`: the walker's own model in a doorway, umbrella furled at his side,
+## facing up the street the way the walker is going.
+func _place_figures() -> void:
+	if not ResourceLoader.exists(Player.CHARACTER_SCENE):
+		return
+	for f in level.data.get("figures", []):
+		var v: Node3D = (load(Player.CHARACTER_SCENE) as PackedScene).instantiate()
+		v.position = Vector3(float(f["x"]), level.ground_y(float(f["x"])), 0.5)
+		level.world.add_child(v)
+		v.set_motion(0.0, 0.0)
+		v.set_stopped(false)
+		v.set_umbrella_pose(0.0, 0.0, 0.0)
+		v.set_wetness(0.0)
+		var u := Umbrella.new()
+		u.top_level = true
+		v.add_child(u)
+		u.set_state(0.0, Game.umbrella_radius(), 0.0)
+		(func() -> void: u._body.collision_layer = 0).call_deferred()   # scenery: never shelters anyone
+		_figures.append([v, u])
+
+
 func _process(delta: float) -> void:
+	for fg: Array in _figures:
+		var grip: Node3D = fg[0].get_grip(&"left")
+		if grip:
+			fg[1].global_transform = grip.global_transform
 	if _walkers.is_empty() or level.camera == null:
 		return
 	_next -= delta

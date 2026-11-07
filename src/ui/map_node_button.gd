@@ -8,6 +8,7 @@ var node_id := ""
 var selectable := false
 var walked := false
 var current := false
+var soon := false        # not built yet: a hollow, dotted marker
 var grade := ""
 var neon := 0.0          # 0 = country .. 1 = city centre (tints the ring)
 var _t := 0.0
@@ -20,6 +21,7 @@ func setup(id: String, n: Dictionary, best: Dictionary) -> void:
 	selectable = Game.can_select(id)
 	walked = Game.run.completed.has(id)
 	current = id == Game.run.current_node
+	soon = Game.is_soon(id)
 	grade = String(best.get("grade", ""))
 	neon = clampf((float(n["map_pos"][0]) - 0.55) / 0.35, 0.0, 1.0)
 	text = ""
@@ -30,7 +32,7 @@ func setup(id: String, n: Dictionary, best: Dictionary) -> void:
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
 		add_theme_stylebox_override(st, empty)
-	_name_lbl = UIStyle.label(String(n.get("name", id)).to_upper(), &"HeaderSmall", 36)
+	_name_lbl = UIStyle.label(String(n.get("name", id)).to_upper(), &"HeaderSmall", 28 if soon else 36)
 	_name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_lbl.custom_minimum_size = Vector2(260, 0)
 	_name_lbl.position = Vector2(size.x * 0.5 - 130.0, size.y - 6.0)
@@ -39,14 +41,16 @@ func setup(id: String, n: Dictionary, best: Dictionary) -> void:
 	_name_lbl.add_theme_constant_override("shadow_outline_size", 10)
 	add_child(_name_lbl)
 	var sub := ""
-	if not best.is_empty():
+	if soon:
+		sub = "COMING SOON"
+	elif not best.is_empty():
 		sub = "BEST %d" % int(best.get("score", 0))
 	elif selectable:
 		sub = "NOT YET WALKED"
 	_sub_lbl = UIStyle.label(sub, &"CaptionLabel", 18)
 	_sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_sub_lbl.custom_minimum_size = Vector2(260, 0)
-	_sub_lbl.position = Vector2(size.x * 0.5 - 130.0, size.y + 32.0)
+	_sub_lbl.position = Vector2(size.x * 0.5 - 130.0, size.y + (24.0 if soon else 32.0))
 	_sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_sub_lbl)
 	_refresh_labels()
@@ -56,6 +60,8 @@ func setup(id: String, n: Dictionary, best: Dictionary) -> void:
 
 func _refresh_labels() -> void:
 	var col := UIStyle.CREAM if selectable else Color(UIStyle.CREAM, 0.42)
+	if soon:
+		col = Color(UIStyle.CREAM, 0.36)
 	if has_focus():
 		col = UIStyle.AMBER
 	_name_lbl.add_theme_color_override("font_color", col)
@@ -74,6 +80,12 @@ func _draw() -> void:
 		var g := 0.5 + 0.5 * sin(_t * 5.0)
 		draw_circle(c, R + 14.0 + g * 3.0, Color(UIStyle.AMBER, 0.12))
 		draw_arc(c, R + 9.0, 0.0, TAU, 48, Color(UIStyle.AMBER, 0.9), 3.0, true)
+	if soon:
+		draw_circle(c, R * 0.6, Color(0.08, 0.1, 0.13, 0.9))
+		for i in 12:
+			var a0 := TAU * i / 12.0
+			draw_arc(c, R * 0.6, a0, a0 + TAU / 24.0, 4, Color(UIStyle.CREAM, 0.3), 2.0, true)
+		return
 	if not selectable:
 		draw_circle(c, R * 0.72, Color(0.08, 0.1, 0.13, 0.95))
 		draw_arc(c, R * 0.72, 0.0, TAU, 40, Color(UIStyle.CREAM, 0.3), 2.0, true)

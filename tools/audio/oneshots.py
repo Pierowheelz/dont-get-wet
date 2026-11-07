@@ -382,6 +382,29 @@ def door_open(seed=2101):
     return lreverb_mono(x, street_ir_mono(0.8), 0.15)
 
 
+# --------------------------------------------------------------------------- payphone
+
+def phone_ring(seed=2201):
+    """One ring cadence of a 60s payphone (double ring: 0.4 s on, 0.2 s off, 0.4 s on), heard
+    from the street through the booth glass. The game repeats it every few seconds."""
+    r = rng(seed)
+    n = nsamp(1.9)
+    x = np.zeros(n)
+    bells = (1180.0, 1410.0)        # the clapper hammers between two gongs at ~22 Hz
+    for burst in (0.0, 0.6):
+        k = 0
+        tm = burst
+        while tm < burst + 0.4:
+            f = bells[k % 2] * (1 + 0.003 * r.standard_normal())
+            b = bell_partials(f, (1, 2.32, 4.25, 6.8), (0.35, 0.12, 0.05, 0.03),
+                              (1.0, 0.5, 0.25, 0.1), nsamp(0.9))
+            add_at(x, b * r.uniform(0.8, 1.0), nsamp(tm), circular=False)
+            tm += 1 / 22.0
+            k += 1
+    x = lp(x, 3800, 2)              # through the booth glass
+    return lreverb_mono(x, street_ir_mono(0.9), wet=0.3)
+
+
 SFX = {
     **{f"footstep_wet_{i + 1}": (lambda i=i: footstep(1000 + i, run=False)) for i in range(4)},
     **{f"footstep_run_{i + 1}": (lambda i=i: footstep(1100 + i, run=True)) for i in range(4)},
@@ -399,4 +422,5 @@ SFX = {
     "win_sting": win_sting,
     "token": token,
     "door_open": door_open,
+    "phone_ring": phone_ring,
 }

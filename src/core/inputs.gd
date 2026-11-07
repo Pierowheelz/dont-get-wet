@@ -47,6 +47,9 @@ func _ready() -> void:
 	_key(&"pause", KEY_ESCAPE)
 	_key(&"pause", KEY_P)
 	_button(&"restart", JOY_BUTTON_BACK)
+	# City map: shoulder buttons pick the map or the upgrade panel (mouse covers both on keyboard).
+	_button(&"panel_map", JOY_BUTTON_LEFT_SHOULDER)
+	_button(&"panel_shop", JOY_BUTTON_RIGHT_SHOULDER)
 	# Godot's built-in UI actions have no gamepad face buttons by default: A = select, B = back.
 	_button(&"ui_accept", JOY_BUTTON_A)
 	_button(&"ui_cancel", JOY_BUTTON_B)

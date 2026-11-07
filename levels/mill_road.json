@@ -2,7 +2,7 @@
  "authored": true,
  "id": "mill_road",
  "name": "Mill Road",
- "blurb": "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through.",
+ "blurb": "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through. Out here you'd see anyone coming.",
  "aesthetic": "outskirts",
  "neon": 0.0,
  "length": 430.0,
@@ -138,7 +138,7 @@
   {"id": "newspaper_box", "x": 184.3},
   {"id": "vending_machine_a", "x": 187.7},
   {"id": "lamp_post", "x": 188.1},
-  {"id": "phone_booth", "x": 195.5},
+  {"id": "phone_booth", "x": 195.5, "ring": true},
   {"id": "lamp_post", "x": 204.0},
   {"id": "chainlink_fence_4", "x": 220.0},
   {"id": "crates", "x": 226.0},
@@ -169,5 +169,8 @@
   {"id": "street_sign", "x": 403.4},
   {"id": "hydrant", "x": 414.8},
   {"id": "lamp_post", "x": 421.6}
+ ],
+ "figures": [
+  {"x": 395.0}
  ]
 }

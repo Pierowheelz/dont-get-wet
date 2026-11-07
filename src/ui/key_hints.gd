@@ -1,7 +1,7 @@
 class_name KeyHints
 extends HBoxContainer
 ## Footer of input prompts ("[A] Select   [B] Back") that follows the last-used device.
-## hints: Array of [gamepad_key, keyboard_key, action_text].
+## hints: Array of [gamepad_key, keyboard_key, action_text]; an empty key hides the hint on that device.
 
 var _hints: Array = []
 var _device := &""
@@ -32,6 +32,8 @@ func _rebuild() -> void:
 		c.queue_free()
 	for h: Array in _hints:
 		var key: String = h[0] if _device == &"gamepad" else h[1]
+		if key == "":
+			continue
 		var item := HBoxContainer.new()
 		item.add_theme_constant_override("separation", 10)
 		item.mouse_filter = Control.MOUSE_FILTER_IGNORE

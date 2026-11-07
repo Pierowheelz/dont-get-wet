@@ -3,7 +3,7 @@
 from street import Street
 
 s = Street("main_street", "Main Street",
-           "The old downtown. Most shops are shuttered, but the awnings still hold.",
+           "The old downtown, on your way to work. Most shops are shuttered, but the awnings still hold.",
            aesthetic="rundown", neon=0.0, rain=[[0.0, 0.8], [0.5, 1.0], [1.0, 1.05]],
            wind=[[0.0, 0.0], [1.0, 0.0]])
 
@@ -16,7 +16,7 @@ s.lot("candy", 4, "shop_lit", "arcade", sign="CANDY", floors=3)
 # 2. First gaps: open the umbrella
 s.lot("alley1", 2.5, "wall", "none", floors=2)
 s.lot("hats", 5, "shop_dark", "awning", sign="HATS", color="green", floors=2)
-s.lot("drugs", 6, "shop_lit", "awning", sign="DRUGS", color="teal", floors=3)
+s.lot("thorne", 6, "shop_lit", "awning", sign="THORNE & SONS", color="teal", floors=3)
 s.lot("lot1", 4, "vacant", "none", floors=0)
 s.lot("radio", 6, "shuttered", "awning", sign="RADIO & TV", color="orange", floors=2)
 s.lot("shoes", 4, "shop_lit", "awning", sign="SHOES", color="brown", floors=2)
@@ -79,13 +79,14 @@ s.feature("puddle", s.start("records") + 1.9, w=1.0)
 s.feature("gutter", s.start("toys") + 3.7)
 s.feature("gutter", s.mid("pipe2"))
 
-for t in ["diner", "showing", "drugs", "radio", "dime", "hotel", "bank", "deli", "photo", "laundro", "loans", "news", "records", "secondhand", "tvrepair", "bakery"]:
+for t in ["diner", "showing", "radio", "dime", "hotel", "bank", "deli", "photo", "laundro", "loans", "news", "records", "secondhand", "tvrepair", "bakery"]:
     s.prop("lamp_post", s.mid(t))
 s.prop("newspaper_box", s.start("bijou") + 1.0)
 s.prop("bench", s.mid("bijou") + 1.5)
 s.prop("sandwich_board", s.start("candy") + 1.0)
 s.prop("trash_bags", s.start("alley1") + 0.6)
-s.prop("mailbox", s.end("drugs") - 1.0)
+s.prop("mailbox", s.end("thorne") - 1.0)
+s.prop("lamp_post", s.end("thorne") + 0.6)   # clear of the THORNE & SONS sign
 s.prop("chainlink_fence_4", s.mid("lot1"))
 s.prop("trash_can", s.end("shoes") - 0.8)
 s.prop("crates", s.mid("alley2"))
@@ -94,7 +95,7 @@ s.prop("parking_meter", s.end("carlot") - 1.5)
 s.prop("street_sign", s.start("elm") - 0.6)
 s.prop("hydrant", s.end("elm") + 0.8)
 s.prop("bench", s.mid("hotel") + 1.5)
-s.prop("phone_booth", s.end("barber") - 1.0)
+s.prop("phone_booth", s.end("barber") - 1.0, ring=True)
 s.prop("trash_bags", s.mid("alley5"))
 s.prop("cardboard_boxes", s.start("palace") + 2.0)
 s.prop("bench", s.mid("palace") + 1.0)

@@ -18,6 +18,7 @@ class Street:
         self.x = 0.0
         self.at = {}
         self.lots, self.crossings, self.features, self.props, self.set_pieces = [], [], [], [], []
+        self.figures = []
         self.end_x = None
 
     def lot(self, tag, w, style, cover, sign=None, color=None, floors=2, tears=None, awning_style=None,
@@ -55,8 +56,12 @@ class Street:
     def feature(self, type, x, **kw):
         self.features.append({"type": type, "x": x, **kw})
 
-    def prop(self, id, x):
-        self.props.append({"id": id, "x": round(x, 2)})
+    def prop(self, id, x, **kw):
+        self.props.append({"id": id, "x": round(x, 2), **kw})
+
+    def figure(self, x):
+        """A man in the walker's own suit, standing in a doorway facing up the street. Scenery only."""
+        self.figures.append({"x": round(x, 2)})
 
     def set_piece(self, name, x0, x1, teaches):
         self.set_pieces.append({"name": name, "x0": x0, "x1": x1, "teaches": teaches})
@@ -71,6 +76,8 @@ class Street:
         rest = {"set_pieces": self.set_pieces, "lots": self.lots, "crossings": self.crossings,
                 "features": sorted(self.features, key=lambda f: f["x"]),
                 "props": sorted(self.props, key=lambda p: p["x"])}
+        if self.figures:
+            rest["figures"] = self.figures
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},
                  "length": self.x, "end_x": self.end_x,
                  **{k: level[k] for k in ["rain", "wind", "gusts"]}, **rest}

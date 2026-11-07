@@ -111,7 +111,8 @@ static func stop_menu_music(tree: SceneTree, fade := 1.2) -> void:
 
 
 static func _retween(p: Node) -> Tween:
-	var old: Variant = p.get_meta(&"tween", null)
+	# get_meta() treats a null default as "no default" and logs an error for a missing key.
+	var old: Variant = p.get_meta(&"tween") if p.has_meta(&"tween") else null
 	if old is Tween and (old as Tween).is_valid():
 		(old as Tween).kill()
 	var tw := p.create_tween()
