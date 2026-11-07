@@ -11,6 +11,23 @@ across gaps, tilt into the wind, and shield yourself from passing cars.
 Built with **Godot 4.7** (GDScript, Forward+). Design: [`docs/DESIGN.md`](docs/DESIGN.md).
 Content interfaces: [`docs/CONTRACTS.md`](docs/CONTRACTS.md). Asset credits: [`assets/CREDITS.md`](assets/CREDITS.md).
 
+![Neon Junction](docs/screenshots/neon_junction.jpg)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/arcade_lane.jpg" alt="Arcade Lane"></td>
+    <td><img src="docs/screenshots/canal_row.jpg" alt="Canal Row"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/mill_road.jpg" alt="Mill Road: an overflowing gutter ahead"></td>
+    <td><img src="docs/screenshots/main_street.jpg" alt="Main Street"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/title.jpg" alt="Title screen"></td>
+    <td><img src="docs/screenshots/city_map.jpg" alt="City map and umbrella shop"></td>
+  </tr>
+</table>
+
 ## Running
 
 ```sh
