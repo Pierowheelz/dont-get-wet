@@ -54,6 +54,70 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 		_build_prop(p)
 
 
+## Cover height map for the visual rain: R = height (m) at which a falling drop is stopped,
+## sampled over x (whole level) and z (behind the facades → camera side). Mirrors the colliders.
+const COVER_RES := 10.0          # texels per metre along x
+const COVER_RES_Z := 4.0
+const COVER_Z0 := -3.0
+const COVER_Z1 := 13.0
+
+
+func cover_map() -> Array:
+	var L: float = data["length"]
+	var x0 := -30.0
+	var w := int((L + 60.0) * COVER_RES)
+	var h := int((COVER_Z1 - COVER_Z0) * COVER_RES_Z)
+	var img := Image.create(w, h, false, Image.FORMAT_RF)
+	var crossings: Array = []
+	for c in data.get("crossings", []):
+		crossings.append([float(c["x"]), float(c["x"]) + float(c["w"])])
+	for ix in w:
+		var x := x0 + (ix + 0.5) / COVER_RES
+		var in_cross := false
+		for c in crossings:
+			if x > c[0] and x < c[1]:
+				in_cross = true
+		for iz in h:
+			var z := COVER_Z0 + (iz + 0.5) / COVER_RES_Z
+			var y := ROAD_Y if (z > SIDEWALK_W or in_cross) else 0.0
+			if z < 0.0 and not in_cross:
+				y = 30.0            # inside buildings / behind facades: never visible
+			img.set_pixel(ix, iz, Color(y, 0, 0))
+	for lot in data.get("lots", []):
+		var lx: float = lot["x"]
+		var lw: float = lot["w"]
+		match lot.get("cover", "none"):
+			"awning":
+				var segs := [[0.0, lw]]
+				for t in lot.get("tears", []):
+					var ns: Array = []
+					for sgm in segs:
+						if t[0] > sgm[0]: ns.append([sgm[0], minf(float(t[0]), sgm[1])])
+						if t[1] < sgm[1]: ns.append([maxf(float(t[1]), sgm[0]), sgm[1]])
+					segs = ns
+				for sgm in segs:
+					_cover_fill(img, x0, lx + sgm[0], lx + sgm[1], 0.0, AWNING_DEPTH, true)
+			"balcony":
+				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, false, 3.35)
+			"arcade":
+				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, false, 3.6)
+	var tex := ImageTexture.create_from_image(img)
+	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
+
+
+func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, sloped: bool, flat_y := 0.0) -> void:
+	var ia := int((a - x0) * COVER_RES)
+	var ib := int((b - x0) * COVER_RES)
+	for ix in range(maxi(ia, 0), mini(ib, img.get_width())):
+		for iz in img.get_height():
+			var z := COVER_Z0 + (iz + 0.5) / COVER_RES_Z
+			if z >= z0 and z <= z1:
+				var y := flat_y
+				if sloped:
+					y = AWNING_WALL_Y - (AWNING_WALL_Y - AWNING_FRONT_Y) * (z / AWNING_DEPTH)
+				img.set_pixel(ix, iz, Color(maxf(y, img.get_pixel(ix, iz).r if img.get_pixel(ix, iz).r < 20.0 else 0.0), 0, 0))
+
+
 # --- helpers --------------------------------------------------------------------------------
 
 func _mat(key: String, color: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:

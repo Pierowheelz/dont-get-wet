@@ -119,6 +119,8 @@ func _physics_process(delta: float) -> void:
 	var stop_req: bool
 	if Game.autopilot:
 		var ap := _autopilot(delta)
+		if Game.debug_human:
+			ap = _humanise(ap, delta)
 		if Game.debug_lazy:
 			ap[0] = 0.0
 		u = ap[0]; h = ap[1]; tl = ap[2]; stop_req = ap[3]
@@ -388,6 +390,23 @@ func _process_entering(delta: float) -> void:
 
 
 # --- autopilot (testing bot) ----------------------------------------------------------------
+
+var _ap_queue: Array = []
+var _ap_t := 0.0
+const HUMAN_DELAY := 0.4
+
+
+## Delays the bot's decisions by a human reaction time and makes it a little sloppy.
+func _humanise(ap: Array, delta: float) -> Array:
+	_ap_t += delta
+	_ap_queue.append([_ap_t, ap])
+	var out: Array = _ap_queue[0][1]
+	while _ap_queue.size() > 1 and _ap_t - float(_ap_queue[1][0]) >= HUMAN_DELAY:
+		_ap_queue.pop_front()
+		out = _ap_queue[0][1]
+	out = out.duplicate()
+	out[1] = 0.0 if stamina < 95.0 else out[1]   # humans hurry less precisely
+	return out
 
 func _exposed_at(x: float, height := 1.6) -> bool:
 	var p := Vector3(x, level.ground_y(x) + height, position.z)

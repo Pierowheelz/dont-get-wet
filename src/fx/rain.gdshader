@@ -1,7 +1,8 @@
 shader_type particles;
 // Rain streaks. Emitted in a box around the emitter (which follows the camera), falling along
-// `fall_dir`. Killed on collision with the height-field (awnings, umbrella, ground) and inside
-// sunny zones, so the visual rain matches the gameplay rain model.
+// `fall_dir`. They stop (and splash) on a cover height map built from the level data (awnings,
+// slabs, roofs, ground) and on the umbrella canopy, and vanish inside sunny zones — so the visual
+// rain matches the gameplay rain model exactly.
 
 uniform vec3 box_extents = vec3(14.0, 7.0, 5.0);
 uniform vec3 fall_dir = vec3(0.0, -1.0, 0.0);
@@ -11,6 +12,9 @@ uniform float intensity = 1.0;          // 0..1.5, fraction of particles alive
 uniform vec4 sun_zones[8];              // x0, x1 world; zw unused
 uniform int sun_zone_count = 0;
 uniform float splash_fraction = 0.25;
+uniform sampler2D cover_map : filter_nearest, repeat_disable;
+uniform vec4 cover_rect = vec4(0.0, -2.0, 100.0, 16.0);   // x0, z0, size_x, size_z (metres)
+uniform vec4 umbrella = vec4(0.0, -100.0, 0.0, 0.0);      // canopy centre xyz, radius (0 = closed)
 
 float hash(uint n) {
 	n = (n << 13u) ^ n;
@@ -36,12 +40,19 @@ void start() {
 
 void process() {
 	vec3 pos = TRANSFORM[3].xyz;
-	bool dead = COLLIDED;
+	vec2 cuv = vec2((pos.x - cover_rect.x) / cover_rect.z, (pos.z - cover_rect.y) / cover_rect.w);
+	float ground = (cuv.x >= 0.0 && cuv.x <= 1.0 && cuv.y >= 0.0 && cuv.y <= 1.0) ? texture(cover_map, cuv).r : -0.16;
+	bool hit = pos.y < ground;
+	if (umbrella.w > 0.05) {
+		vec2 d = pos.xz - umbrella.xz;
+		if (dot(d, d) < umbrella.w * umbrella.w && pos.y < umbrella.y + 0.12 && pos.y > umbrella.y - 0.35) hit = true;
+	}
+	bool dead = hit;
 	for (int i = 0; i < sun_zone_count; i++) {
 		if (pos.x > sun_zones[i].x && pos.x < sun_zones[i].y) dead = true;
 	}
 	if (pos.y < -1.0) dead = true;
-	if (COLLIDED && CUSTOM.x < splash_fraction * clamp(intensity / 1.5, 0.0, 1.0)) {
+	if (hit && CUSTOM.x < splash_fraction * clamp(intensity / 1.5, 0.0, 1.0)) {
 		mat4 xf = mat4(1.0);
 		xf[3].xyz = pos;
 		emit_subparticle(xf, vec3(0.0), vec4(1.0), vec4(0.0), FLAG_EMIT_POSITION);

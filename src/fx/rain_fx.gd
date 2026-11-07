@@ -8,7 +8,6 @@ var camera: Camera3D
 var _rain: GPUParticles3D
 var _near: GPUParticles3D
 var _splash: GPUParticles3D
-var _hf: GPUParticlesCollisionHeightField3D
 var _mat: ShaderMaterial
 var _near_mat: ShaderMaterial
 var _debris: GPUParticles3D
@@ -22,7 +21,7 @@ func _ready() -> void:
 
 	_mat = ShaderMaterial.new()
 	_mat.shader = shader
-	_rain = _make_layer(_mat, 14000, Vector3(16.0, 7.0, 4.5), 0.42, 0.010, 0.33)
+	_rain = _make_layer(_mat, 16000, Vector3(16.0, 7.0, 5.5), 0.42, 0.010, 0.33)
 	add_child(_rain)
 	_rain.sub_emitter = _rain.get_path_to(_splash)
 
@@ -35,12 +34,10 @@ func _ready() -> void:
 	_debris = _make_debris()
 	add_child(_debris)
 
-	_hf = GPUParticlesCollisionHeightField3D.new()
-	_hf.size = Vector3(44.0, 24.0, 18.0)
-	_hf.resolution = GPUParticlesCollisionHeightField3D.RESOLUTION_1024
-	_hf.update_mode = GPUParticlesCollisionHeightField3D.UPDATE_MODE_ALWAYS
-	_hf.follow_camera_enabled = true
-	add_child(_hf)
+	var cover: Array = level.builder.cover_map()
+	for m in [_mat, _near_mat]:
+		m.set_shader_parameter("cover_map", cover[0])
+		m.set_shader_parameter("cover_rect", cover[1])
 
 
 func _make_layer(mat: ShaderMaterial, amount: int, extents: Vector3, length: float, width: float, alpha: float) -> GPUParticles3D:
@@ -169,6 +166,13 @@ func _process(_delta: float) -> void:
 	_debris_mat.direction = Vector3(side, 0.25, 0)
 	_debris_mat.initial_velocity_min = 3.0 + absf(w) * 6.0
 	_debris_mat.initial_velocity_max = 5.0 + absf(w) * 9.0
+	var umb := Vector4(0, -100, 0, 0)
+	var pl: Node = level.player
+	if pl and pl.umbrella and pl.umbrella.open > 0.05 and not pl._dropped_umbrella:
+		var c: Vector3 = pl.umbrella.canopy_center()
+		umb = Vector4(c.x, c.y + 0.1, c.z, pl.umbrella.current_radius())
+	_mat.set_shader_parameter("umbrella", umb)
+	_near_mat.set_shader_parameter("umbrella", umb)
 	var zones: Array = level.sun_zones
 	var arr := PackedVector4Array()
 	for z in zones:
