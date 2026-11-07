@@ -246,10 +246,35 @@ func _process(delta: float) -> void:
 		_update_gutter_streams()
 	if Game.autopilot and player and OS.has_environment("DGW_TRACE") and player.position.x > float(OS.get_environment("DGW_TRACE")) and int(_t * 10.0) != int((_t - delta) * 10.0):
 		print("x=%.1f wind=%.2f exp=%.2f open=%.2f tilt=%.2f sta=%.0f wet=%.1f gut=%.2f gumb=%.2f exh=%s" % [player.position.x, wind(player.position.x), player.exposure, player.open, player.tilt, player.stamina, player.wet, player.gutter_hit, player.gutter_on_umbrella, player.exhausted])
+	if Game.autopilot and Game.trace_path != "" and player:
+		_write_trace()
 	if Game.autopilot and player and int(_t / 10.0) != int((_t - delta) / 10.0):
 		print("t=%.0f x=%.1f wet=%.1f sta=%.1f open=%.2f state=%d" % [_t, player.position.x, player.wet, player.stamina, player.open, player.state])
 	if Input.is_action_just_pressed(&"restart") and not get_tree().paused:
 		Game.play_level(level_id)
+
+
+var _trace_file: FileAccess
+var _trace_next_x := 0.0
+
+
+func _write_trace() -> void:
+	if _trace_file == null:
+		_trace_file = FileAccess.open(Game.trace_path, FileAccess.WRITE)
+		if _trace_file == null:
+			push_error("cannot open trace file " + Game.trace_path)
+			Game.trace_path = ""
+			return
+	var done: bool = player.state == Player.State.DONE or player.state == Player.State.DEFEATED
+	if player.position.x < _trace_next_x and not done:
+		return
+	_trace_next_x = player.position.x + 0.25
+	var row := {"t": snappedf(_t, 0.01), "x": snappedf(player.position.x, 0.01), "wet": snappedf(player.wet, 0.01),
+		"stamina": snappedf(player.stamina, 0.1), "open": snappedf(player.open, 0.01), "tilt": snappedf(player.tilt, 0.01),
+		"sheltered": player.sheltered, "speed": snappedf(player.speed, 0.01), "hurry": snappedf(player.hurry, 0.01),
+		"exhausted": player.exhausted, "state": int(player.state), "stats": player.stats.duplicate()}
+	_trace_file.store_line(JSON.stringify(row))
+	_trace_file.flush()
 
 
 ## When the umbrella is catching a gutter stream, cut the falling column off at the canopy and

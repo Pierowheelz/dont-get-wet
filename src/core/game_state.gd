@@ -18,6 +18,7 @@ var completed: Array = []
 var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
 var debug_lazy := false             # --lazy: autopilot never opens the umbrella (testing defeat)
+var trace_path := ""                # --trace=PATH: autopilot writes a JSON-lines run trace
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
 var debug_auto_continue := false    # --auto-continue: result screen presses Continue (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
@@ -36,6 +37,8 @@ func _ready() -> void:
 	if args.has("--low"):
 		settings["low_quality"] = true
 	for a in args:
+		if a.begins_with("--trace="):
+			trace_path = a.substr(8)
 		if a.begins_with("--level="):
 			current_level = a.substr(8)
 		if a.begins_with("--start-x="):

@@ -92,6 +92,9 @@ Builds: export the **Linux** and **Windows Desktop** presets (to `build/linux/` 
 ```sh
 python3 tools/level_gen.py                   # regenerate first-draft level layouts into levels/*.json
 tools/playtest.sh [--human] [level ...]      # autopilot bot plays levels headless, prints score & wetness sources
+tools/preview.sh LEVEL_ID [OUT_DIR]          # perfect + --human bots with traces, then PNG + design report (default OUT_DIR build/preview; exit 1 if a rule fails)
+python3 tools/level_preview.py LEVEL_ID_OR_JSON [--trace a.jsonl ...] -o OUT.png [--report]   # renderer/checker alone, no game run needed
+tools/playtest.sh --trace=PATH level         # bot trace: JSON lines every 0.25 m (wetness, stamina, umbrella, cover, per-source stats)
 godot --headless --path . res://tests/run_tests.tscn   # rain-exposure / umbrella / splash tests
 tools/shots.sh OUT_DIR "1,3,5" res://src/level/level.tscn --autopilot --level=main_street --start-x=40
 python3 tools/grid.py sheet.png OUT_DIR/shot_*.png      # contact sheet of screenshots
