@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" load_steps=1 format=3]
+
+[resource]
+resource_name = "glass_dirty"
+transparency = 1
+albedo_color = Color(0.2200, 0.2200, 0.1900, 0.4200)
+metallic = 0.100
+metallic_specular = 0.8
+roughness = 0.250
+texture_filter = 5

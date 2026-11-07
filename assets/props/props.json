@@ -1,0 +1,318 @@
+{
+ "version": 1,
+ "generator": "tools/blender/props.py",
+ "notes": "Origin = base centre, front faces +Z. Markers: omni_* -> OmniLight3D (kit_import.gd), outlet = downpipe gutter outlet, vent/warm = warm-air source. Cars: origin at ground centre, facing +X; drop them to road level (sidewalk top y=0, road ~-0.15).",
+ "props": [
+  {
+   "id": "lamp_post",
+   "scene": "res://assets/props/lamp_post.glb",
+   "place": "curb",
+   "footprint": [
+    0.5,
+    0.5
+   ],
+   "tags": [
+    "light",
+    "cover_none"
+   ],
+   "height": 4.93
+  },
+  {
+   "id": "hydrant",
+   "scene": "res://assets/props/hydrant.glb",
+   "place": "curb",
+   "footprint": [
+    0.5,
+    0.5
+   ],
+   "tags": [],
+   "height": 0.8
+  },
+  {
+   "id": "trash_can",
+   "scene": "res://assets/props/trash_can.glb",
+   "place": "sidewalk",
+   "footprint": [
+    0.6,
+    0.6
+   ],
+   "tags": [],
+   "height": 0.9
+  },
+  {
+   "id": "newspaper_box",
+   "scene": "res://assets/props/newspaper_box.glb",
+   "place": "sidewalk",
+   "footprint": [
+    0.6,
+    0.5
+   ],
+   "tags": [],
+   "height": 1.12
+  },
+  {
+   "id": "newspaper_box_b",
+   "scene": "res://assets/props/newspaper_box_b.glb",
+   "place": "sidewalk",
+   "footprint": [
+    0.6,
+    0.5
+   ],
+   "tags": [],
+   "height": 1.12
+  },
+  {
+   "id": "bench",
+   "scene": "res://assets/props/bench.glb",
+   "place": "sidewalk",
+   "footprint": [
+    1.8,
+    0.6
+   ],
+   "tags": [
+    "seat"
+   ],
+   "height": 0.92
+  },
+  {
+   "id": "mailbox",
+   "scene": "res://assets/props/mailbox.glb",
+   "place": "curb",
+   "footprint": [
+    0.6,
+    0.5
+   ],
+   "tags": [],
+   "height": 1.22
+  },
+  {
+   "id": "parking_meter",
+   "scene": "res://assets/props/parking_meter.glb",
+   "place": "curb",
+   "footprint": [
+    0.3,
+    0.3
+   ],
+   "tags": [],
+   "height": 1.42
+  },
+  {
+   "id": "street_sign",
+   "scene": "res://assets/props/street_sign.glb",
+   "place": "curb",
+   "footprint": [
+    0.3,
+    0.3
+   ],
+   "tags": [
+    "blank_blades"
+   ],
+   "height": 3.16
+  },
+  {
+   "id": "wall_ac_unit",
+   "scene": "res://assets/props/wall_ac_unit.glb",
+   "place": "wall_high",
+   "footprint": [
+    0.7,
+    0.6
+   ],
+   "tags": [
+    "warm_air"
+   ],
+   "height": 0.44,
+   "mount_y": 2.5
+  },
+  {
+   "id": "fire_barrel",
+   "scene": "res://assets/props/fire_barrel.glb",
+   "place": "sidewalk",
+   "footprint": [
+    0.7,
+    0.7
+   ],
+   "tags": [
+    "warm_air",
+    "fire",
+    "light"
+   ],
+   "height": 0.95
+  },
+  {
+   "id": "downpipe",
+   "scene": "res://assets/props/downpipe.glb",
+   "place": "wall",
+   "footprint": [
+    0.35,
+    0.35
+   ],
+   "tags": [
+    "gutter"
+   ],
+   "height": 7.2,
+   "outlet": [
+    0.0,
+    0.1,
+    0.35
+   ]
+  },
+  {
+   "id": "downpipe_short",
+   "scene": "res://assets/props/downpipe_short.glb",
+   "place": "wall",
+   "footprint": [
+    0.35,
+    0.35
+   ],
+   "tags": [
+    "gutter"
+   ],
+   "height": 4.0,
+   "outlet": [
+    0.0,
+    0.1,
+    0.35
+   ]
+  },
+  {
+   "id": "downpipe_tall",
+   "scene": "res://assets/props/downpipe_tall.glb",
+   "place": "wall",
+   "footprint": [
+    0.35,
+    0.35
+   ],
+   "tags": [
+    "gutter"
+   ],
+   "height": 10.4,
+   "outlet": [
+    0.0,
+    0.1,
+    0.35
+   ]
+  },
+  {
+   "id": "trash_bags",
+   "scene": "res://assets/props/trash_bags.glb",
+   "place": "wall",
+   "footprint": [
+    1.1,
+    0.8
+   ],
+   "tags": [
+    "clutter"
+   ],
+   "height": 0.65
+  },
+  {
+   "id": "crates",
+   "scene": "res://assets/props/crates.glb",
+   "place": "wall",
+   "footprint": [
+    1.2,
+    0.6
+   ],
+   "tags": [
+    "clutter"
+   ],
+   "height": 0.6
+  },
+  {
+   "id": "bollard",
+   "scene": "res://assets/props/bollard.glb",
+   "place": "curb",
+   "footprint": [
+    0.3,
+    0.3
+   ],
+   "tags": [],
+   "height": 0.91
+  },
+  {
+   "id": "phone_booth",
+   "scene": "res://assets/props/phone_booth.glb",
+   "place": "sidewalk",
+   "footprint": [
+    1.0,
+    1.0
+   ],
+   "tags": [
+    "light",
+    "shelter"
+   ],
+   "height": 2.54
+  },
+  {
+   "id": "sandwich_board",
+   "scene": "res://assets/props/sandwich_board.glb",
+   "place": "sidewalk",
+   "footprint": [
+    0.6,
+    0.45
+   ],
+   "tags": [
+    "clutter"
+   ],
+   "height": 0.9
+  },
+  {
+   "id": "cardboard_boxes",
+   "scene": "res://assets/props/cardboard_boxes.glb",
+   "place": "wall",
+   "footprint": [
+    0.7,
+    0.6
+   ],
+   "tags": [
+    "clutter"
+   ],
+   "height": 1.1
+  },
+  {
+   "id": "car_sedan",
+   "scene": "res://assets/props/car_sedan.glb",
+   "place": "road",
+   "footprint": [
+    5.6,
+    2.1
+   ],
+   "tags": [
+    "car",
+    "foreground"
+   ],
+   "height": 1.45,
+   "length": 5.62
+  },
+  {
+   "id": "car_sedan_b",
+   "scene": "res://assets/props/car_sedan_b.glb",
+   "place": "road",
+   "footprint": [
+    5.6,
+    2.1
+   ],
+   "tags": [
+    "car",
+    "foreground"
+   ],
+   "height": 1.45,
+   "length": 5.62
+  },
+  {
+   "id": "car_sedan_c",
+   "scene": "res://assets/props/car_sedan_c.glb",
+   "place": "road",
+   "footprint": [
+    5.6,
+    2.1
+   ],
+   "tags": [
+    "car",
+    "foreground"
+   ],
+   "height": 1.45,
+   "length": 5.62
+  }
+ ]
+}

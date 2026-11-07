@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/generated/posters.png" id="1_posters"]
+
+[resource]
+resource_name = "posters"
+albedo_texture = ExtResource("1_posters")
+roughness = 0.850
+transparency = 2
+alpha_scissor_threshold = 0.5
+texture_filter = 5

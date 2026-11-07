@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" load_steps=1 format=3]
+
+[resource]
+resource_name = "trim_red"
+albedo_color = Color(0.3600, 0.0800, 0.0600, 1.0000)
+metallic = 0.000
+roughness = 0.500
+texture_filter = 5

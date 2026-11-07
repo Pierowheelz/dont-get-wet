@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/generated/window_dark.png" id="1_window_dark"]
+
+[resource]
+resource_name = "window_dark"
+albedo_texture = ExtResource("1_window_dark")
+roughness = 0.800
+texture_filter = 5

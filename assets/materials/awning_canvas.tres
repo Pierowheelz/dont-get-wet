@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/generated/awning_canvas.png" id="1_awning_canva"]
+
+[resource]
+resource_name = "awning_canvas"
+albedo_texture = ExtResource("1_awning_canva")
+roughness = 0.900
+uv1_scale = Vector3(1.0000, 1.0000, 1.0000)
+texture_filter = 5

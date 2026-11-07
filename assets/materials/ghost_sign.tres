@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/generated/ghost_sign.png" id="1_ghost_sign"]
+
+[resource]
+resource_name = "ghost_sign"
+albedo_texture = ExtResource("1_ghost_sign")
+roughness = 0.900
+transparency = 1
+texture_filter = 5

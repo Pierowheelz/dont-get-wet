@@ -1,0 +1,1194 @@
+{
+ "version": 1,
+ "generator": "tools/blender/buildings.py",
+ "notes": "ground: awning mount y=3.0, sign board face at z=sign_rect[4] spanning sign_rect[0..3] (x0,y0,x1,y1) with its own material 'sign_face' (0..1 UVs). Markers in the scenes: omni_* -> OmniLight3D (added by kit_import.gd), door -> Node3D at the entrance, outlet -> downpipe gutter outlet.",
+ "modules": [
+  {
+   "id": "shop_lit_3a",
+   "scene": "res://assets/buildings/shop_lit_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "barber"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.3,
+    3.14,
+    2.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_lit_4a",
+   "scene": "res://assets/buildings/shop_lit_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "pawn"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.3,
+    3.14,
+    3.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_lit_5a",
+   "scene": "res://assets/buildings/shop_lit_5a.glb",
+   "kind": "ground",
+   "width": 5.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "laundromat"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.3,
+    3.14,
+    4.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_lit_6a",
+   "scene": "res://assets/buildings/shop_lit_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "diner"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.3,
+    3.14,
+    5.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_lit_4b",
+   "scene": "res://assets/buildings/shop_lit_4b.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "newsstand"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.3,
+    3.14,
+    3.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_lit_8a",
+   "scene": "res://assets/buildings/shop_lit_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "diner"
+   ],
+   "style": "shop_lit",
+   "sign_rect": [
+    0.3,
+    3.14,
+    7.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_dark_3a",
+   "scene": "res://assets/buildings/shop_dark_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shop_dark",
+   "sign_rect": [
+    0.3,
+    3.14,
+    2.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_dark_4a",
+   "scene": "res://assets/buildings/shop_dark_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shop_dark",
+   "sign_rect": [
+    0.3,
+    3.14,
+    3.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_dark_5a",
+   "scene": "res://assets/buildings/shop_dark_5a.glb",
+   "kind": "ground",
+   "width": 5.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shop_dark",
+   "sign_rect": [
+    0.3,
+    3.14,
+    4.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_dark_6a",
+   "scene": "res://assets/buildings/shop_dark_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shop_dark",
+   "sign_rect": [
+    0.3,
+    3.14,
+    5.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shop_dark_8a",
+   "scene": "res://assets/buildings/shop_dark_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shop_dark",
+   "sign_rect": [
+    0.3,
+    3.14,
+    7.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shuttered_3a",
+   "scene": "res://assets/buildings/shuttered_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.3,
+    3.14,
+    2.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shuttered_4a",
+   "scene": "res://assets/buildings/shuttered_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.3,
+    3.14,
+    3.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shuttered_5a",
+   "scene": "res://assets/buildings/shuttered_5a.glb",
+   "kind": "ground",
+   "width": 5.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.3,
+    3.14,
+    4.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shuttered_6a",
+   "scene": "res://assets/buildings/shuttered_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.3,
+    3.14,
+    5.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "shuttered_8a",
+   "scene": "res://assets/buildings/shuttered_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "shuttered",
+   "sign_rect": [
+    0.3,
+    3.14,
+    7.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "boarded_4a",
+   "scene": "res://assets/buildings/boarded_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "boarded",
+   "sign_rect": [
+    0.3,
+    3.14,
+    3.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "boarded_5a",
+   "scene": "res://assets/buildings/boarded_5a.glb",
+   "kind": "ground",
+   "width": 5.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "boarded",
+   "sign_rect": [
+    0.3,
+    3.14,
+    4.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "boarded_6a",
+   "scene": "res://assets/buildings/boarded_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "boarded",
+   "sign_rect": [
+    0.3,
+    3.14,
+    5.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "wall_3a",
+   "scene": "res://assets/buildings/wall_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "wall",
+   "sign_rect": [
+    0.3,
+    3.14,
+    2.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "wall_4a",
+   "scene": "res://assets/buildings/wall_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "wall",
+   "sign_rect": [
+    0.3,
+    3.14,
+    3.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "wall_5a",
+   "scene": "res://assets/buildings/wall_5a.glb",
+   "kind": "ground",
+   "width": 5.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "dark"
+   ],
+   "style": "wall",
+   "sign_rect": [
+    0.3,
+    3.14,
+    4.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "doorway_3a",
+   "scene": "res://assets/buildings/doorway_3a.glb",
+   "kind": "ground",
+   "width": 3.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "residential"
+   ],
+   "style": "doorway",
+   "sign_rect": [
+    0.3,
+    3.14,
+    2.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "doorway_4a",
+   "scene": "res://assets/buildings/doorway_4a.glb",
+   "kind": "ground",
+   "width": 4.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "residential"
+   ],
+   "style": "doorway",
+   "sign_rect": [
+    0.3,
+    3.14,
+    3.7,
+    3.86,
+    0.055
+   ]
+  },
+  {
+   "id": "inn_6a",
+   "scene": "res://assets/buildings/inn_6a.glb",
+   "kind": "ground",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "goal"
+   ],
+   "style": "inn",
+   "sign_rect": [
+    0.3,
+    3.14,
+    5.7,
+    3.86,
+    0.055
+   ],
+   "door": [
+    3.0,
+    -1.0
+   ]
+  },
+  {
+   "id": "inn_8a",
+   "scene": "res://assets/buildings/inn_8a.glb",
+   "kind": "ground",
+   "width": 8.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "lit",
+    "goal"
+   ],
+   "style": "inn",
+   "sign_rect": [
+    0.3,
+    3.14,
+    7.7,
+    3.86,
+    0.055
+   ],
+   "door": [
+    4.0,
+    -1.0
+   ]
+  },
+  {
+   "id": "upper_3a",
+   "scene": "res://assets/buildings/upper_3a.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_3b",
+   "scene": "res://assets/buildings/upper_3b.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_3c",
+   "scene": "res://assets/buildings/upper_3c.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "broken",
+    "dark"
+   ]
+  },
+  {
+   "id": "upper_3d",
+   "scene": "res://assets/buildings/upper_3d.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "bricked"
+   ]
+  },
+  {
+   "id": "upper_3e",
+   "scene": "res://assets/buildings/upper_3e.glb",
+   "kind": "upper",
+   "width": 3.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "broken",
+    "dark",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_4a",
+   "scene": "res://assets/buildings/upper_4a.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_4b",
+   "scene": "res://assets/buildings/upper_4b.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_4c",
+   "scene": "res://assets/buildings/upper_4c.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "broken",
+    "dark"
+   ]
+  },
+  {
+   "id": "upper_4d",
+   "scene": "res://assets/buildings/upper_4d.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "bricked"
+   ]
+  },
+  {
+   "id": "upper_4e",
+   "scene": "res://assets/buildings/upper_4e.glb",
+   "kind": "upper",
+   "width": 4.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "broken",
+    "dark",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_5a",
+   "scene": "res://assets/buildings/upper_5a.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_5b",
+   "scene": "res://assets/buildings/upper_5b.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_5c",
+   "scene": "res://assets/buildings/upper_5c.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "broken",
+    "dark"
+   ]
+  },
+  {
+   "id": "upper_5d",
+   "scene": "res://assets/buildings/upper_5d.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "bricked"
+   ]
+  },
+  {
+   "id": "upper_5e",
+   "scene": "res://assets/buildings/upper_5e.glb",
+   "kind": "upper",
+   "width": 5.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "broken",
+    "dark",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_6a",
+   "scene": "res://assets/buildings/upper_6a.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_6b",
+   "scene": "res://assets/buildings/upper_6b.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_6c",
+   "scene": "res://assets/buildings/upper_6c.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "broken",
+    "dark"
+   ]
+  },
+  {
+   "id": "upper_6d",
+   "scene": "res://assets/buildings/upper_6d.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "bricked"
+   ]
+  },
+  {
+   "id": "upper_6e",
+   "scene": "res://assets/buildings/upper_6e.glb",
+   "kind": "upper",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "broken",
+    "dark",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_8a",
+   "scene": "res://assets/buildings/upper_8a.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_8b",
+   "scene": "res://assets/buildings/upper_8b.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "dark",
+    "lit",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "upper_8c",
+   "scene": "res://assets/buildings/upper_8c.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "broken",
+    "dark"
+   ]
+  },
+  {
+   "id": "upper_8d",
+   "scene": "res://assets/buildings/upper_8d.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "boarded",
+    "bricked"
+   ]
+  },
+  {
+   "id": "upper_8e",
+   "scene": "res://assets/buildings/upper_8e.glb",
+   "kind": "upper",
+   "width": 8.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "broken",
+    "dark",
+    "lit_b",
+    "lit"
+   ]
+  },
+  {
+   "id": "cap_cornice_3",
+   "scene": "res://assets/buildings/cap_cornice_3.glb",
+   "kind": "cap",
+   "width": 3.0,
+   "height": 0.95,
+   "era": "60s",
+   "tags": [
+    "cornice"
+   ]
+  },
+  {
+   "id": "cap_parapet_3",
+   "scene": "res://assets/buildings/cap_parapet_3.glb",
+   "kind": "cap",
+   "width": 3.0,
+   "height": 0.9,
+   "era": "60s",
+   "tags": [
+    "parapet"
+   ]
+  },
+  {
+   "id": "cap_flat_3",
+   "scene": "res://assets/buildings/cap_flat_3.glb",
+   "kind": "cap",
+   "width": 3.0,
+   "height": 0.35,
+   "era": "60s",
+   "tags": [
+    "flat"
+   ]
+  },
+  {
+   "id": "cap_cornice_4",
+   "scene": "res://assets/buildings/cap_cornice_4.glb",
+   "kind": "cap",
+   "width": 4.0,
+   "height": 0.95,
+   "era": "60s",
+   "tags": [
+    "cornice"
+   ]
+  },
+  {
+   "id": "cap_parapet_4",
+   "scene": "res://assets/buildings/cap_parapet_4.glb",
+   "kind": "cap",
+   "width": 4.0,
+   "height": 0.9,
+   "era": "60s",
+   "tags": [
+    "parapet"
+   ]
+  },
+  {
+   "id": "cap_flat_4",
+   "scene": "res://assets/buildings/cap_flat_4.glb",
+   "kind": "cap",
+   "width": 4.0,
+   "height": 0.35,
+   "era": "60s",
+   "tags": [
+    "flat"
+   ]
+  },
+  {
+   "id": "cap_cornice_5",
+   "scene": "res://assets/buildings/cap_cornice_5.glb",
+   "kind": "cap",
+   "width": 5.0,
+   "height": 0.95,
+   "era": "60s",
+   "tags": [
+    "cornice"
+   ]
+  },
+  {
+   "id": "cap_parapet_5",
+   "scene": "res://assets/buildings/cap_parapet_5.glb",
+   "kind": "cap",
+   "width": 5.0,
+   "height": 1.43,
+   "era": "60s",
+   "tags": [
+    "parapet",
+    "stepped"
+   ]
+  },
+  {
+   "id": "cap_flat_5",
+   "scene": "res://assets/buildings/cap_flat_5.glb",
+   "kind": "cap",
+   "width": 5.0,
+   "height": 0.35,
+   "era": "60s",
+   "tags": [
+    "flat"
+   ]
+  },
+  {
+   "id": "cap_cornice_6",
+   "scene": "res://assets/buildings/cap_cornice_6.glb",
+   "kind": "cap",
+   "width": 6.0,
+   "height": 0.95,
+   "era": "60s",
+   "tags": [
+    "cornice"
+   ]
+  },
+  {
+   "id": "cap_parapet_6",
+   "scene": "res://assets/buildings/cap_parapet_6.glb",
+   "kind": "cap",
+   "width": 6.0,
+   "height": 1.43,
+   "era": "60s",
+   "tags": [
+    "parapet",
+    "stepped"
+   ]
+  },
+  {
+   "id": "cap_flat_6",
+   "scene": "res://assets/buildings/cap_flat_6.glb",
+   "kind": "cap",
+   "width": 6.0,
+   "height": 0.35,
+   "era": "60s",
+   "tags": [
+    "flat"
+   ]
+  },
+  {
+   "id": "cap_cornice_8",
+   "scene": "res://assets/buildings/cap_cornice_8.glb",
+   "kind": "cap",
+   "width": 8.0,
+   "height": 0.95,
+   "era": "60s",
+   "tags": [
+    "cornice"
+   ]
+  },
+  {
+   "id": "cap_parapet_8",
+   "scene": "res://assets/buildings/cap_parapet_8.glb",
+   "kind": "cap",
+   "width": 8.0,
+   "height": 1.43,
+   "era": "60s",
+   "tags": [
+    "parapet",
+    "stepped"
+   ]
+  },
+  {
+   "id": "cap_flat_8",
+   "scene": "res://assets/buildings/cap_flat_8.glb",
+   "kind": "cap",
+   "width": 8.0,
+   "height": 0.35,
+   "era": "60s",
+   "tags": [
+    "flat"
+   ]
+  },
+  {
+   "id": "side_ground_6",
+   "scene": "res://assets/buildings/side_ground_6.glb",
+   "kind": "side",
+   "width": 6.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground"
+   ]
+  },
+  {
+   "id": "side_upper_6",
+   "scene": "res://assets/buildings/side_upper_6.glb",
+   "kind": "side",
+   "width": 6.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "upper"
+   ]
+  },
+  {
+   "id": "side_cap_6",
+   "scene": "res://assets/buildings/side_cap_6.glb",
+   "kind": "side",
+   "width": 6.0,
+   "height": 0.9,
+   "era": "60s",
+   "tags": [
+    "cap"
+   ]
+  },
+  {
+   "id": "side_ground_10",
+   "scene": "res://assets/buildings/side_ground_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground"
+   ]
+  },
+  {
+   "id": "side_upper_10",
+   "scene": "res://assets/buildings/side_upper_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "upper"
+   ]
+  },
+  {
+   "id": "side_cap_10",
+   "scene": "res://assets/buildings/side_cap_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 0.9,
+   "era": "60s",
+   "tags": [
+    "cap"
+   ]
+  },
+  {
+   "id": "side_upper_ad_10",
+   "scene": "res://assets/buildings/side_upper_ad_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "upper",
+    "ghost_sign"
+   ]
+  },
+  {
+   "id": "side_ground_brown_10",
+   "scene": "res://assets/buildings/side_ground_brown_10.glb",
+   "kind": "side",
+   "width": 10.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground"
+   ]
+  },
+  {
+   "id": "filler_pilaster_g_03",
+   "scene": "res://assets/buildings/filler_pilaster_g_03.glb",
+   "kind": "filler",
+   "width": 0.3,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground"
+   ]
+  },
+  {
+   "id": "filler_pilaster_g_05",
+   "scene": "res://assets/buildings/filler_pilaster_g_05.glb",
+   "kind": "filler",
+   "width": 0.5,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground"
+   ]
+  },
+  {
+   "id": "filler_downpipe_g_06",
+   "scene": "res://assets/buildings/filler_downpipe_g_06.glb",
+   "kind": "filler",
+   "width": 0.6,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground",
+    "gutter"
+   ]
+  },
+  {
+   "id": "filler_alley_g_10",
+   "scene": "res://assets/buildings/filler_alley_g_10.glb",
+   "kind": "filler",
+   "width": 1.0,
+   "height": 4.0,
+   "era": "60s",
+   "tags": [
+    "ground",
+    "gap"
+   ]
+  },
+  {
+   "id": "filler_pilaster_u_03",
+   "scene": "res://assets/buildings/filler_pilaster_u_03.glb",
+   "kind": "filler",
+   "width": 0.3,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "upper"
+   ]
+  },
+  {
+   "id": "filler_pilaster_u_05",
+   "scene": "res://assets/buildings/filler_pilaster_u_05.glb",
+   "kind": "filler",
+   "width": 0.5,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "upper"
+   ]
+  },
+  {
+   "id": "filler_downpipe_u_06",
+   "scene": "res://assets/buildings/filler_downpipe_u_06.glb",
+   "kind": "filler",
+   "width": 0.6,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "upper"
+   ]
+  },
+  {
+   "id": "filler_brick_u_10",
+   "scene": "res://assets/buildings/filler_brick_u_10.glb",
+   "kind": "filler",
+   "width": 1.0,
+   "height": 3.2,
+   "era": "60s",
+   "tags": [
+    "upper"
+   ]
+  }
+ ]
+}
