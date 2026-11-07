@@ -21,6 +21,8 @@ func set_umbrella_pose(raise: float, tilt: float, droop: float) -> void
     # raise 0..1: right arm goes from relaxed to holding the umbrella above the head
     # tilt (radians): + leans the umbrella forward (+X), − backward. Range about ±0.7
     # droop 0..1: exhausted — arm sags and sways
+func set_umbrella_open(open: float) -> void                    # 0..1 player's open amount; while it is between
+    # closed and fully open the left hand reaches under the canopy and slides up/down the shaft
 func set_wetness(w: float) -> void                             # 0..1, darken clothes, flatten hair, etc.
 func set_mood(mood: StringName) -> void                        # &"normal" or &"sad" (defeated walk)
 func get_grip(hand: StringName) -> Node3D                      # &"right" (raised, open) / &"left" (carried, closed)

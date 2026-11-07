@@ -130,5 +130,9 @@ func set_mood(mood: StringName) -> void:
 	_mood = mood
 
 
+func set_umbrella_open(_open: float) -> void:
+	pass
+
+
 func get_grip(hand: StringName) -> Node3D:
 	return _grip_r if hand == &"right" else _grip_l

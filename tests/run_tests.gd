@@ -61,7 +61,7 @@ func _run() -> void:
 	for o in [0.1, 0.2, 0.3, 0.4, 0.5, 0.7]:
 		sweep.append("%.1f:%.2f" % [o, await _place(open_x, o)])
 	print("  exposure by open amount: ", " ".join(sweep))
-	var e_part := await _place(open_x, 0.45)
+	var e_part := await _place(open_x, 0.65)   # canopy ~60% spread (Umbrella.canopy_spread)
 	check(e_part > e and e_part < 0.95, "partly-open umbrella protects partially: %.2f" % e_part)
 	# Car splash: forward tilt should shield most of it.
 	for cfg in [[0.0, 0.0], [1.0, 0.0], [1.0, 0.85]]:

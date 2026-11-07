@@ -29,7 +29,7 @@
   "wet_gutter_rate": 26.0,
   "wet_puddle_walk": 0.75,
   "wet_puddle_run": 2.5,
-  "wet_car_splash": 28.0,
+  "wet_car_splash": 20.0,
   "dry_sun_rate": 3.0,
   "dry_vent_rate": 4.5,
 

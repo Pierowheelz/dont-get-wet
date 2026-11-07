@@ -221,14 +221,13 @@ func setup(seed: int) -> void:
 			c = Color(c.r * v, c.g * v, c.b * v)
 		(mat as StandardMaterial3D).albedo_color = c
 	if _umbrella:
-		# Most bystanders have a decent umbrella; a few are battered by the weather.
+		# Most bystanders have a decent umbrella; a few are battered by the weather. (Never inside-
+		# out: someone strolling along wouldn't keep holding one up like that.)
 		var roll := rng.randf()
 		var style := Umbrella.Style.TAUT
 		if roll > 0.93:
 			style = Umbrella.Style.TORN
-		elif roll > 0.85:
-			style = Umbrella.Style.INVERTED
-		elif roll > 0.7:
+		elif roll > 0.75:
 			style = Umbrella.Style.LOOSE
 		var canopy := _umbrella.get_node("Canopy") as MeshInstance3D
 		canopy.mesh = Umbrella.canopy_mesh(0.55, style, rng.randi(), 0.87)

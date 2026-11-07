@@ -14,6 +14,9 @@ enum State { WALK, STOPPED, DEFEATED, ENTERING, DONE }
 
 const COVER_MASK := 1 << 1
 const UMBRELLA_MASK := 1 << 3
+const HIP_Y := 0.95                # lean pivot for the body samples
+const NECK_Y := 1.55               # head-duck pivot
+const RAIN_SKY_Y := 3.6            # above every cover: where a drop's x decides if it's raining
 const CHARACTER_SCENE := "res://assets/characters/walker/walker.tscn"
 
 ## Body sample points (local, facing +X) and their weights for exposure.
@@ -222,6 +225,8 @@ func _process(delta: float) -> void:
 	visual.set_motion(speed, run_amount)
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
 	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt, droop)
+	if visual.has_method("set_umbrella_open"):
+		visual.set_umbrella_open(open if not _dropped_umbrella else 0.0)
 	visual.set_wetness(wet / Tun.f("wet_max"))
 	var w01 := wet / Tun.f("wet_max")
 	_drips.emitting = w01 > 0.15 and visible
@@ -229,9 +234,9 @@ func _process(delta: float) -> void:
 	_update_umbrella()
 
 
-## The arm comes up during the first third of the opening; the canopy spreads after.
+## The arm comes up during the first part of the opening; the canopy spreads after (Umbrella).
 func arm_raise() -> float:
-	return smoothstep(0.0, 0.35, open)
+	return Umbrella.arm_raise(open)
 
 
 func _wind() -> float:
@@ -261,7 +266,14 @@ func _cast(from: Vector3, to: Vector3, mask: int) -> bool:
 	return not get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
+## Body sample in world space. While he leans in to open / close the umbrella, the upper-body
+## samples lean forward with him (pivoting at the hips, as the pose modifier bends the spine).
 func _sample_world(local: Vector3) -> Vector3:
+	if not _dropped_umbrella and open > 0.0:
+		if local.y > HIP_Y:
+			local.x += (local.y - HIP_Y) * tan(Umbrella.open_lean(open))
+		if local.y > NECK_Y:      # head ducks further at the neck
+			local.x += (local.y - NECK_Y) * tan(Umbrella.open_duck(open))
 	return global_transform * local
 
 
@@ -282,6 +294,11 @@ func _rain_exposure() -> float:
 		total += s[1]
 		if _cast(p, p + up, COVER_MASK):
 			continue                      # sheltered by an awning/balcony
+		# Slanted rain reaching this sample fell through the sky upwind of it: none if that's a
+		# sun break (e.g. stepping from the sun in under an awning with a tailwind).
+		var x_sky := p.x + up.x / maxf(up.y, 0.01) * maxf(RAIN_SKY_Y - p.y, 0.0)
+		if level.rain_intensity(x_sky) <= 0.0:
+			continue
 		if _cast(p, p + up, UMBRELLA_MASK):
 			hit += s[1] * leak            # under the umbrella: only leaks while it moves
 		else:
@@ -347,18 +364,30 @@ func _check_puddles() -> void:
 			puddle_stepped.emit(global_position + Vector3(0.2, 0, 0), running)
 
 
-## Called by hazards (car splash). Rays from body samples toward `source`; umbrella/cover blocks.
+## Called by hazards (car splash). The wave is a spray, not a point: rays run from each body sample
+## to several points spread across it, so a smaller (half-open) canopy still catches part of it.
+## Cover blocks fully; the canopy blocks spray better than rain while it's still opening (slack
+## fabric is still a wall to a sideways sheet of water).
+const SPLASH_SPREAD := [
+	Vector3(0, 0, 0), Vector3(-0.45, 0.35, 0), Vector3(0.45, -0.3, 0),
+	Vector3(0, -0.55, 0.25), Vector3(0.3, 0.5, -0.25), Vector3(-0.3, -0.2, -0.3),
+]
+
+
 func receive_splash(source: Vector3, amount: float) -> void:
 	if state != State.WALK and state != State.STOPPED:
 		return
+	var leak := pow(clampf(1.0 - open, 0.0, 1.0), 1.6)
 	var total := 0.0
 	var hit := 0.0
 	for s in SAMPLES:
 		var p := _sample_world(s[0])
-		total += s[1]
-		if _cast(p, source, COVER_MASK):
-			continue
-		hit += s[1] * (umbrella_leak() if _cast(p, source, UMBRELLA_MASK) else 1.0)
+		for off: Vector3 in SPLASH_SPREAD:
+			var src := source + off
+			total += s[1]
+			if _cast(p, src, COVER_MASK):
+				continue
+			hit += s[1] * (leak if _cast(p, src, UMBRELLA_MASK) else 1.0)
 	var got := amount * hit / total
 	wet = minf(wet + got, Tun.f("wet_max"))
 	stats["splashes"] += 1
@@ -396,7 +425,7 @@ func _drop_umbrella() -> void:
 	tw.tween_method(func(t: float) -> void:
 		umbrella.global_transform = start.interpolate_with(land, t), 0.0, 1.0, 0.6) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	umbrella.set_state(0.35, Game.umbrella_radius(), 0.0)
+	umbrella.set_state(0.5, Game.umbrella_radius(), 0.0)   # dropped half-folded
 
 
 func _process_defeated(delta: float) -> void:

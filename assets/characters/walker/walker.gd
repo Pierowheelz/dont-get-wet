@@ -27,6 +27,7 @@ var _breath_s := 0.0
 var _mood: StringName = &"normal"
 var _sad_s := 0.0
 var _raise := 0.0
+var _spread := 0.0
 var _tilt := 0.0
 var _droop := 0.0
 var _wet := 0.0
@@ -189,6 +190,7 @@ func _apply_params(delta: float) -> void:
 	_mod.run = _gait_s
 	_mod.stride = stride
 	_mod.raise = _raise
+	_mod.spread = _spread
 	_mod.tilt = _tilt
 	_mod.droop = _droop
 	_mod.sad = _sad_s * (1.0 - _run_s)
@@ -217,6 +219,11 @@ func set_umbrella_pose(raise: float, tilt: float, droop: float) -> void:
 	_raise = clampf(raise, 0.0, 1.0)
 	_tilt = tilt
 	_droop = clampf(droop, 0.0, 1.0)
+
+
+## Umbrella open amount 0..1 (left hand pushes the runner up / pulls it down while it changes).
+func set_umbrella_open(open: float) -> void:
+	_spread = clampf(open, 0.0, 1.0)
 
 
 func set_wetness(w: float) -> void:

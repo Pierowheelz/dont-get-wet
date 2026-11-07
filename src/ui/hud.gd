@@ -33,6 +33,7 @@ var _sound: UISound
 
 var _shake_t := 0.0
 var _hint_t := 0.0
+var _hint_template := ""
 var _wet := 0.0          # displayed (smoothed) 0..1
 var _sta := 1.0
 var _drying_a := 0.0
@@ -138,44 +139,47 @@ func _ready() -> void:
 		_root.add_child(_touch)
 
 	level.player.stop_refused.connect(_on_stop_refused)
+	Inputs.device_changed.connect(_on_device_changed)
 	if level.level_id == Game.start_node and not Game.completed.has(level.level_id):
 		_show_tutorial()
 
 
 func _show_tutorial() -> void:
+	# {action} tokens resolve when each line shows (and re-resolve if the device changes).
 	var lines := [
 		[1.0, "Rain soaks you wherever the sky is open."],
-		[6.0, _key_text("umbrella") + " — open the umbrella. It takes a moment."],
+		[6.0, "{umbrella} — open the umbrella. It takes a moment."],
 		[13.0, "Close it under cover: stamina only recovers while it's closed."],
-		[20.0, _key_text("hurry") + " — hurry (costs stamina).   " + _key_text("tilt") + " — tilt the umbrella."],
-		[28.0, "Low on stamina? " + _key_text("stop") + " lets you stop for a breather under cover."],
+		[20.0, "{hurry} — hurry (costs stamina).   {tilt} — tilt the umbrella."],
+		[28.0, "Low on stamina? {stop} lets you stop for a breather under cover."],
 	]
 	for l in lines:
 		get_tree().create_timer(l[0]).timeout.connect(func() -> void: hint(l[1], 5.0))
-
-
-func _key_text(action: String) -> String:
-	var pad := Inputs.last_device == &"gamepad"
-	match action:
-		"umbrella": return "Hold RT" if pad else "Hold Right Mouse / Space"
-		"hurry": return "LT" if pad else "Shift (W for a brisk walk)"
-		"tilt": return "Either stick" if pad else "Q / E or mouse wheel"
-		"stop": return "LB" if pad else "S"
-	return action
 
 
 func hint(text: String, duration := 3.0) -> void:
 	var st: int = level.player.state if level and level.player else 0
 	if st == Player.State.DEFEATED or st == Player.State.ENTERING or st == Player.State.DONE:
 		return
-	_hint.text = text
+	_hint_template = text
 	_hint_t = duration
-	_hint_box.reset_size()
-	_hint_box.offset_left = -_hint_box.get_combined_minimum_size().x * 0.5
-	_hint_box.offset_right = -_hint_box.offset_left
+	_render_hint()
 	var tw := create_tween().set_parallel()
 	tw.tween_property(_hint_box, "modulate:a", 1.0, 0.25)
 	tw.tween_property(_hint_box, "offset_bottom", -110.0, 0.3).from(-90.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+## Hint text may hold {action} tokens; they follow the device the player is using right now.
+func _render_hint() -> void:
+	_hint.text = Inputs.format_prompts(_hint_template)
+	_hint_box.reset_size()
+	_hint_box.offset_left = -_hint_box.get_combined_minimum_size().x * 0.5
+	_hint_box.offset_right = -_hint_box.offset_left
+
+
+func _on_device_changed(_dev: StringName) -> void:
+	if _hint_t > 0.0 and _hint_template.contains("{"):
+		_render_hint()
 
 
 func _process(delta: float) -> void:

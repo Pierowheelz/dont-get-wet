@@ -16,7 +16,7 @@ var finished := false
 var gutters: Array = []        # x positions
 var gutter_visuals: Array = [] # [x, column MeshInstance3D, splash GPUParticles3D]
 var puddles: Array = []        # [x0, x1, deep]
-var sun_zones: Array = []      # [x0, x1]
+var sun_zones: Array = []      # [x0, x1] rain-free span (the break, widened to meet nearby cover)
 var dry_zones: Array = []      # [x0, x1, rate]
 var crossings: Array = []      # [x0, x1]
 var cars: Array = []           # CarHazard nodes
@@ -50,14 +50,23 @@ func _ready() -> void:
 	for c in data.get("crossings", []):
 		crossings.append([float(c["x"]), float(c["x"]) + float(c["w"])])
 
-	world = Node3D.new()
-	world.name = "World"
-	add_child(world)
-	builder = LevelBuilder.new()
-	var t0 := Time.get_ticks_msec()
-	builder.build(world, data)
-	if OS.get_cmdline_user_args().has("--fps-log"):
-		print("build: %d ms" % (Time.get_ticks_msec() - t0))
+	var pre: Dictionary = Game.prebuilt
+	Game.prebuilt = {}
+	if pre.get("id", "") == level_id:
+		# Built on a worker thread by Game.play_level while the loading card played.
+		data = pre["data"]
+		world = pre["world"]
+		builder = pre["builder"]
+		add_child(world)
+	else:
+		world = Node3D.new()
+		world.name = "World"
+		add_child(world)
+		builder = LevelBuilder.new()
+		var t0 := Time.get_ticks_msec()
+		builder.build(world, data)
+		if OS.get_cmdline_user_args().has("--fps-log"):
+			print("build: %d ms" % (Time.get_ticks_msec() - t0))
 	if builder.inn_door_x > 0.0:
 		end_x = builder.inn_door_x
 		par_time = end_x / Tun.f("par_speed")
@@ -139,6 +148,28 @@ func _parse_features() -> void:
 			"fire_barrel":
 				var w2: float = f.get("w", 1.8)
 				dry_zones.append([x - w2 * 0.5, x + w2 * 0.5, Tun.f("dry_vent_rate") * 1.2])
+	_join_sun_to_cover()
+
+
+## Sun breaks sit inset in an open lot, leaving a strip of rain between the break and the awning
+## next to it — walking from the sun into the shelter got you briefly soaked at the awning's edge.
+## Widen each break's rain-free span (not its drying) to meet cover that starts close by, running
+## SUN_COVER_OVERLAP under it so the whole body is sheltered before the rain resumes.
+const SUN_COVER_GAP := 2.0
+const SUN_COVER_OVERLAP := 0.5
+
+
+func _join_sun_to_cover() -> void:
+	for z in sun_zones:
+		for lot in data.get("lots", []):
+			if String(lot.get("cover", "none")) == "none":
+				continue
+			var l0: float = lot["x"]
+			var l1: float = l0 + float(lot["w"])
+			if l0 >= z[1] and l0 - z[1] < SUN_COVER_GAP:
+				z[1] = l0 + SUN_COVER_OVERLAP
+			elif l1 <= z[0] and z[0] - l1 < SUN_COVER_GAP:
+				z[0] = l1 - SUN_COVER_OVERLAP
 
 
 # --- world queries --------------------------------------------------------------------------
@@ -250,7 +281,6 @@ func _first_encounters() -> void:
 	if hud == null or not hud.has_method("hint") or player.state != Player.State.WALK:
 		return
 	var x := player.position.x
-	var pad := Inputs.last_device == &"gamepad"
 	if not _seen.has("gutter"):
 		for g in gutters:
 			if g - x > 0.0 and g - x < 5.0:
@@ -263,11 +293,10 @@ func _first_encounters() -> void:
 				hud.hint("A break in the clouds. Close the umbrella and let the sun dry you off.", 3.5)
 	if not _seen.has("wind") and absf(wind(x)) > 0.18:
 		_seen["wind"] = true
-		var keys := "either stick" if pad else "Q / E or mouse wheel"
-		hud.hint("The wind is slanting the rain — tilt the umbrella into it (%s)." % keys, 4.0)
+		hud.hint("The wind is slanting the rain — tilt the umbrella into it ({tilt}).", 4.0)
 	if not _seen.has("stop") and player.stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") and player.sheltered:
 		_seen["stop"] = true
-		hud.hint("Puffed out? Stop for a breather under cover (%s)." % ("LB" if pad else "S"), 3.5)
+		hud.hint("Puffed out? Stop for a breather under cover ({stop}).", 3.5)
 
 
 func _update_camera(delta: float) -> void:
@@ -289,8 +318,7 @@ var _car_hints := 0
 func _on_car_approaching() -> void:
 	if _car_hints < 2 and hud and hud.has_method("hint"):
 		_car_hints += 1
-		var pad := Inputs.last_device == &"gamepad"
-		hud.hint("Headlights! Tilt the umbrella forward to block the splash  (%s)" % ("stick →" if pad else "E / scroll up"), 3.5)
+		hud.hint("Headlights! Tilt the umbrella forward to block the splash  ({tilt_forward})", 3.5)
 
 
 func _on_defeated() -> void:

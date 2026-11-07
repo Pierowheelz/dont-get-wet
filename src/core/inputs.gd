@@ -12,13 +12,21 @@ var touch_stop := false
 
 ## Mouse-wheel tilt is sticky: each notch nudges it, it resets when the umbrella closes.
 var wheel_tilt := 0.0
+## Device the player is actually using; prompts/hints follow it. Starts as gamepad when one is
+## plugged in, then switches on the first real press (key/mouse button/pad button/stick push).
 var last_device := &"keyboard"   # &"keyboard", &"gamepad", &"touch"
+signal device_changed(device: StringName)
 const RAMP := 10.0               # digital inputs reach full in ~0.1 s (DESIGN §3)
 var _ramped := {}
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if not Input.get_connected_joypads().is_empty():
+		last_device = &"gamepad"
+	Input.joy_connection_changed.connect(_on_joy_connection)
+	# Window-level hook sees every event before any node can mark it handled.
+	get_window().window_input.connect(_track_device)
 	_axis(&"umbrella", JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	_key(&"umbrella", KEY_SPACE)
 	_mouse(&"umbrella", MOUSE_BUTTON_RIGHT)
@@ -93,13 +101,56 @@ func _ramp(key: StringName, target: float) -> float:
 	return v
 
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.3):
-		last_device = &"gamepad"
+func _set_device(dev: StringName) -> void:
+	if dev != last_device:
+		last_device = dev
+		device_changed.emit(dev)
+
+
+func _on_joy_connection(_device: int, connected: bool) -> void:
+	if connected:
+		_set_device(&"gamepad")
+	elif last_device == &"gamepad" and Input.get_connected_joypads().is_empty():
+		_set_device(&"keyboard")
+
+
+## Only deliberate presses count: key/button releases (e.g. the Enter that launched the game, the
+## click that focused the window) and small stick/trigger noise must not flip the device.
+func _track_device(event: InputEvent) -> void:
+	if event is InputEventJoypadButton:
+		if event.pressed:
+			_set_device(&"gamepad")
+	elif event is InputEventJoypadMotion:
+		if absf(event.axis_value) > 0.5:
+			_set_device(&"gamepad")
 	elif event is InputEventKey or event is InputEventMouseButton:
-		last_device = &"keyboard"
+		if event.pressed and not event.is_echo():
+			_set_device(&"keyboard")
 	elif event is InputEventScreenTouch:
-		last_device = &"touch"
+		if event.pressed:
+			_set_device(&"touch")
+
+
+## Short control prompt for a gameplay action on the current device ("Hold RT" / "Space").
+func prompt(action: String) -> String:
+	var pad := last_device == &"gamepad"
+	match action:
+		"umbrella": return "Hold RT" if pad else "Hold Right Mouse / Space"
+		"hurry": return "LT" if pad else "Shift (W for a brisk walk)"
+		"tilt": return "Either stick" if pad else "Q / E or mouse wheel"
+		"tilt_forward": return "stick →" if pad else "E / scroll up"
+		"stop": return "LB" if pad else "S"
+	return action
+
+
+## Fills {action} tokens in a hint with prompts for the current device.
+func format_prompts(text: String) -> String:
+	for a in ["umbrella", "hurry", "tilt_forward", "tilt", "stop"]:
+		text = text.replace("{%s}" % a, prompt(a))
+	return text
+
+
+func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			wheel_tilt = clampf(wheel_tilt + 0.25, -1.0, 1.0)

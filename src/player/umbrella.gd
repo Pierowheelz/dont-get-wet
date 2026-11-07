@@ -102,9 +102,59 @@ func _ready() -> void:
 	_rebuild()
 
 
-## p_open is the umbrella's overall open amount; the canopy starts spreading once the arm is up.
+# --- open / close choreography (all keyed on the player's overall open amount 0..1) ---------------
+# Opening: he leans in and the right arm raises it at ~70° (tipped forward); the left hand reaches in to the runner; only
+# then does the canopy spread (to 95% as the hand slides up); the hand lets go and the umbrella
+# tilts back to its carried angle while the canopy latches the last 5%. Closing is the reverse, so
+# it never starts folding before the hand is back on the shaft.
+const HAND_ON := 0.3        # left hand reaches the runner: canopy may start to spread
+const HAND_OFF := 0.86      # canopy at 95%: hand leaves the shaft, umbrella tilts back
+const OPEN_SPREAD := 0.95
+
+
+## Canopy spread 0..1 for an overall open amount.
+static func canopy_spread(o: float) -> float:
+	if o <= HAND_ON:
+		return 0.0
+	if o < HAND_OFF:
+		var t := (o - HAND_ON) / (HAND_OFF - HAND_ON)
+		return OPEN_SPREAD * (1.0 - (1.0 - t) * (1.0 - t))   # the push spreads it fast, then it eases in
+	return lerpf(OPEN_SPREAD, 1.0, clampf((o - HAND_OFF) / (1.0 - HAND_OFF), 0.0, 1.0))
+
+
+## 0..1 how far the right arm has raised it (done just as the left hand arrives).
+static func arm_raise(o: float) -> float:
+	return smoothstep(0.0, HAND_ON - 0.04, o)
+
+
+## 0..1 the left hand's hold on the shaft (reach in → hold → let go).
+static func hand_on_shaft(o: float) -> float:
+	return smoothstep(0.08, HAND_ON, o) * (1.0 - smoothstep(HAND_OFF, 1.0, o))
+
+
+## 0..1 weight of the forward tip: raised at ~60° and held there through the whole opening; it
+## swings up to vertical only as the left hand lets go.
+static func open_tip(o: float) -> float:
+	return 1.0 - smoothstep(HAND_OFF, 1.0, o)
+
+
+## Forward lean (rad) of the walker's upper body while he opens / closes it: leans in as the arm comes
+## up, straightens as the umbrella swings upright. Player.gd leans its rain sample points to match.
+const OPEN_LEAN := 0.26          # whole upper body, hinging mostly at the hips
+const OPEN_DUCK := 0.3           # extra head/neck pitch on top (ducking in under it)
+
+
+static func open_lean(o: float) -> float:
+	return OPEN_LEAN * arm_raise(o) * open_tip(o)
+
+
+static func open_duck(o: float) -> float:
+	return OPEN_DUCK * arm_raise(o) * open_tip(o)
+
+
+## p_open is the umbrella's overall open amount (see canopy_spread).
 func set_state(p_open: float, p_radius: float, p_droop: float) -> void:
-	open = clampf((p_open - 0.12) / 0.88, 0.0, 1.0)
+	open = canopy_spread(clampf(p_open, 0.0, 1.0))
 	radius = p_radius
 	droop = clampf(p_droop, 0.0, 1.0)
 

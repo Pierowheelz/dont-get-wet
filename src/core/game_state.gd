@@ -268,15 +268,63 @@ func reset_progress() -> void:
 # --- scene flow ---------------------------------------------------------------
 
 func play_level(id: String) -> void:
+	if _building:
+		return
+	_building = true
+	# Closing the window mid-build must wait: shutting the engine down under the build / loader
+	# threads crashes or deadlocks it. _notification defers the quit until they finish.
+	get_tree().auto_accept_quit = false
 	current_level = id
-	get_tree().paused = false
 	_show_loading(String(nodes.get(id, {}).get("name", "")))
-	# Let the loading card draw before the (blocking) level build starts.
+	# Freeze whatever is behind the card (e.g. the level being restarted) while we build.
+	get_tree().paused = true
 	await get_tree().process_frame
-	await get_tree().process_frame
-	get_tree().change_scene_to_file("res://src/level/level.tscn")
+	# Build the street on a worker thread (off-tree node construction is thread-safe) so the
+	# loading card keeps animating; the level picks the finished world up in its _ready.
+	Tun.reload()
+	var data := level_data(id)
+	var world := Node3D.new()
+	world.name = "World"
+	var builder := LevelBuilder.new()
+	var scenes := _level_scenes()
+	for path in scenes:
+		ResourceLoader.load_threaded_request(path)
+	var fps_was := Engine.max_fps
+	Engine.max_fps = LOADING_FPS     # leave the build thread the renderer most of the time
+	var task := WorkerThreadPool.add_task(builder.build.bind(world, data), true, "build level")
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(task)
+	Engine.max_fps = fps_was
+	# Character scenes loaded on loader threads meanwhile; hold them until the level has used
+	# them (its load() calls hit the cache instead of blocking).
+	_held = []
+	for path in scenes:
+		_held.append(ResourceLoader.load_threaded_get(path))
+	var scene := _held[0] as PackedScene     # level.tscn is first in _level_scenes()
+	get_tree().auto_accept_quit = true
+	if _quit_pending:
+		_held = []
+		world.free()
+		get_tree().quit()
+		return
+	prebuilt = {"id": id, "data": data, "world": world, "builder": builder}
+	get_tree().paused = false
+	_building = false
+	get_tree().change_scene_to_packed(scene)
 
 
+## A street built in the background by play_level, consumed by Level._ready.
+var prebuilt := {}
+var _held: Array = []
+const LOADING_FPS := 20
+var _building := false
+var _quit_pending := false
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and _building:
+		_quit_pending = true      # play_level quits once the background build is done
 var _loading: CanvasLayer
 
 
@@ -285,6 +333,7 @@ func _show_loading(street: String) -> void:
 	if _loading == null:
 		_loading = CanvasLayer.new()
 		_loading.layer = 100
+		_loading.process_mode = Node.PROCESS_MODE_ALWAYS
 		var bg := ColorRect.new()
 		bg.name = "ColorRect"
 		bg.color = Color(0.02, 0.022, 0.03)
@@ -299,6 +348,12 @@ func _show_loading(street: String) -> void:
 		lbl.add_theme_font_size_override("font_size", 40)
 		lbl.add_theme_color_override("font_color", Color(0.9, 0.88, 0.82, 0.85))
 		bg.add_child(lbl)
+		# The little walker from the map, strolling along above the street name.
+		var walker := preload("res://src/ui/loading_walker.gd").new()
+		walker.name = "Walker"
+		walker.set_anchors_preset(Control.PRESET_CENTER)
+		walker.position.y -= 70.0
+		bg.add_child(walker)
 		add_child(_loading)
 	(_loading.get_node("ColorRect/Label") as Label).text = ("Walking to %s…" % street) if street != "" else "Loading…"
 	_loading.visible = true
@@ -307,6 +362,18 @@ func _show_loading(street: String) -> void:
 func hide_loading() -> void:
 	if _loading:
 		_loading.visible = false
+	_held = []
+
+
+## Scenes a level needs at startup: loaded on threads by play_level while the street builds.
+func _level_scenes() -> PackedStringArray:
+	var out := PackedStringArray(["res://src/level/level.tscn", Player.CHARACTER_SCENE])
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/pedestrians/peds.json"))
+	if d is Array:
+		for p in d:
+			if ResourceLoader.exists(String(p.get("scene", ""))):
+				out.append(String(p["scene"]))
+	return out
 
 
 func goto_map() -> void:
