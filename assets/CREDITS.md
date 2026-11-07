@@ -63,3 +63,23 @@ All fonts from **Google Fonts** (https://github.com/google/fonts), licence **SIL
 | `BebasNeue-Regular.ttf` | Bebas Neue (UI titles) | Ryoichi Tsunekawa / Dharma Type | https://fonts.google.com/specimen/Bebas+Neue |
 | `Barlow-Regular/Medium/SemiBold/Italic.ttf`, `BarlowCondensed-SemiBold.ttf` | Barlow, Barlow Condensed (UI body, labels) | Jeremy Tribby | https://fonts.google.com/specimen/Barlow |
 | `sign.ttf` | Alfa Slab One (3D shop signs) | José María Solé | https://fonts.google.com/specimen/Alfa+Slab+One |
+
+## Pedestrians — `assets/characters/pedestrians/`
+
+Models `models/ped_*.glb` built with **MPFB2 2.0.18** (rebuild: `source/build_ped.py` + `source/peds_spec.json`).
+Animations reuse the walker's extracted Quaternius UAL clips (CC0, credited above).
+
+- MakeHuman **system assets** (base mesh, skins, eyes, eyebrows, lashes, `short01/02/04` hair, `fedora01`,
+  `male_casualsuit01/03/05`, `female_sportsuit01`, `shoes01/04/05`) — MakeHuman team — CC0 —
+  https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html
+- `toigo_male_double-breasted_suit`, `toigo_female_suit` (pack *suits01*) — Margaret Toigo — CC0 —
+  https://static.makehumancommunity.org/assets/assetpacks/suits01.html
+- `toigo_ankle_boots_female`, `toigo_ankle_boots_male` (pack *shoes01*) — Margaret Toigo — CC0 —
+  https://static.makehumancommunity.org/assets/assetpacks/shoes01.html
+- `toigo_blunt_bob` (pack *hair01*) — Margaret Toigo — CC0; `rehmanpolanski_hair_bun_brown` (pack *hair01*) —
+  RehmanPolanski — CC0 — https://static.makehumancommunity.org/assets/assetpacks/hair01.html
+- `punkduck_winter_coat` (pack *dress03*) — **punkduck** — **CC-BY 4.0** —
+  https://static.makehumancommunity.org/assets/assetpacks/dress03.html
+- `elvs_hooded_sweat_jacket1` (pack *shirts02*) — **Elvaerwyn** — **CC-BY 4.0** —
+  https://static.makehumancommunity.org/assets/assetpacks/shirts02.html
+- NPC umbrella (`umbrella/`), pose layer, cigarette & smoke: original (this project).

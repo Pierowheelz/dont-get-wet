@@ -26,7 +26,8 @@ const AWNING_COLORS := {
 var root: Node3D
 var data: Dictionary
 var rng := RandomNumberGenerator.new()
-var kit: Dictionary = {}            # style -> kind -> Array of module dicts
+var kit: Dictionary = {}            # active era's kit: kind -> style -> Array of module dicts
+var _kits: Dictionary = {}          # era ("60s", "retro") -> kit
 var props_kit: Dictionary = {}      # id -> prop dict
 var lit_windows: Array = []         # [Vector3 position, Color] for lights
 var inn_door_x := -1.0              # world x of the inn door (from the kit), -1 if unknown
@@ -48,6 +49,7 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	_build_ground()
 	for lot in data.get("lots", []):
 		_build_lot(lot)
+	kit = _kits.get("60s", {})
 	for c in data.get("crossings", []):
 		_build_crossing(c)
 	_build_backdrop()
@@ -182,11 +184,16 @@ func _load_kits() -> void:
 					continue
 				var style: String = m.get("style", m["kind"])
 				var kind: String = m["kind"]
-				if not kit.has(kind):
-					kit[kind] = {}
-				if not kit[kind].has(style):
-					kit[kind][style] = []
-				kit[kind][style].append(m)
+				var era: String = m.get("era", "60s")
+				if not _kits.has(era):
+					_kits[era] = {}
+				var k: Dictionary = _kits[era]
+				if not k.has(kind):
+					k[kind] = {}
+				if not k[kind].has(style):
+					k[kind][style] = []
+				k[kind][style].append(m)
+	kit = _kits.get("60s", {})
 	if FileAccess.file_exists(PROPS_PATH):
 		var d2: Variant = JSON.parse_string(FileAccess.get_file_as_string(PROPS_PATH))
 		if d2 is Dictionary:
@@ -230,6 +237,13 @@ func _build_ground() -> void:
 # --- buildings ------------------------------------------------------------------------------
 
 func _build_lot(lot: Dictionary) -> void:
+	# Retro-future modules replace 60s ones with probability = the level's neon value.
+	kit = _kits.get("60s", {})
+	var retro: Dictionary = _kits.get("retro", {})
+	if not retro.is_empty() and rng.randf() < float(data.get("neon", 0.0)):
+		var st: String = lot.get("style", "wall")
+		if retro.get("ground", {}).has(st):
+			kit = retro
 	var x: float = lot["x"]
 	var w: float = lot["w"]
 	var style: String = lot.get("style", "wall")

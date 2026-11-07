@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://assets/characters/pedestrians/ped.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/characters/pedestrians/models/ped_woman_watch.glb" id="2"]
+
+[node name="Ped_woman_watch" type="Node3D"]
+script = ExtResource("1")
+kind = &"stander"
+umbrella = false
+watch = true
+tint_options = {"female_suit": [Color(1, 1, 1, 1), Color(0.75, 0.6, 0.5, 1), Color(0.6, 0.65, 0.8, 1), Color(1.4, 1.3, 1.2, 1)], "boots": [Color(0.25, 0.2, 0.18, 1)]}
+suggested_speed = 0
+
+[node name="Model" parent="." instance=ExtResource("2")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)

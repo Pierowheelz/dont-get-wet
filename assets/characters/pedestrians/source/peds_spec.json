@@ -1,0 +1,140 @@
+{
+  "woman_coat": {
+    "phenotype": {
+      "gender": 0.0,
+      "age": 0.48,
+      "muscle": 0.45,
+      "weight": 0.45,
+      "proportions": 0.65,
+      "height": 0.5,
+      "cupsize": 0.5
+    },
+    "race": {
+      "asian": 0.1,
+      "caucasian": 0.85,
+      "african": 0.05
+    },
+    "skin": "young_caucasian_female/young_caucasian_female.mhmat",
+    "hair": "toigo_blunt_bob/toigo_blunt_bob.mhclo",
+    "clothes": [
+      "female_sportsuit01/female_sportsuit01.mhclo",
+      "punkduck_winter_coat/punkduck_winter_coat.mhclo",
+      "toigo_ankle_boots_female/toigo_ankle_boots_female.mhclo"
+    ]
+  },
+  "old_man": {
+    "phenotype": {
+      "gender": 1.0,
+      "age": 0.88,
+      "muscle": 0.4,
+      "weight": 0.6,
+      "proportions": 0.5,
+      "height": 0.45
+    },
+    "race": {
+      "asian": 0.0,
+      "caucasian": 0.95,
+      "african": 0.05
+    },
+    "skin": "old_caucasian_male/old_caucasian_male.mhmat",
+    "hair": "short01/short01.mhclo",
+    "clothes": [
+      "toigo_male_double-breasted_suit/toigo_male_double-breasted_suit.mhclo",
+      "fedora01/fedora01.mhclo",
+      "toigo_ankle_boots_male/toigo_ankle_boots_male.mhclo"
+    ]
+  },
+  "hoodie": {
+    "phenotype": {
+      "gender": 1.0,
+      "age": 0.42,
+      "muscle": 0.55,
+      "weight": 0.45,
+      "proportions": 0.6,
+      "height": 0.6
+    },
+    "race": {
+      "asian": 0.05,
+      "caucasian": 0.15,
+      "african": 0.8
+    },
+    "skin": "young_african_male/young_african_male.mhmat",
+    "hair": "short04/short04.mhclo",
+    "clothes": [
+      "male_casualsuit01/male_casualsuit01.mhclo",
+      "elvs_hooded_sweat_jacket1/elvs_hooded_sweat_jacket1.mhclo",
+      "shoes05/shoes05.mhclo"
+    ],
+    "decimate": {
+      "hooded_sweat_jacket": 0.45,
+      "casualsuit01": 0.45
+    }
+  },
+  "smoker": {
+    "phenotype": {
+      "gender": 1.0,
+      "age": 0.7,
+      "muscle": 0.5,
+      "weight": 0.75,
+      "proportions": 0.45,
+      "height": 0.45
+    },
+    "race": {
+      "asian": 0.6,
+      "caucasian": 0.35,
+      "african": 0.05
+    },
+    "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+    "hair": "short04/short04.mhclo",
+    "clothes": [
+      "male_casualsuit03/male_casualsuit03.mhclo",
+      "shoes01/shoes01.mhclo"
+    ]
+  },
+  "woman_watch": {
+    "phenotype": {
+      "gender": 0.0,
+      "age": 0.55,
+      "muscle": 0.5,
+      "weight": 0.5,
+      "proportions": 0.6,
+      "height": 0.55,
+      "cupsize": 0.45
+    },
+    "race": {
+      "asian": 0.1,
+      "caucasian": 0.1,
+      "african": 0.8
+    },
+    "skin": "middleage_african_female/middleage_african_female.mhmat",
+    "hair": "rehmanpolanski_hair_bun_brown/rehmanpolanski_hair_bun_brown.mhclo",
+    "clothes": [
+      "toigo_female_suit/toigo_female_suit.mhclo",
+      "toigo_ankle_boots_female/toigo_ankle_boots_female.mhclo"
+    ],
+    "decimate": {
+      "toigo_female_suit": 0.35
+    }
+  },
+  "man_jacket": {
+    "phenotype": {
+      "gender": 1.0,
+      "age": 0.52,
+      "muscle": 0.55,
+      "weight": 0.5,
+      "proportions": 0.55,
+      "height": 0.6
+    },
+    "race": {
+      "asian": 0.05,
+      "caucasian": 0.9,
+      "african": 0.05
+    },
+    "skin": "young_caucasian_male2/young_caucasian_male2.mhmat",
+    "hair": "short02/short02.mhclo",
+    "clothes": [
+      "male_casualsuit05/male_casualsuit05.mhclo",
+      "shoes04/shoes04.mhclo"
+    ]
+  }
+}

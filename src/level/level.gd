@@ -95,6 +95,10 @@ func _ready() -> void:
 			cars.append(car)
 			car.approaching.connect(_on_car_approaching)
 
+	var peds := preload("res://src/level/pedestrians.gd").new()
+	peds.level = self
+	add_child(peds)
+
 	var traffic := preload("res://src/level/traffic.gd").new()
 	traffic.level = self
 	add_child(traffic)

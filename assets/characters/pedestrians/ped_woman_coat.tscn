@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://assets/characters/pedestrians/ped.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/characters/pedestrians/models/ped_woman_coat.glb" id="2"]
+
+[node name="Ped_woman_coat" type="Node3D"]
+script = ExtResource("1")
+kind = &"walker"
+umbrella = true
+tint_options = {"winter_coat": [Color(0.78, 0.66, 0.48, 1), Color(0.55, 0.5, 0.42, 1), Color(0.42, 0.45, 0.52, 1), Color(0.6, 0.36, 0.3, 1)], "sportsuit": [Color(0.25, 0.24, 0.26, 1)], "boots": [Color(0.32, 0.2, 0.14, 1), Color(0.16, 0.14, 0.13, 1)]}
+suggested_speed = 1.2
+
+[node name="Model" parent="." instance=ExtResource("2")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)

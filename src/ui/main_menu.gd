@@ -224,6 +224,7 @@ func _main_buttons() -> void:
 		_page.add_child(m)
 		_btn("Replay a street", _replay_list)
 	_btn("Settings", _settings)
+	_btn("Credits", _credits)
 	_btn("Quit", func() -> void: get_tree().quit(), &"", &"ui_back")
 	first.grab_focus.call_deferred()
 	_animate_page()
@@ -297,6 +298,26 @@ func _row(title: String, best: Dictionary, cb: Callable) -> Button:
 	for c in [score, grade]:
 		(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return b
+
+
+func _credits() -> void:
+	_clear("credits")
+	_page.add_child(UIStyle.label("CREDITS", &"HeaderSmall", 0, UIStyle.AMBER))
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = false
+	rt.fit_content = false
+	rt.scroll_active = true
+	rt.custom_minimum_size = Vector2(760, 360)
+	rt.focus_mode = Control.FOCUS_ALL
+	rt.add_theme_font_size_override("normal_font_size", 18)
+	var txt := "Don't Get Wet — made with Godot Engine (godotengine.org/license).\n\n"
+	if FileAccess.file_exists("res://assets/CREDITS.md"):
+		txt += FileAccess.get_file_as_string("res://assets/CREDITS.md").replace("#", "").replace("**", "").replace("`", "")
+	rt.text = txt
+	_page.add_child(rt)
+	var back := _btn("Back", _main_buttons, &"", &"ui_back")
+	back.grab_focus.call_deferred()
+	_animate_page()
 
 
 func _settings() -> void:

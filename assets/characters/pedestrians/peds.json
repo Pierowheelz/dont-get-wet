@@ -1,0 +1,9 @@
+[
+  {"id": "woman_coat", "scene": "res://assets/characters/pedestrians/ped_woman_coat.tscn", "kind": "walker", "umbrella": true},
+  {"id": "old_man", "scene": "res://assets/characters/pedestrians/ped_old_man.tscn", "kind": "walker", "umbrella": true},
+  {"id": "hoodie", "scene": "res://assets/characters/pedestrians/ped_hoodie.tscn", "kind": "walker", "umbrella": false},
+  {"id": "man_jacket", "scene": "res://assets/characters/pedestrians/ped_man_jacket.tscn", "kind": "walker", "umbrella": true},
+  {"id": "couple", "scene": "res://assets/characters/pedestrians/ped_couple.tscn", "kind": "walker", "umbrella": true},
+  {"id": "smoker", "scene": "res://assets/characters/pedestrians/ped_smoker.tscn", "kind": "stander", "umbrella": false},
+  {"id": "woman_watch", "scene": "res://assets/characters/pedestrians/ped_woman_watch.tscn", "kind": "stander", "umbrella": false}
+]

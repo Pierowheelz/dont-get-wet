@@ -1,0 +1,75 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/characters/pedestrians/umbrella/canopy.res" id="1"]
+[ext_resource type="ArrayMesh" path="res://assets/characters/pedestrians/umbrella/ribs.res" id="2"]
+
+[sub_resource type="StandardMaterial3D" id="canopy_mat"]
+resource_local_to_scene = true
+cull_mode = 2
+albedo_color = Color(0.09, 0.1, 0.13, 1)
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="metal"]
+albedo_color = Color(0.55, 0.55, 0.58, 1)
+metallic = 0.8
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="wood"]
+albedo_color = Color(0.32, 0.17, 0.08, 1)
+roughness = 0.5
+
+[sub_resource type="CylinderMesh" id="shaft"]
+top_radius = 0.008
+bottom_radius = 0.008
+height = 0.87
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="grip"]
+top_radius = 0.016
+bottom_radius = 0.016
+height = 0.14
+radial_segments = 10
+rings = 1
+
+[sub_resource type="TorusMesh" id="hook"]
+inner_radius = 0.035
+outer_radius = 0.058
+rings = 12
+ring_segments = 8
+
+[sub_resource type="CylinderMesh" id="tip"]
+top_radius = 0.0
+bottom_radius = 0.008
+height = 0.06
+radial_segments = 8
+rings = 1
+
+[node name="Umbrella" type="Node3D"]
+
+[node name="Canopy" type="MeshInstance3D" parent="."]
+mesh = ExtResource("1")
+surface_material_override/0 = SubResource("canopy_mat")
+
+[node name="Ribs" type="MeshInstance3D" parent="."]
+mesh = ExtResource("2")
+surface_material_override/0 = SubResource("metal")
+
+[node name="Shaft" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.415, 0)
+mesh = SubResource("shaft")
+surface_material_override/0 = SubResource("metal")
+
+[node name="Tip" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.87, 0)
+mesh = SubResource("tip")
+surface_material_override/0 = SubResource("metal")
+
+[node name="Grip" type="MeshInstance3D" parent="."]
+mesh = SubResource("grip")
+surface_material_override/0 = SubResource("wood")
+
+[node name="Hook" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0.0465, -0.07, 0)
+mesh = SubResource("hook")
+surface_material_override/0 = SubResource("wood")
