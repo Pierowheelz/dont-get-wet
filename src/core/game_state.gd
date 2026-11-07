@@ -55,10 +55,9 @@ func _ready() -> void:
 		if a.begins_with("--shot-dir="):
 			_shot_dir = a.substr(11)
 	load_game()   # after args: the autopilot must never read or write the player's save
-	# project.godot opens exported builds fullscreen; this only undoes that for players who turned it off.
-	# Editor runs (screenshots, bots) stay windowed.
-	if OS.has_feature("template") and not bool(settings["fullscreen"]):
-		apply_fullscreen(false)
+	# Exported builds follow the setting; editor runs (screenshots, bots) stay windowed.
+	if OS.has_feature("template"):
+		apply_fullscreen(bool(settings["fullscreen"]))
 	for a in args:
 		if a.begins_with("--upgrades="):   # testing: set every upgrade tier
 			for k in Run.UPGRADES:
@@ -68,7 +67,19 @@ func _ready() -> void:
 
 
 func apply_fullscreen(on: bool) -> void:
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
+	if on:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		# KDE keeps its panel above a fullscreen window that isn't focused (e.g. after focus-stealing
+		# prevention on launch).
+		DisplayServer.window_move_to_foreground()
+		return
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	# Leaving fullscreen, the window manager keeps it screen-sized (KDE reports it maximized), so
+	# give it a real window.
+	var screen := DisplayServer.screen_get_usable_rect()
+	var size := Vector2i(Vector2(screen.size) * 0.75)
+	DisplayServer.window_set_size(size)
+	DisplayServer.window_set_position(screen.position + (screen.size - size) / 2)
 
 
 ## `--level=ID` launches straight into a level (exported builds can't override the main scene).
