@@ -25,6 +25,11 @@ class RainAdapter extends Node:
 	## Minimal stand-in for Level's weather queries, as used by RainFX.
 	var sun_zones: Array = []
 	var intensity := 0.85
+	var builder: LevelBuilder
+	var player: Node = null
+
+	func wind(_x: float) -> float:
+		return 0.12
 
 	func rain_dir(_x: float) -> Vector3:
 		return Vector3(0.12, -1.0, 0.0).normalized()
@@ -51,6 +56,7 @@ func _ready() -> void:
 	camera.make_current()
 
 	_adapter = RainAdapter.new()
+	_adapter.builder = builder
 	add_child(_adapter)
 	_rain = RainFX.new()
 	_rain.level = _adapter

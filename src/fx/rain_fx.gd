@@ -167,7 +167,7 @@ func _process(_delta: float) -> void:
 	_debris_mat.initial_velocity_min = 3.0 + absf(w) * 6.0
 	_debris_mat.initial_velocity_max = 5.0 + absf(w) * 9.0
 	var umb := Vector4(0, -100, 0, 0)
-	var pl: Node = level.player
+	var pl: Node = level.get("player")
 	if pl and pl.umbrella and pl.umbrella.open > 0.05 and not pl._dropped_umbrella:
 		var c: Vector3 = pl.umbrella.canopy_center()
 		umb = Vector4(c.x, c.y + 0.1, c.z, pl.umbrella.current_radius())

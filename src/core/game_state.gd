@@ -103,6 +103,8 @@ func neighbors(id: String) -> Array:
 
 
 func can_select(id: String) -> bool:
+	if not completed.has(current_node):
+		return id == current_node     # finish where you are before moving on
 	return id == current_node or neighbors(current_node).has(id)
 
 

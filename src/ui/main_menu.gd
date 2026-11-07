@@ -219,7 +219,10 @@ func _main_buttons() -> void:
 
 
 func _go_map() -> void:
-	_leave(Game.goto_map, false)
+	if Game.completed.is_empty():
+		_leave(func() -> void: Game.play_level(Game.start_node), true)
+	else:
+		_leave(Game.goto_map, false)
 
 
 func _leave(cb: Callable, stop_music: bool) -> void:

@@ -431,11 +431,19 @@ func _panel(title: String, kicker: String, body: String, buttons: Array, vertica
 			(c as Control).size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	if first:
 		first.grab_focus.call_deferred()
+	# Fade + settle (scale, so the CenterContainer keeps control of position).
 	box.modulate.a = 0.0
+	box.resized.connect(func() -> void: box.pivot_offset = box.size * 0.5)
 	var tw := create_tween().set_parallel()
 	tw.tween_property(box, "modulate:a", 1.0, 0.5).set_delay(0.15)
-	tw.tween_property(box, "position:y", 0.0, 0.6).from(24.0).set_delay(0.15).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(box, "scale", Vector2.ONE, 0.6).from(Vector2(1.04, 1.04)).set_delay(0.15).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_hide_hint()
 	return dim
+
+
+func _hide_hint() -> void:
+	_hint_t = 0.0
+	_hint_box.modulate.a = 0.0
 
 
 func _buttons(holder: Container, buttons: Array, size: Vector2) -> Button:
@@ -462,6 +470,7 @@ func show_result(r: Dictionary) -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	_overlay = dim
+	_hide_hint()
 	create_tween().tween_property(dim, "color:a", 0.74, 0.6)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
