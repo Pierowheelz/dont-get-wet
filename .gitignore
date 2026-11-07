@@ -1,0 +1,8 @@
+.godot/
+*.import.tmp
+/export/
+/build/
+__pycache__/
+*.blend1
+*.blend2
+/tmp/
