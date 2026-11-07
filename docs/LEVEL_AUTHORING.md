@@ -35,7 +35,8 @@ open or close, so a player has to start opening about 1.7 m before a gap.
 
 Stamina is 100. The open umbrella drains 3/s, which is about 33 m of open sky on a full bar.
 Hurrying drains 9/s and running drains 18/s. Stamina regenerates at 12/s only while the umbrella is
-fully closed, and at 20/s while stopped. Stopping is allowed at 25 stamina or less.
+fully closed, and at 20/s while stopped with it closed. Stop is a hold control that works at any
+stamina; the bots stop under cover once stamina falls to 24.
 
 Wetness runs from 0 to 50 (the HUD shows a percentage). Open sky adds 9/s x rain intensity x the
 exposed fraction of the body, so one bare second in the rain costs about 9 (18%). Only sun breaks,

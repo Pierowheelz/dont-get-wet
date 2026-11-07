@@ -31,7 +31,6 @@ var _fade: ColorRect
 var _touch: Control
 var _sound: UISound
 
-var _shake_t := 0.0
 var _hint_t := 0.0
 var _hint_template := ""
 var _wet := 0.0          # displayed (smoothed) 0..1
@@ -138,9 +137,8 @@ func _ready() -> void:
 		_touch = preload("res://src/ui/touch_controls.gd").new()
 		_root.add_child(_touch)
 
-	level.player.stop_refused.connect(_on_stop_refused)
 	Inputs.device_changed.connect(_on_device_changed)
-	if level.level_id == Game.start_node and not Game.completed.has(level.level_id):
+	if level.level_id == Game.start_node and not Game.run.completed.has(level.level_id):
 		_show_tutorial()
 
 
@@ -151,7 +149,7 @@ func _show_tutorial() -> void:
 		[6.0, "{umbrella} — open the umbrella. It takes a moment."],
 		[13.0, "Close it under cover: stamina only recovers while it's closed."],
 		[20.0, "{hurry} — hurry (costs stamina).   {tilt} — tilt the umbrella."],
-		[28.0, "Low on stamina? {stop} lets you stop for a breather under cover."],
+		[28.0, "Need to wait? Hold {stop} to stand still. Stamina recovers while the umbrella is closed."],
 	]
 	for l in lines:
 		get_tree().create_timer(l[0]).timeout.connect(func() -> void: hint(l[1], 5.0))
@@ -190,8 +188,6 @@ func _process(delta: float) -> void:
 	_wet = lerpf(_wet, p.wet / Tun.f("wet_max"), 1.0 - exp(-12.0 * delta))
 	_sta = lerpf(_sta, p.stamina / Tun.f("stamina_max"), 1.0 - exp(-14.0 * delta))
 	_drying_a = move_toward(_drying_a, 1.0 if p.drying > 0.0 and p.wet > 0.0 else 0.0, delta * 3.0)
-	if _shake_t > 0.0:
-		_shake_t = maxf(0.0, _shake_t - delta)
 	var t: float = level.elapsed
 	_time_lbl.text = UIStyle.fmt_time(t, true)
 	_time_lbl.add_theme_color_override("font_color", C_TEXT if t <= float(level.par_time) else C_TEXT.lerp(C_STA, 0.6))
@@ -214,11 +210,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		_sound.play(&"ui_back")
 		_toggle_pause()
-
-
-func _on_stop_refused() -> void:
-	_shake_t = 0.5
-	_sound.play(&"ui_denied", -6.0)
 
 
 # --- meters -----------------------------------------------------------------------------------
@@ -247,33 +238,12 @@ func _draw_meters(ci: Control) -> void:
 	if danger:
 		ci.draw_rect(Rect2(bar_x - 3, 31, bar_w + 6, 22), Color(C_BAD, 0.35 * pulse), false, 2.0)
 
-	# Stamina: amber bar with a tick where "stop" becomes available; flashes + shakes when refused.
-	var thr := Tun.f("stop_threshold")
-	var sta_col := C_STA
-	if p.exhausted:
-		sta_col = C_BAD
-	elif _sta <= thr:
-		sta_col = C_STA.lerp(C_BAD, 0.45)
-	var shake := 0.0
-	if _shake_t > 0.0:
-		sta_col = C_BAD if int(_shake_t * 20.0) % 2 == 0 else C_STA
-		shake = sin(_shake_t * 70.0) * 9.0 * (_shake_t / 0.5)
+	# Stamina: amber bar, reddening when low, red when exhausted.
+	var sta_col := C_BAD if p.exhausted else (C_STA.lerp(C_BAD, 0.45) if _sta <= Tun.f("stop_threshold") else C_STA)
 	var y0 := 86.0
-	var ox := shake
-	_bolt(ci, Vector2(34 + ox, y0 + 22), 34.0, sta_col)
-	var label := "STAMINA"
-	if p.exhausted:
-		label = "EXHAUSTED"
-	elif _shake_t > 0.0:
-		label = "TOO FRESH TO STOP"
-	_caption(ci, Vector2(bar_x + ox, y0 + 8), label, fc, 20, Color(sta_col if _shake_t > 0.0 or p.exhausted else C_TEXT, 0.85), shadow)
-	var sr := Rect2(bar_x + ox, y0 + 18, bar_w, 12)
-	_bar(ci, sr, _sta, sta_col)
-	var tx := sr.position.x + sr.size.x * thr
-	ci.draw_line(Vector2(tx, sr.position.y - 4), Vector2(tx, sr.end.y + 4), Color(C_TEXT, 0.55), 2.0)
-	if _sta <= thr and not p.exhausted:
-		_caption(ci, Vector2(bar_x + bar_w - fc.get_string_size("CAN STOP", HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + ox, y0 + 8),
-			"CAN STOP", fc, 18, Color(C_STA, 0.7 + 0.3 * pulse), shadow)
+	_bolt(ci, Vector2(34, y0 + 22), 34.0, sta_col)
+	_caption(ci, Vector2(bar_x, y0 + 8), "EXHAUSTED" if p.exhausted else "STAMINA", fc, 20, Color(sta_col if p.exhausted else C_TEXT, 0.85), shadow)
+	_bar(ci, Rect2(bar_x, y0 + 18, bar_w, 12), _sta, sta_col)
 
 	# Drying off (sun patches, vents).
 	if _drying_a > 0.01:
@@ -484,7 +454,7 @@ func _buttons(holder: Container, buttons: Array, size: Vector2) -> Button:
 
 func show_result(r: Dictionary) -> void:
 	if Game.debug_auto_continue:
-		get_tree().create_timer(2.0).timeout.connect(Game.goto_after_result)
+		get_tree().create_timer(2.0).timeout.connect(Game.goto_map)
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.03, 0.05, 0.0)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -509,7 +479,7 @@ func show_result(r: Dictionary) -> void:
 	hv.add_theme_constant_override("separation", -8)
 	hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(hv)
-	hv.add_child(UIStyle.label("THE LAST STREET  ·  SHELTER REACHED" if r.get("city_completed", false) else "SHELTER REACHED", &"KickerLabel", 24))
+	hv.add_child(UIStyle.label("SHELTER REACHED", &"KickerLabel", 24))
 	hv.add_child(UIStyle.label(String(level.data.get("name", "")).to_upper(), &"HeaderLabel", 84))
 	# Grade stamp (slams in after the count-up).
 	var grade := String(r["grade"])
@@ -559,7 +529,7 @@ func show_result(r: Dictionary) -> void:
 		tok_row.add_child(c)
 		coins.append(c)
 	if earned > 0:
-		tokens_lbl.text = "+%d token%s   ·   you have %d" % [earned, "" if earned == 1 else "s", Game.tokens]
+		tokens_lbl.text = "+%d token%s   ·   you have %d" % [earned, "" if earned == 1 else "s", Game.run.tokens]
 	elif r["best"]:
 		tokens_lbl.text = "No new tokens — a token for every 100 points above your old best."
 	else:
@@ -575,7 +545,7 @@ func show_result(r: Dictionary) -> void:
 	btns.add_theme_constant_override("separation", 16)
 	v.add_child(btns)
 	var first := _buttons(btns, [
-		["Continue", Game.goto_after_result],
+		["Continue", Game.goto_map],
 		["Replay", func() -> void: Game.play_level(level.level_id)],
 	], Vector2(250, 66))
 

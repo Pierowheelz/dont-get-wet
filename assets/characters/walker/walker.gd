@@ -172,7 +172,7 @@ func _apply_params(delta: float) -> void:
 	_run_s = lerpf(_run_s, _run, k_fast) if delta > 0.0 else _run
 	var idle_target := 1.0 if (_stopped or _speed < 0.05) else 0.0
 	_stop_s = lerpf(_stop_s, idle_target, 1.0 - exp(-delta * 5.0)) if delta > 0.0 else idle_target
-	var breath_target := 1.0 if _stopped else 0.0
+	var breath_target := (1.0 - _raise) if _stopped else 0.0   # no gasping bent over while holding the umbrella up
 	_breath_s = lerpf(_breath_s, breath_target, k_slow) if delta > 0.0 else breath_target
 	var sad_target := 1.0 if _mood == &"sad" else 0.0
 	_sad_s = lerpf(_sad_s, sad_target, k_slow) if delta > 0.0 else sad_target

@@ -3,7 +3,6 @@ extends Node3D
 ## The walker: auto-walks along +X, the player only controls the umbrella, hurry, stop and tilt.
 ## Owns stamina, wetness and the analytic rain-exposure model (docs/DESIGN.md §5).
 
-signal stop_refused
 signal defeated
 signal arrived
 signal splashed(amount: float)
@@ -132,13 +131,11 @@ func _physics_process(delta: float) -> void:
 		u = Inputs.umbrella()
 		h = Inputs.hurry()
 		tl = Inputs.tilt()
-		stop_req = Inputs.stop_pressed()
+		stop_req = Inputs.stop_held()
 
 	var smax := Tun.f("stamina_max")
 	# --- umbrella open/close: same speed both ways, reverses from wherever it is ---------------
 	var open_rate := 1.0 / maxf(Game.umbrella_open_time(), 0.05)
-	if state == State.STOPPED:
-		u = 0.0     # stopping puts the umbrella away; the trigger can't reopen it until he walks on
 	open = move_toward(open, u, open_rate * delta)
 	if open <= 0.0:
 		Inputs.wheel_tilt = 0.0
@@ -146,13 +143,8 @@ func _physics_process(delta: float) -> void:
 	tilt = move_toward(tilt, tl * max_tilt if open > 0.0 else 0.0, Tun.f("umbrella_tilt_speed") * delta)
 
 	# --- stop -------------------------------------------------------------------------------
-	if stop_req and state == State.WALK:
-		if stamina <= Tun.f("stop_threshold") * smax:
-			state = State.STOPPED
-		else:
-			stop_refused.emit()
-	if state == State.STOPPED and (stamina >= smax - 0.01 or h > 0.5):
-		state = State.WALK   # resumes at full stamina, or early if the player hurries off
+	if state == State.WALK or state == State.STOPPED:
+		state = State.STOPPED if stop_req else State.WALK
 
 	# --- stamina ----------------------------------------------------------------------------
 	var wind := _wind()
@@ -495,7 +487,7 @@ func _autopilot(delta: float) -> Array:
 	var rd0 := rain_dir()
 	var tl0 := clampf(-atan2(rd0.x, -rd0.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
 	if state == State.STOPPED:
-		return [1.0 if exposure > 0.2 else 0.0, 0.0, tl0, false]
+		return [0.0, 0.0, tl0, stamina < Tun.f("stamina_max") - 0.01]
 	var danger := false
 	var dx := -0.4
 	while dx <= lead:

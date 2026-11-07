@@ -1,30 +1,26 @@
 extends Node
-## Persistent progression (scores, tokens, upgrades, map position) and scene flow.
+## Persistent progression (settings and one run per direction) and scene flow.
 
-const SAVE_PATH := "user://save.json"
-const INDEX_PATH := "res://levels/index.json"
-const UPGRADES := [&"sturdy", &"wide", &"light"]
+const SAVE_VERSION := 2
 const FEEDBACK_URL := "https://github.com/Pierowheelz/dont-get-wet/issues/new?template=feedback.yml"
+const INDEX_PATH := "res://levels/index.json"
 
 signal tokens_changed(tokens: int)
 
 var nodes: Dictionary = {}          # id -> node dict from levels/index.json
 var start_node := ""
-var current_node := ""              # where the player is on the map (last completed / start)
+var branch: Dictionary = {}         # id -> "" (the start node) / "left" / "right"
+var runs: Dictionary = {}           # direction ("" while undecided) -> Run, every run in the save
+var run: Run                        # the active run; a fresh unsaved one when there are no runs
 var current_level := ""             # level being played
-var best: Dictionary = {}           # id -> {score, wet, time, grade}
-var tokens := 0
-var upgrades := {&"sturdy": 0, &"wide": 0, &"light": 0}
-var completed: Array = []
-var finale_seen := false            # the city-complete ending has played once
+var save_path := "user://save.json"
 var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
 var debug_lazy := false             # --lazy: autopilot never opens the umbrella (testing defeat)
 var trace_path := ""                # --trace=PATH: autopilot writes a JSON-lines run trace
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
-var debug_auto_continue := false    # --auto-continue: result screen and ending press Continue (testing)
+var debug_auto_continue := false    # --auto-continue: result screen presses Continue (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
-var debug_seeded := false           # --completed=...: progress is fake, so never write the save
 var last_result: Dictionary = {}
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false}
 
@@ -46,9 +42,8 @@ func _ready() -> void:
 			current_level = a.substr(8)
 		if a.begins_with("--start-x="):
 			debug_start_x = float(a.substr(10))
-		if a.begins_with("--upgrades="):   # testing: set every upgrade tier
-			for k in UPGRADES:
-				upgrades[k] = clampi(int(a.substr(11)), 0, 3)
+		if a.begins_with("--save="):
+			save_path = a.substr(7)
 		if a.begins_with("--wet="):
 			debug_start_wet = float(a.substr(6))
 		if a.begins_with("--shots="):
@@ -58,27 +53,11 @@ func _ready() -> void:
 			_shot_dir = a.substr(11)
 	load_game()   # after args: the autopilot must never read or write the player's save
 	for a in args:
-		if a.begins_with("--completed="):
-			_seed_completed(a.substr(12))
+		if a.begins_with("--upgrades="):   # testing: set every upgrade tier
+			for k in Run.UPGRADES:
+				run.upgrades[k] = clampi(int(a.substr(11)), 0, 3)
 	if current_level != "":
 		get_tree().process_frame.connect(_jump_to_level, CONNECT_ONE_SHOT)
-
-
-## --completed=id[:score],... marks streets walked for this run only (testing the finale).
-## An optional score also seeds that street's best, so the ending has grades to show.
-func _seed_completed(spec: String) -> void:
-	debug_seeded = true
-	for item in spec.split(",", false):
-		var parts := item.split(":")
-		var id := parts[0]
-		if not nodes.has(id):
-			push_warning("--completed: unknown street %s" % id)
-			continue
-		if not completed.has(id):
-			completed.append(id)
-		if parts.size() > 1:
-			var sc := int(parts[1])
-			best[id] = {"score": sc, "wet": 0.0, "time": 0.0, "grade": grade_for(sc)}
 
 
 ## `--level=ID` launches straight into a level (exported builds can't override the main scene).
@@ -133,6 +112,28 @@ func _load_index() -> void:
 	start_node = d.get("start", "")
 	for n in d.get("nodes", []):
 		nodes[n["id"]] = n
+	branch = derive_branches(nodes, start_node)
+
+
+## Which side of the start each node lies on: the start's neighbour it's reached through, labelled
+## left/right by that neighbour's map x against the start's.
+static func derive_branches(graph: Dictionary, start: String) -> Dictionary:
+	var out := {start: ""}
+	if not graph.has(start):
+		return out
+	var sx := float(graph[start]["map_pos"][0])
+	var queue: Array = []
+	for nb: String in graph[start].get("neighbors", []):
+		if graph.has(nb) and not out.has(nb):
+			out[nb] = "left" if float(graph[nb]["map_pos"][0]) < sx else "right"
+			queue.append(nb)
+	while not queue.is_empty():
+		var id: String = queue.pop_front()
+		for nb: String in graph[id].get("neighbors", []):
+			if graph.has(nb) and not out.has(nb):
+				out[nb] = out[id]
+				queue.append(nb)
+	return out
 
 
 func level_data(id: String) -> Dictionary:
@@ -150,29 +151,55 @@ func neighbors(id: String) -> Array:
 	return nodes.get(id, {}).get("neighbors", [])
 
 
-## The city is complete once every street on the map has been walked.
-func city_complete() -> bool:
-	return not nodes.is_empty() and nodes.keys().all(func(id: String) -> bool: return completed.has(id))
-
-
-## Sum of the best score on every street.
-func total_score() -> int:
-	var total := 0
-	for id: String in best:
-		total += int(best[id].get("score", 0))
-	return total
+## True for a street on the other side of the start from the active run's direction.
+func other_way(id: String) -> bool:
+	var side: String = branch.get(id, "")
+	return run.direction != "" and side != "" and side != run.direction
 
 
 func can_select(id: String) -> bool:
-	if not completed.has(current_node):
-		return id == current_node     # finish where you are before moving on
-	return id == current_node or neighbors(current_node).has(id)
+	if other_way(id):
+		return false
+	if not run.completed.has(run.current_node):
+		return id == run.current_node     # finish where you are before moving on
+	return id == run.current_node or neighbors(run.current_node).has(id)
+
+
+## Streets a run can ever walk: the start plus its direction's side (all of them while undecided).
+func reachable_count(r: Run) -> int:
+	return nodes.keys().filter(func(id: String) -> bool:
+		return r.direction == "" or branch.get(id, "") in ["", r.direction]).size()
+
+
+# --- runs ---------------------------------------------------------------------
+
+## Starts a fresh run in `dir` ("" = undecided), replacing any saved run there, and makes it active.
+func new_run(dir: String) -> void:
+	run = Run.new(dir, start_node)
+	runs[dir] = run
+	save_game()
+
+
+func resume_run(dir: String) -> void:
+	run = runs[dir]
+	save_game()
+
+
+## The player picked a street on the map: an undecided run commits to that street's side.
+func choose(id: String) -> void:
+	var side: String = branch.get(id, "")
+	if run.direction != "" or side == "":
+		return
+	runs.erase("")
+	run.direction = side
+	runs[side] = run
+	save_game()
 
 
 # --- upgrades -----------------------------------------------------------------
 
 func upgrade_level(u: StringName) -> int:
-	return int(upgrades.get(u, 0))
+	return int(run.upgrades.get(u, 0))
 
 
 func upgrade_cost(u: StringName) -> int:
@@ -183,11 +210,11 @@ func upgrade_cost(u: StringName) -> int:
 
 func buy_upgrade(u: StringName) -> bool:
 	var c := upgrade_cost(u)
-	if c < 0 or tokens < c:
+	if c < 0 or run.tokens < c:
 		return false
-	tokens -= c
-	upgrades[u] = upgrade_level(u) + 1
-	tokens_changed.emit(tokens)
+	run.tokens -= c
+	run.upgrades[u] = upgrade_level(u) + 1
+	tokens_changed.emit(run.tokens)
 	save_game()
 	return true
 
@@ -220,91 +247,99 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	var dry := 1.0 - wet_pct / 100.0
 	var time_ratio := clampf(par / maxf(time, 0.01), 0.0, 1.0)
 	var score := int(round(Tun.f("score_dry_weight") * dry + Tun.f("score_time_weight") * time_ratio))
-	var prev: Dictionary = best.get(id, {})
+	var prev: Dictionary = run.best.get(id, {})
 	var prev_score: int = int(prev.get("score", 0))
 	# Tokens scale with score, paid only for improving on your best score for this street.
 	var k := Tun.f("tokens_per_point")
 	var earned := maxi(0, int(floor(score * k)) - int(floor(prev_score * k)))
-	tokens += earned
+	run.tokens += earned
 	var is_best := score > prev_score
-	var was_complete := city_complete()
 	if is_best:
-		best[id] = {"score": score, "wet": wet_pct, "time": time, "grade": grade_for(score)}
-	if not completed.has(id):
-		completed.append(id)
-	current_node = id
+		run.best[id] = {"score": score, "wet": wet_pct, "time": time, "grade": grade_for(score)}
+	if not run.completed.has(id):
+		run.completed.append(id)
+	run.current_node = id
 	last_result = {"id": id, "score": score, "wet": wet_pct, "time": time, "par": par,
-		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score,
-		"city_completed": not was_complete and city_complete()}
+		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score}
 	save_game()
-	tokens_changed.emit(tokens)
+	tokens_changed.emit(run.tokens)
 	return last_result
 
 
 # --- persistence --------------------------------------------------------------
 
 func save_game() -> void:
-	if autopilot or debug_seeded:
+	if autopilot:
 		return
-	var d := {"current_node": current_node, "best": best, "tokens": tokens,
-		"upgrades": {"sturdy": upgrades[&"sturdy"], "wide": upgrades[&"wide"], "light": upgrades[&"light"]},
-		"completed": completed, "finale_seen": finale_seen, "settings": settings}
+	var d := {"version": SAVE_VERSION, "settings": settings, "active": run.direction,
+		"runs": runs.values().map(func(r: Run) -> Dictionary: return r.to_dict())}
 	# Write to a temp file then swap it in, so a crash mid-write can't corrupt the save.
-	var tmp := SAVE_PATH + ".tmp"
+	var tmp := save_path + ".tmp"
 	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
 		push_warning("save: cannot write %s" % tmp)
 		return
 	f.store_string(JSON.stringify(d, "  "))
 	f.close()
-	DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(SAVE_PATH))
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(save_path))
 
 
 func load_game() -> void:
-	current_node = start_node
-	if autopilot or not FileAccess.file_exists(SAVE_PATH):
+	runs = {}
+	run = Run.new("", start_node)
+	if autopilot or not FileAccess.file_exists(save_path):
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var f := FileAccess.open(save_path, FileAccess.READ)
 	var d: Variant = JSON.parse_string(f.get_as_text()) if f else null
 	if not d is Dictionary:
 		# Keep the unreadable file for recovery instead of silently overwriting it.
-		DirAccess.copy_absolute(ProjectSettings.globalize_path(SAVE_PATH), ProjectSettings.globalize_path(SAVE_PATH + ".bak"))
-		push_warning("save: unreadable save backed up to save.json.bak")
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(save_path + ".bak"))
+		push_warning("save: unreadable save backed up to %s.bak" % save_path.get_file())
 		return
-	var cn: Variant = d.get("current_node")
-	if cn is String and nodes.has(cn):
-		current_node = cn
-	var b: Variant = d.get("best")
-	if b is Dictionary:
-		for id in b:
-			if nodes.has(id) and b[id] is Dictionary:
-				best[id] = b[id]
-	var t: Variant = d.get("tokens")
-	if t is float or t is int:
-		tokens = maxi(0, int(t))
-	var u: Variant = d.get("upgrades")
-	if u is Dictionary:
-		for k in UPGRADES:
-			var v: Variant = u.get(String(k), 0)
-			upgrades[k] = clampi(int(v), 0, 3) if (v is float or v is int) else 0
-	var c: Variant = d.get("completed")
-	if c is Array:
-		completed = c.filter(func(e: Variant) -> bool: return e is String and nodes.has(e))
-	finale_seen = d.get("finale_seen") is bool and d["finale_seen"]
 	var st: Variant = d.get("settings")
 	if st is Dictionary:
 		for k in settings:
 			if st.has(k) and typeof(st[k]) == typeof(settings[k]):
 				settings[k] = st[k]
+	var saved: Variant = d.get("runs") if d.has("version") else _legacy_runs(d)
+	for rd: Variant in (saved if saved is Array else []):
+		var r: Run = Run.from_dict(rd, nodes, start_node) if rd is Dictionary else null
+		if r != null and not runs.has(r.direction):
+			runs[r.direction] = r
+	if runs.size() > 1:
+		runs.erase("")    # an undecided run only exists before any direction does
+	var active: Variant = d.get("active", "")
+	if active is String and runs.has(active):
+		run = runs[active]
+	elif not runs.is_empty():
+		run = runs.values()[0]
+
+
+## The pre-runs save held one run's fields at the top level; it becomes the run for the side it was on.
+func _legacy_runs(d: Dictionary) -> Array:
+	var walked: Variant = d.get("completed")
+	if not walked is Array or walked.is_empty():
+		return []
+	var r := d.duplicate()
+	r["direction"] = legacy_side(str(d.get("current_node", "")), walked, branch)
+	return [r]
+
+
+## The side an old single-run save played on: current_node's side, else the side with more walked
+## streets (right on a tie), else undecided.
+static func legacy_side(current: String, walked: Array, sides: Dictionary) -> String:
+	if sides.get(current, "") != "":
+		return sides[current]
+	var left := walked.filter(func(id: Variant) -> bool: return sides.get(id, "") == "left").size()
+	var right := walked.filter(func(id: Variant) -> bool: return sides.get(id, "") == "right").size()
+	if left + right == 0:
+		return ""
+	return "left" if left > right else "right"
 
 
 func reset_progress() -> void:
-	current_node = start_node
-	best = {}
-	tokens = 0
-	upgrades = {&"sturdy": 0, &"wide": 0, &"light": 0}
-	completed = []
-	finale_seen = false
+	runs = {}
+	run = Run.new("", start_node)
 	save_game()
 
 
@@ -422,19 +457,6 @@ func _level_scenes() -> PackedStringArray:
 func goto_map() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://src/ui/map_screen.tscn")
-
-
-## After a street's score screen: the ending plays once, the first time the city is complete.
-func goto_after_result() -> void:
-	if city_complete() and not finale_seen:
-		goto_finale()
-	else:
-		goto_map()
-
-
-func goto_finale() -> void:
-	get_tree().paused = false
-	get_tree().change_scene_to_file("res://src/ui/finale.tscn")
 
 
 ## The feedback issue form, with the game version prefilled into its `version` field.
