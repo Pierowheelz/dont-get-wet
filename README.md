@@ -4,9 +4,11 @@
 
 A game by **Peter Wells**.
 
-It never stops raining in this city, and he isn't dressed for it. He walks forward — your job is
-to get him to shelter as dry as you can: open the umbrella under rain, close it under cover to
-get your breath back, hurry across the gaps, tilt into the wind, and watch out for passing cars.
+It never stops raining in this city, and he isn't dressed for it. He walks forward and your job is
+to get him to shelter as dry as you can.
+
+Open the umbrella under rain, close it under cover to get your breath back, hurry across the gaps,
+tilt into the wind, and watch out for passing cars.
 
 > **Alpha v0.1.0** — an early version. Expect rough edges, and tell us what you think!
 
@@ -29,13 +31,13 @@ get your breath back, hurry across the gaps, tilt into the wind, and watch out f
 
 ## Download and play
 
-Get the latest version from the [**Releases**](../../releases) page — just download the one file
-for your computer. There's nothing to install.
+Get the latest version from the [**Releases**](../../releases) page. Sownload the one file
+for your computer.
 
-**Windows** — download the file ending in **`-windows.exe`** and double-click it.
-If Windows says it protected your PC, click **More info → Run anyway** (the game isn't signed yet).
+**Windows**: download the file ending in **`-windows.exe`** and double-click it.
+If Windows says it protected your PC, click **More info → Run anyway** (the game isn't signed).
 
-**Linux / Steam Deck** — download the file ending in **`-linux.x86_64`**. The first time, right-click
+**Linux / Steam Deck**: download the file ending in **`-linux.x86_64`**. The first time, right-click
 it → **Properties → Permissions** → tick **Is executable** (or "Allow executing file as program"),
 then double-click it. On Steam Deck, do this in Desktop Mode; you can also add it to Steam with
 **Add a Non-Steam Game** to play it in Game Mode.
