@@ -103,16 +103,17 @@ The game is only fair if it's readable, so exposure is **analytic** (not per-dro
 ## 7. Levels
 
 - **Fixed, hand-tuned layouts** (learnable). Stored as JSON in `levels/`. A seeded generator
-  (`tools/level_gen.py`) produces first drafts from a difficulty curve; the output is committed and
-  then edited by hand — the game never generates at runtime.
+  (`tools/level_gen.py`) produced the first drafts; each street is now authored as a plan script in
+  `tools/streets/` (see `docs/LEVEL_AUTHORING.md`) that writes its JSON. The game never generates at
+  runtime. `tools/preview.sh` renders a street with both bots' runs and checks the pacing rules below.
 - Length 3–8 minutes. Difficulty ramps from easy to the midpoint, then holds steady to the end.
   Difficulty knobs: gap length, gap density, cover reliability (broken awnings), rain intensity,
   gutters, puddle density, wind, cars.
 - Start: short tutorial-ish stretch under continuous cover. End: the inn/shelter door — the character
   walks in.
 - Layout grammar: the street is a sequence of **lots** (building frontages 2–12 m), each with a cover
-  type (`awning`, `awning_broken`, `balcony`, `arcade`, `none`) plus **crossings** (side streets) and
-  **features** (sun, vent, gutter, puddle, car).
+  type (`awning` with optional `tears`, `balcony`, `arcade`, `canopy`, `none`) plus **crossings**
+  (side streets, where cars come from) and **features** (sun, vent, fire barrel, gutter, puddle).
 
 ### First five locations (v1)
 
@@ -135,7 +136,8 @@ moving toward the country thins out buildings.
 
 ## 8. Map, scoring, progression
 
-- After a level: score screen → **city map**. Nodes adjacent to the current node are selectable; hover/
+- After a level: score screen → **city map**. Finishing the last unwalked street plays the ending
+  first (every street's best grade, a total, the rain easing off), once; the main menu can replay it. Nodes adjacent to the current node are selectable; hover/
   focus shows a short preview popup (name, blurb, best score, difficulty).
 - **Score** (0–1000): `dryness_score = 700 × (1 − wetness/100)`, `time_score = 300 × clamp(par / time)`
   where par = length / base walk speed. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
