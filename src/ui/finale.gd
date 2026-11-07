@@ -326,8 +326,7 @@ func _leave_to_map() -> void:
 
 func _send_feedback() -> void:
 	_sound.play(&"ui_confirm")
-	Game.open_feedback()
-	_feedback.text = "Opened in browser"
+	_feedback.text = Game.open_feedback()
 	_feedback.create_tween().tween_callback(func() -> void: _feedback.text = "Send feedback").set_delay(3.0)
 
 
@@ -386,15 +385,20 @@ func _open_credits() -> void:
 	create_tween().tween_property(card, "modulate:a", 1.0, 0.2)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	var accept := event.is_action_pressed(&"ui_accept")
-	var cancel := event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"pause")
-	var click := event is InputEventMouseButton and (event as InputEventMouseButton).pressed
-	if _show and _show.is_running():
-		if accept or cancel or click:
-			get_viewport().set_input_as_handled()
-			_finish_show()
+## Skipping runs in _input, ahead of the GUI, so a tap anywhere on the map skips the show too.
+func _input(event: InputEvent) -> void:
+	if not (_show and _show.is_running()):
 		return
+	var click := event is InputEventMouseButton and (event as InputEventMouseButton).pressed
+	if click or event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed \
+			or event.is_action_pressed(&"ui_accept") or event.is_action_pressed(&"ui_cancel") \
+			or event.is_action_pressed(&"pause"):
+		get_viewport().set_input_as_handled()
+		_finish_show()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var cancel := event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"pause")
 	if not cancel or _busy:
 		return
 	get_viewport().set_input_as_handled()

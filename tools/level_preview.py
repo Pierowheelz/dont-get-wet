@@ -225,7 +225,7 @@ def run_checks(st, tun, rows):
         msg = "longest span is crossable on a full bar with the umbrella up. Tightest: " + detail
     else:
         msg = (f"{detail}. The walker is exhausted {over:.1f} m short and the umbrella droops "
-               f"(DESIGN §6 / tunables stamina_*), so shorten the span or add cover/vent inside it")
+               f"(DESIGN §6 / tunables stamina_*), so shorten the span or put cover inside it")
     checks.append(("span-crossable", ok, msg))
     return checks
 

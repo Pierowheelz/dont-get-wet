@@ -290,7 +290,7 @@ func load_game() -> void:
 	var c: Variant = d.get("completed")
 	if c is Array:
 		completed = c.filter(func(e: Variant) -> bool: return e is String and nodes.has(e))
-	finale_seen = d.get("finale_seen") == true
+	finale_seen = d.get("finale_seen") is bool and d["finale_seen"]
 	var st: Variant = d.get("settings")
 	if st is Dictionary:
 		for k in settings:
@@ -442,8 +442,12 @@ func feedback_url() -> String:
 	return FEEDBACK_URL + "&version=" + String(ProjectSettings.get_setting("application/config/version", "")).uri_encode()
 
 
-func open_feedback() -> void:
-	OS.shell_open(feedback_url())
+## Returns what the button should say: with no browser (Steam Deck Game Mode) the link is copied instead.
+func open_feedback() -> String:
+	if OS.shell_open(feedback_url()) == OK:
+		return "Opened in browser"
+	DisplayServer.clipboard_set(feedback_url())
+	return "Link copied"
 
 
 func goto_menu() -> void:

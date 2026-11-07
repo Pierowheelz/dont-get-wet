@@ -49,7 +49,7 @@ which allows about 2 to 4% wet at a typical time ratio of 0.88 to 0.92.
 
 | `cover` | Shelter | Notes |
 |---|---|---|
-| `awning` | sloped canvas, 3.05 m at the wall to 2.6 m at 2.35 m out | The walker (z 1.6) is fully under it. `awning_color`: red, green, blue, brown, orange, teal. |
+| `awning` | canvas, tin or chrome, 2.35 m deep; nine `awning_style`s (docs/CONTRACTS.md) that all shelter the same | The walker (z 1.6) is fully under it. `awning_color`: red, green, blue, brown, orange, teal. |
 | `awning` + `tears` | holes at local `[x0, x1]` | Each tear is real open sky with a hanging flap. 1 to 1.4 m tears read well. |
 | `balcony` | flat slab at 4.12 m, 2.4 m deep | Pale concrete with a rail, lit underneath. |
 | `arcade` | flat slab at 4.15 m, 2.9 m deep, columns every 3.5 m | Reads as a colonnade. Columns can hide part of a sign. |

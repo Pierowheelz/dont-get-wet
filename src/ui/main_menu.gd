@@ -78,8 +78,7 @@ func _ready() -> void:
 		if _busy or _dialog != null:
 			return
 		_sound.play(&"ui_confirm")
-		Game.open_feedback()
-		_feedback.text = "Opened in browser"
+		_feedback.text = Game.open_feedback()
 		_feedback.create_tween().tween_callback(func() -> void: _feedback.text = "Send feedback").set_delay(3.0))
 	_feedback.mouse_entered.connect(func() -> void:
 		if _dialog == null:

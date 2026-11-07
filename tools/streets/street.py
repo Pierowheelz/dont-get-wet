@@ -25,7 +25,7 @@ class Street:
         lot = {"x": self.x, "w": float(w), "style": style, "cover": cover, "floors": floors}
         if sign:
             lot["sign"] = sign
-        if cover == "awning":
+        if cover == "awning" and color:
             lot["awning_color"] = color
             if awning_style:
                 lot["awning_style"] = awning_style
