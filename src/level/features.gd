@@ -24,8 +24,8 @@ func _gutter(x: float) -> void:
 	water.shader = load("res://src/fx/water_stream.gdshader")
 	var col := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.07
-	cyl.bottom_radius = 0.16
+	cyl.top_radius = 0.035
+	cyl.bottom_radius = 0.09
 	cyl.height = 2.75
 	cyl.radial_segments = 12
 	cyl.rings = 8
@@ -105,12 +105,13 @@ func _vent(x: float) -> void:
 		mi.material_override = m
 		mi.position = Vector3(x, 2.2, 0.3)
 		root.add_child(mi)
-	var steam := _steam(Vector3(x, 2.0, 0.65), Vector3(0, -0.4, 1.0), Color(0.9, 0.85, 0.8, 0.12))
+	var steam := _steam(Vector3(x, 2.0, 0.65), Vector3(0, -0.5, 1.0), Color(1.0, 0.85, 0.7, 0.05))
 	root.add_child(steam)
 	var warm := OmniLight3D.new()
 	warm.light_color = Color(1.0, 0.55, 0.3)
 	warm.light_energy = 0.6
 	warm.omni_range = 2.0
+	warm.light_volumetric_fog_energy = 0.0
 	warm.position = Vector3(x, 1.8, 0.8)
 	root.add_child(warm)
 
@@ -146,9 +147,9 @@ func _steam(pos: Vector3, dir: Vector3, color: Color) -> GPUParticles3D:
 	var q := QuadMesh.new()
 	q.size = Vector2(0.6, 0.6)
 	var dm := StandardMaterial3D.new()
-	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	dm.albedo_color = color
+	dm.roughness = 1.0
 	dm.vertex_color_use_as_albedo = true
 	dm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	dm.albedo_texture = _soft_texture()
@@ -173,18 +174,65 @@ func _soft_texture() -> GradientTexture2D:
 
 
 func _sun(x: float, w: float) -> void:
-	# A break in the clouds: warm light shaft through the fog.
+	# A break in the clouds: a warm shaft of light through the fog onto a drying patch of pavement.
+	var cx := x + w * 0.5
 	var sl := SpotLight3D.new()
-	sl.light_color = Color(1.0, 0.82, 0.55)
-	sl.light_energy = 9.0
-	sl.spot_range = 40.0
-	sl.spot_angle = rad_to_deg(atan2(w * 0.55, 22.0)) + 3.0
-	sl.spot_attenuation = 0.3
-	sl.light_volumetric_fog_energy = 4.0
+	sl.light_color = Color(1.0, 0.78, 0.45)
+	sl.light_energy = 13.0
+	sl.spot_range = 45.0
+	sl.spot_angle = rad_to_deg(atan2(w * 0.5, 24.0)) + 1.5
+	sl.spot_angle_attenuation = 0.4
+	sl.spot_attenuation = 0.15
+	sl.light_volumetric_fog_energy = 1.2
 	sl.shadow_enabled = true
-	sl.position = Vector3(x + w * 0.5 - 4.0, 22.0, 1.6)
-	sl.look_at_from_position(sl.position, Vector3(x + w * 0.5, 0.0, 1.6), Vector3.FORWARD)
+	sl.position = Vector3(cx - 5.0, 24.0, 1.0)
 	root.add_child(sl)
+	sl.look_at(Vector3(cx, 0.0, 1.6), Vector3.UP)
+	# Soft additive shaft so the beam reads even through the painterly filter.
+	var shaft := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(w * 0.9, 16.0)
+	shaft.mesh = q
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.albedo_color = Color(1.0, 0.8, 0.5, 0.16)
+	m.albedo_texture = _shaft_texture()
+	m.disable_receive_shadows = true
+	shaft.material_override = m
+	shaft.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	shaft.position = Vector3(cx - 1.5, 8.0, 1.2)
+	shaft.rotation.z = -atan2(5.0, 24.0)
+	root.add_child(shaft)
+	# Dry, warm patch of pavement.
+	var patch := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(w, 3.4)
+	patch.mesh = pm
+	var pmat := StandardMaterial3D.new()
+	pmat.albedo_color = Color(0.55, 0.48, 0.38)
+	pmat.roughness = 0.8
+	pmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pmat.albedo_texture = _soft_texture()
+	pmat.uv1_scale = Vector3(1, 1, 1)
+	patch.material_override = pmat
+	patch.position = Vector3(cx, 0.01, 1.7)
+	root.add_child(patch)
+
+
+func _shaft_texture() -> GradientTexture2D:
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 0))
+	g.set_color(1, Color(1, 1, 1, 0))
+	g.add_point(0.5, Color(1, 1, 1, 1))
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill_from = Vector2(0, 0)
+	t.fill_to = Vector2(1, 0)
+	t.width = 64
+	t.height = 4
+	return t
 
 
 func _fire(x: float) -> void:
@@ -236,6 +284,7 @@ func _fire(x: float) -> void:
 	light.light_color = Color(1.0, 0.55, 0.2)
 	light.light_energy = 2.5
 	light.omni_range = 5.0
+	light.light_volumetric_fog_energy = 0.3
 	light.position = Vector3(x, 1.4, 0.8)
 	light.shadow_enabled = true
 	light.set_script(load("res://src/fx/flicker.gd"))

@@ -74,7 +74,7 @@ func _ready() -> void:
 	fill.light_energy = 0.7
 	fill.omni_range = 3.2
 	fill.omni_attenuation = 1.5
-	fill.position = Vector3(0.4, 1.9, 1.4)
+	fill.position = Vector3(0.35, 1.15, 1.7)
 	fill.light_specular = 0.3
 	add_child(fill)
 

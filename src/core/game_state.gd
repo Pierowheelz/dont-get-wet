@@ -31,6 +31,31 @@ func _ready() -> void:
 			current_level = a.substr(8)
 		if a.begins_with("--start-x="):
 			debug_start_x = float(a.substr(10))
+		if a.begins_with("--shots="):
+			for t in a.substr(8).split(","):
+				_shots.append(float(t))
+		if a.begins_with("--shot-dir="):
+			_shot_dir = a.substr(11)
+
+
+# --- debug screenshots: --shots=1.0,2.5 --shot-dir=/abs/path (quits after the last) ----------
+
+var _shots: Array = []
+var _shot_dir := ""
+var _shot_t := 0.0
+var _shot_i := 0
+
+
+func _process(delta: float) -> void:
+	if _shots.is_empty():
+		return
+	_shot_t += delta
+	if _shot_i < _shots.size() and _shot_t >= float(_shots[_shot_i]):
+		var img := get_viewport().get_texture().get_image()
+		img.save_png("%s/shot_%02d.png" % [_shot_dir, _shot_i])
+		_shot_i += 1
+		if _shot_i >= _shots.size():
+			get_tree().quit()
 
 
 func _load_index() -> void:

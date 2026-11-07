@@ -246,10 +246,10 @@ func _setup_environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color(0.06, 0.07, 0.1)
-	sm.sky_horizon_color = Color(0.2, 0.2, 0.24)
+	sm.sky_top_color = Color(0.05, 0.07, 0.12)
+	sm.sky_horizon_color = Color(0.17, 0.2, 0.27)
 	sm.ground_bottom_color = Color(0.03, 0.03, 0.04)
-	sm.ground_horizon_color = Color(0.2, 0.2, 0.24)
+	sm.ground_horizon_color = Color(0.17, 0.2, 0.27)
 	sm.sun_angle_max = 0.0
 	sky.sky_material = sm
 	env.sky = sky
@@ -281,15 +281,15 @@ func _setup_environment() -> void:
 	env.fog_density = 0.012
 	env.fog_aerial_perspective = 0.4
 	env.adjustment_enabled = true
-	env.adjustment_saturation = 0.9
+	env.adjustment_saturation = 0.82
 	env.adjustment_contrast = 1.05
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 
 	var moon := DirectionalLight3D.new()
-	moon.light_color = Color(0.62, 0.7, 0.9)
-	moon.light_energy = 0.35
+	moon.light_color = Color(0.55, 0.66, 0.92)
+	moon.light_energy = 0.5
 	moon.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 40.0
@@ -301,8 +301,8 @@ func _setup_shop_lights() -> void:
 	for lw in builder.lit_windows:
 		var om := OmniLight3D.new()
 		om.light_color = lw[1]
-		om.light_energy = 2.2
-		om.omni_range = 6.0
+		om.light_energy = 1.5
+		om.omni_range = 5.0
 		om.omni_attenuation = 1.2
 		om.position = lw[0]
 		om.light_volumetric_fog_energy = 1.5
@@ -310,7 +310,7 @@ func _setup_shop_lights() -> void:
 		# Spill light onto the wet sidewalk.
 		var spill := OmniLight3D.new()
 		spill.light_color = lw[1]
-		spill.light_energy = 0.9
+		spill.light_energy = 0.45
 		spill.omni_range = 4.0
 		spill.position = Vector3(lw[0].x, 1.2, 1.2)
 		world.add_child(spill)

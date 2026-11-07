@@ -542,7 +542,8 @@ func _build_prop(p: Dictionary) -> void:
 		var n := _instance(props_kit[id]["scene"])
 		if n:
 			var place: String = props_kit[id].get("place", "curb")
-			var z := 3.2 if place == "curb" else (0.35 if place == "wall" else 2.8)
+			# Sidewalk props sit against the shopfronts (behind the walker) so they never hide him.
+			var z := 3.2 if place == "curb" else (0.35 if place == "wall" else 0.6)
 			n.position = Vector3(x, 0, z)
 			root.add_child(n)
 			if id == "lamp_post":
@@ -576,8 +577,8 @@ func _build_prop(p: Dictionary) -> void:
 
 func _lamp_light(x: float) -> void:
 	var sl := SpotLight3D.new()
-	sl.light_color = Color(1.0, 0.62, 0.3)
-	sl.light_energy = 6.0
+	sl.light_color = Color(1.0, 0.7, 0.42)
+	sl.light_energy = 3.2
 	sl.spot_range = 9.0
 	sl.spot_angle = 55.0
 	sl.light_volumetric_fog_energy = 2.0

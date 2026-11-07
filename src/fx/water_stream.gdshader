@@ -13,9 +13,10 @@ void fragment() {
 	vec2 uv = vec2(UV.x * 6.0, UV.y * 3.0 - TIME * 6.0);
 	float n = noise(uv * vec2(2.0, 1.0)) * 0.6 + noise(uv * vec2(6.0, 3.0)) * 0.4;
 	float fres = pow(1.0 - abs(dot(NORMAL, VIEW)), 2.0);
-	ALBEDO = vec3(0.6, 0.68, 0.78);
-	ALPHA = clamp(0.25 + n * 0.5 + fres * 0.4, 0.0, 0.9);
+	float streak = smoothstep(0.45, 0.85, noise(vec2(UV.x * 24.0, UV.y * 2.0 - TIME * 9.0)));
+	ALBEDO = vec3(0.32, 0.38, 0.46);
+	ALPHA = clamp(0.08 + streak * 0.35 + fres * 0.3, 0.0, 0.6);
 	ROUGHNESS = 0.05;
 	SPECULAR = 0.9;
-	EMISSION = vec3(0.05, 0.06, 0.08) * n;
+	METALLIC = 0.2;
 }
