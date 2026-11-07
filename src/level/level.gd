@@ -296,7 +296,7 @@ func _first_encounters() -> void:
 		hud.hint("The wind is slanting the rain — tilt the umbrella into it ({tilt}).", 4.0)
 	if not _seen.has("stop") and player.stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") and player.sheltered:
 		_seen["stop"] = true
-		hud.hint("Puffed out? Stop for a breather under cover ({stop}).", 3.5)
+		hud.hint("Puffed out? Hold {stop} to stand still under cover and catch your breath.", 3.5)
 
 
 func _update_camera(delta: float) -> void:

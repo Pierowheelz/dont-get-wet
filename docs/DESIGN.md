@@ -31,7 +31,7 @@ Closer to an action game than a rhythm game: the player makes constant small tra
 |---|---|---|---|
 | Umbrella (hold, analog) | Right trigger | Right mouse / Space (digital) | Hold right-side button |
 | Hurry (analog; full = run) | Left trigger | Shift (full) / W (half) | Hold left-side button |
-| Stop (only ≤25% stamina) | Left bumper | S / Ctrl | Stop button |
+| Stop (hold) | Left bumper | S / Ctrl | Hold Stop button |
 | Tilt umbrella fwd/back | Either stick X (both pushed = average) | Mouse wheel / Q, E | Drag on umbrella button |
 | Pause | Start | Esc | Pause icon |
 
@@ -60,9 +60,9 @@ Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger
 
 - Drains while the umbrella is open (× open fraction; × wind load), and while hurrying.
 - Regenerates whenever the umbrella is fully closed — even in the rain.
-- **Stop** (LB) is only accepted at ≤25% stamina; otherwise the bar shakes/flashes red. Stopping closes
-  the umbrella and the trigger can't reopen it while stopped. The character waits until stamina is
-  full and then walks on automatically (hurrying resumes early).
+- **Stop** (LB, hold) stands him still for as long as it is held and he walks on when it is released.
+  It works at any stamina, beats hurry, and the umbrella may stay open (for waiting under a gutter
+  stream, say). Stamina regenerates faster while stopped, but only with the umbrella fully closed.
 
 ### Wetness (0–100)
 
@@ -137,16 +137,23 @@ moving toward the country thins out buildings.
 
 - After a level: score screen → **city map**. Nodes adjacent to the current node are selectable; hover/
   focus shows a short preview popup (name, blurb, best score, difficulty).
+- **Runs.** The start street sits in the middle of the map, with streets leading left and right. Each
+  direction is its own run with its own map position, best scores, tokens and upgrades, saved in its own
+  slot. A new player's first run picks its direction with the first street they walk off the start;
+  after that the run can't select streets on the other side. The main menu shows "← Continue" and
+  "Continue →" (or "← Start" / "Start →" for a direction with no run yet), and each run can be
+  restarted on its own.
 - **Score** (0–1000): `dryness_score = 700 × (1 − wetness/100)`, `time_score = 300 × clamp(par / time)`
   where par = length / base walk speed. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
 - **Tokens** = `floor(score × 0.0065)` (≈ S 6, A 5–6, B 5, C 4), paid only for improving on your best
   score for that street (so replays can earn more, never farm).
-- Best scores shown on the map and in the main menu's level replay list.
+- Best scores shown on the map and in the main menu's level replay list (the active run's streets).
 - **Upgrades** (3 tiers each, costs 6 / 12 / 18 tokens):
   - *Sturdy frame* — less stamina drain, less wind load (future: less damage).
   - *Wide canopy* — larger coverage radius.
   - *Featherweight* — faster open/close.
-- No monetisation. Save file: `user://save.json`.
+- No monetisation. Save file: `user://save.json` (version 2: settings, the active run, and a list of
+  runs). A version 1 save (one run at the top level) loads as the run for the side it was played on.
 
 ## 9. Camera & presentation
 

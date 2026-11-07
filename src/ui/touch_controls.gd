@@ -1,6 +1,6 @@
 extends Control
 ## On-screen touch controls: hold right pad = umbrella (drag up/down within it to tilt),
-## hold left pad = hurry (higher = faster), stop button.
+## hold left pad = hurry (higher = faster), hold stop button = stand still.
 
 var _umb_touch := -1
 var _hur_touch := -1
@@ -8,7 +8,7 @@ var _umb_rect: Rect2
 var _hur_rect: Rect2
 var _stop_rect: Rect2
 var _umb_start := Vector2.ZERO
-var _stop_flash := 0.0
+var _stop_touch := -1
 
 
 func _ready() -> void:
@@ -36,8 +36,8 @@ func _input(event: InputEvent) -> void:
 				_hur_touch = event.index
 				_set_hurry(event.position)
 			elif _stop_rect.has_point(event.position):
+				_stop_touch = event.index
 				Inputs.touch_stop = true
-				_stop_flash = 1.0
 		else:
 			if event.index == _umb_touch:
 				_umb_touch = -1
@@ -46,6 +46,9 @@ func _input(event: InputEvent) -> void:
 			elif event.index == _hur_touch:
 				_hur_touch = -1
 				Inputs.touch_hurry = 0.0
+			elif event.index == _stop_touch:
+				_stop_touch = -1
+				Inputs.touch_stop = false
 	elif event is InputEventScreenDrag:
 		if event.index == _umb_touch:
 			Inputs.touch_tilt = clampf((event.position.x - _umb_start.x) / (_umb_rect.size.x * 0.4), -1.0, 1.0)
@@ -56,12 +59,6 @@ func _input(event: InputEvent) -> void:
 
 func _set_hurry(p: Vector2) -> void:
 	Inputs.touch_hurry = clampf(1.0 - (p.y - _hur_rect.position.y) / _hur_rect.size.y, 0.2, 1.0)
-
-
-func _process(delta: float) -> void:
-	if _stop_flash > 0.0:
-		_stop_flash = maxf(0.0, _stop_flash - delta * 3.0)
-		queue_redraw()
 
 
 func _draw() -> void:
@@ -103,8 +100,8 @@ func _draw() -> void:
 	_label(f, _hur_rect.get_center() + Vector2(0, _hur_rect.size.y * 0.32), "HURRY", Color(UIStyle.CREAM, 0.7))
 
 	# Stop button.
-	var s_col := Color(UIStyle.DANGER, 0.25 + 0.5 * _stop_flash)
-	_rounded(_stop_rect, s_col if _stop_flash > 0.0 else base, Color(UIStyle.CREAM, 0.28 + 0.5 * _stop_flash), 2.5)
+	var held := _stop_touch != -1
+	_rounded(_stop_rect, Color(UIStyle.DANGER, 0.55) if held else base, Color(UIStyle.CREAM, 0.78 if held else 0.28), 2.5)
 	_label(f, _stop_rect.get_center() + Vector2(0, 8), "STOP", Color(UIStyle.CREAM, 0.8))
 
 

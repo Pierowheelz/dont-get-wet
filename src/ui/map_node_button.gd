@@ -18,8 +18,8 @@ var _sub_lbl: Label
 func setup(id: String, n: Dictionary, best: Dictionary) -> void:
 	node_id = id
 	selectable = Game.can_select(id)
-	walked = Game.completed.has(id)
-	current = id == Game.current_node
+	walked = Game.run.completed.has(id)
+	current = id == Game.run.current_node
 	grade = String(best.get("grade", ""))
 	neon = clampf((float(n["map_pos"][0]) - 0.55) / 0.35, 0.0, 1.0)
 	text = ""

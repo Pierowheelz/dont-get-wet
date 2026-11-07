@@ -188,7 +188,5 @@ func tilt() -> float:
 	return clampf(v, -1.0, 1.0)
 
 
-func stop_pressed() -> bool:
-	var t := touch_stop
-	touch_stop = false
-	return Input.is_action_just_pressed(&"stop") or t
+func stop_held() -> bool:
+	return Input.is_action_pressed(&"stop") or touch_stop

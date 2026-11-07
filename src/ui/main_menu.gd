@@ -6,6 +6,7 @@ const Drips := preload("res://src/ui/title_drips.gd")
 const PostFX := preload("res://src/fx/post_fx.gd")
 const LEFT := 132.0
 const COL_W := 560.0
+const MAIN_Y := 490.0
 
 var _ui: CanvasLayer
 var _root: Control
@@ -48,7 +49,7 @@ func _ready() -> void:
 	_build_title()
 
 	_page = VBoxContainer.new()
-	_page.position = Vector2(LEFT, 560)
+	_page.position = Vector2(LEFT, MAIN_Y)
 	_page.custom_minimum_size = Vector2(COL_W, 0)
 	_page.add_theme_constant_override("separation", 12)
 	_root.add_child(_page)
@@ -176,14 +177,14 @@ func _clear(page_name: String) -> void:
 		# Sub-pages shrink the title out of the way so long lists fit on screen.
 		var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(_title_box, "scale", Vector2.ONE * (0.6 if compact else 1.0), 0.35)
-		tw.tween_property(_page, "position:y", 380.0 if compact else 560.0, 0.35)
+		tw.tween_property(_page, "position:y", 380.0 if compact else MAIN_Y, 0.35)
 	_sound.hush()
 	for c in _page.get_children():
 		_page.remove_child(c)
 		c.queue_free()
 
 
-func _btn(text: String, cb: Callable, variation: StringName = &"", sound: StringName = &"ui_confirm") -> Button:
+func _btn(text: String, cb: Callable, variation: StringName = &"", sound: StringName = &"ui_confirm", parent: Control = _page) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -199,7 +200,7 @@ func _btn(text: String, cb: Callable, variation: StringName = &"", sound: String
 	b.mouse_entered.connect(func() -> void:
 		if _dialog == null:
 			b.grab_focus())
-	_page.add_child(b)
+	parent.add_child(b)
 	return b
 
 
@@ -217,16 +218,15 @@ func _animate_page() -> void:
 
 func _main_buttons() -> void:
 	_clear("main")
-	var has_save := not Game.completed.is_empty()
-	var first := _btn("Continue" if has_save else "Start walking", _go_map)
-	if has_save:
-		var stat := UIStyle.label("%d of %d streets walked   ·   %d tokens" % [
-			Game.completed.size(), Game.nodes.size(), Game.tokens], &"MutedLabel")
-		var m := MarginContainer.new()
-		m.add_theme_constant_override("margin_left", 30)
-		m.add_theme_constant_override("margin_bottom", 6)
-		m.add_child(stat)
-		_page.add_child(m)
+	var first: Button
+	if Game.runs.is_empty():
+		first = _btn("Start walking", _start_run.bind(""))
+	elif Game.runs.has(""):
+		first = _btn("Continue", _continue_run.bind(""))
+		_page.add_child(_progress(Game.runs[""], "%d of %d streets walked   ·   %d tokens"))
+	else:
+		first = _slots()
+	if not Game.run.completed.is_empty():
 		_btn("Replay a street", _replay_list)
 	_btn("Settings", _settings)
 	_btn("Credits", _credits)
@@ -235,8 +235,66 @@ func _main_buttons() -> void:
 	_animate_page()
 
 
+## "← Continue" / "Continue →" side by side, one per direction, each with its progress and a New run
+## button once it has a save. Returns the button to focus first.
+func _slots() -> Button:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	_page.add_child(row)
+	var mains: Array[Button] = []
+	var restarts: Array[Button] = []
+	var first: Button
+	for side: String in Run.DIRECTIONS:
+		var r: Run = Game.runs.get(side)
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		row.add_child(col)
+		var word := "Continue" if r else "Start"
+		var b := _btn("← " + word if side == "left" else word + " →",
+			_continue_run.bind(side) if r else _start_run.bind(side), &"", &"ui_confirm", col)
+		b.custom_minimum_size.x = (COL_W - 12.0) * 0.5
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT if side == "left" else HORIZONTAL_ALIGNMENT_RIGHT
+		mains.append(b)
+		if r == null:
+			continue
+		if r == Game.run or first == null:
+			first = b
+		var info := _progress(r, "%d of %d streets · %d tokens", side == "right")
+		info.add_theme_constant_override("margin_bottom", 0)
+		col.add_child(info)
+		var nr := _btn("New run…", _confirm_new_run.bind(side), &"SmallButton", &"ui_confirm", col)
+		nr.custom_minimum_size = Vector2(b.custom_minimum_size.x, 44)
+		nr.alignment = b.alignment
+		restarts.append(nr)
+	for pair: Array[Button] in [mains, restarts]:
+		if pair.size() == 2:
+			pair[0].focus_neighbor_right = pair[1].get_path()
+			pair[1].focus_neighbor_left = pair[0].get_path()
+	return first
+
+
+func _progress(r: Run, fmt: String, right := false) -> MarginContainer:
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_right" if right else "margin_left", 30)
+	m.add_theme_constant_override("margin_bottom", 6)
+	var l := UIStyle.label(fmt % [r.completed.size(), Game.reachable_count(r), r.tokens], &"MutedLabel")
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if right else HORIZONTAL_ALIGNMENT_LEFT
+	m.add_child(l)
+	return m
+
+
+func _start_run(side: String) -> void:
+	Game.new_run(side)
+	_go_map()
+
+
+func _continue_run(side: String) -> void:
+	Game.resume_run(side)
+	_go_map()
+
+
 func _go_map() -> void:
-	if Game.completed.is_empty():
+	if Game.run.completed.is_empty():
 		_leave(func() -> void: Game.play_level(Game.start_node), true)
 	else:
 		_leave(Game.goto_map, false)
@@ -253,17 +311,18 @@ func _leave(cb: Callable, stop_music: bool) -> void:
 
 func _replay_list() -> void:
 	_clear("replay")
-	_page.add_child(UIStyle.label("REPLAY A STREET", &"HeaderSmall", 0, UIStyle.AMBER))
+	var heading: String = {"": "", "left": "  ·  ← RUN", "right": "  ·  RUN →"}[Game.run.direction]
+	_page.add_child(UIStyle.label("REPLAY A STREET" + heading, &"HeaderSmall", 0, UIStyle.AMBER))
 	var first: Button = null
 	var ids: Array = []
 	for id: String in Game.nodes:   # map order, country -> centre
-		if Game.completed.has(id):
+		if Game.run.completed.has(id) and not Game.other_way(id):
 			ids.append(id)
 	ids.sort_custom(func(a: String, b: String) -> bool:
 		return float(Game.nodes[a]["map_pos"][0]) < float(Game.nodes[b]["map_pos"][0]))
 	for id: String in ids:
 		var n: Dictionary = Game.nodes.get(id, {})
-		var best: Dictionary = Game.best.get(id, {})
+		var best: Dictionary = Game.run.best.get(id, {})
 		var b := _row(String(n.get("name", id)), best, func() -> void: _leave(func() -> void: Game.play_level(id), true))
 		if first == null:
 			first = b
@@ -415,9 +474,24 @@ func _slider_row(text: String, key: String) -> HSlider:
 	return s
 
 
-# --- reset confirmation -----------------------------------------------------------------------
+# --- confirmations ----------------------------------------------------------------------------
 
 func _confirm_reset() -> void:
+	_confirm("RESET PROGRESS?", "Every run, best score, token and umbrella upgrade will be lost, and he'll start again on Main Street. Settings are kept.",
+		"Reset", func() -> void:
+			Game.reset_progress()
+			_main_buttons())
+
+
+func _confirm_new_run(side: String) -> void:
+	var title := "NEW ← RUN?" if side == "left" else "NEW RUN →?"
+	var text := "This run's best scores, tokens and umbrella upgrades will be lost, and he'll start again on Main Street."
+	if Game.runs.size() > 1:
+		text += " Your other run is kept."
+	_confirm(title, text, "New run", _start_run.bind(side))
+
+
+func _confirm(title: String, text: String, ok_text: String, on_ok: Callable) -> void:
 	var prev := get_viewport().gui_get_focus_owner()
 	_dialog = ColorRect.new()
 	(_dialog as ColorRect).color = Color(0, 0, 0, 0.0)
@@ -435,9 +509,9 @@ func _confirm_reset() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 16)
 	card.add_child(v)
-	var hdr := UIStyle.label("RESET PROGRESS?", &"HeaderLabel", 0, UIStyle.DANGER)
+	var hdr := UIStyle.label(title, &"HeaderLabel", 0, UIStyle.DANGER)
 	v.add_child(hdr)
-	var body := UIStyle.label("Every best score, token and umbrella upgrade will be lost, and he'll start again on Main Street. Settings are kept.", &"BodyLabel")
+	var body := UIStyle.label(text, &"BodyLabel")
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.custom_minimum_size = Vector2(640, 0)
 	v.add_child(body)
@@ -458,17 +532,16 @@ func _confirm_reset() -> void:
 		close.call())
 	row.add_child(cancel)
 	var ok := Button.new()
-	ok.text = "Reset"
+	ok.text = ok_text
 	ok.custom_minimum_size = Vector2(220, 64)
 	ok.add_theme_color_override("font_color", UIStyle.DANGER)
 	ok.add_theme_color_override("font_focus_color", UIStyle.DANGER)
 	ok.add_theme_color_override("font_hover_color", UIStyle.DANGER)
 	ok.pressed.connect(func() -> void:
 		_sound.play(&"ui_confirm")
-		Game.reset_progress()
 		_dialog.queue_free()
 		_dialog = null
-		_main_buttons())
+		on_ok.call())
 	row.add_child(ok)
 	# Trap focus inside the dialog.
 	for b: Button in [cancel, ok]:
