@@ -52,9 +52,49 @@ func _ready() -> void:
 	pl.arrived.connect(func() -> void:
 		get_tree().create_timer(1.6).timeout.connect(func() -> void: play("door_open", -4.0))
 		get_tree().create_timer(2.4).timeout.connect(func() -> void: play("win_sting", -4.0)))
+	for pr in level.data.get("props", []):
+		if pr.get("id", "") == "phone_booth" and pr.get("ring", false):
+			_add_phone(float(pr["x"]))
 	for car in level.cars:
 		car.approaching.connect(func() -> void: _play_3d("car_pass", car, 4.0))
 		car.splashed_puddle.connect(func(at: Vector3) -> void: _play_3d_at("car_splash", at, 2.0))
+
+
+## Payphones marked `"ring": true` ring as the walker comes up the street and fall silent the
+## moment he has passed.
+var _phones: Array = []        # [player, x, next ring time]
+const PHONE_HEAR := 18.0       # starts ringing this far ahead of him
+const PHONE_CADENCE := 3.0
+
+
+func _add_phone(x: float) -> void:
+	var s := _stream("phone_ring")
+	if s == null:
+		return
+	var p3 := AudioStreamPlayer3D.new()
+	p3.stream = s
+	p3.bus = &"SFX"
+	p3.max_distance = 26.0
+	p3.unit_size = 3.0
+	p3.volume_db = -6.0
+	p3.position = Vector3(x, 1.6, 0.5)
+	level.world.add_child(p3)
+	_phones.append([p3, x, 0.0])
+
+
+func _ring_phones(delta: float, px: float) -> void:
+	for ph: Array in _phones:
+		var p3: AudioStreamPlayer3D = ph[0]
+		if px > ph[1]:
+			if p3.playing:
+				p3.stop()
+			continue
+		if ph[1] - px > PHONE_HEAR:
+			continue
+		ph[2] -= delta
+		if ph[2] <= 0.0:
+			ph[2] = PHONE_CADENCE
+			p3.play()
 
 
 func _setup_buses() -> void:
@@ -158,6 +198,7 @@ func _process(delta: float) -> void:
 	if pl == null:
 		return
 	var x := pl.position.x
+	_ring_phones(delta, x)
 	var inten: float = level.rain_intensity(x)
 	var heavy := clampf((inten - 0.8) / 0.5, 0.0, 1.0)
 	var sheltered := pl.sheltered

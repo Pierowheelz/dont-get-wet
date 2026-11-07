@@ -90,7 +90,11 @@ of it.
 **Props** are dressing only: `lamp_post`, `hydrant`, `trash_can`, `newspaper_box(_b)`, `bench`,
 `mailbox`, `parking_meter`, `street_sign`, `downpipe`, `trash_bags`, `crates`, `cardboard_boxes`,
 `bollard`, `phone_booth`, `sandwich_board`, `chainlink_fence_4`, and more in
-`assets/props/props.json`.
+`assets/props/props.json`. A `phone_booth` with `"ring": true` (`s.prop("phone_booth", x, ring=True)`)
+rings as the walker approaches and goes quiet once he passes it.
+
+**`figures`** (`x`; `s.figure(x)`) are people built from the walker's own model, standing still in a
+doorway with the umbrella furled. Scenery only: put them under cover, away from features.
 
 **`set_pieces`** (`name`, `x0`, `x1`, `teaches`) is a top-level list the game ignores. Fill it in so
 the next person can see the intent without replaying the street.

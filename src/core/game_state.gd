@@ -157,18 +157,49 @@ func other_way(id: String) -> bool:
 	return run.direction != "" and side != "" and side != run.direction
 
 
+## A street on the map that isn't built yet: shown, never playable.
+func is_soon(id: String) -> bool:
+	return bool(nodes.get(id, {}).get("soon", false))
+
+
 func can_select(id: String) -> bool:
-	if other_way(id):
+	if other_way(id) or is_soon(id):
 		return false
 	if not run.completed.has(run.current_node):
 		return id == run.current_node     # finish where you are before moving on
 	return id == run.current_node or neighbors(run.current_node).has(id)
 
 
-## Streets a run can ever walk: the start plus its direction's side (all of them while undecided).
+## Streets a run can walk now: the start plus its direction's built side (all of them while undecided).
 func reachable_count(r: Run) -> int:
 	return nodes.keys().filter(func(id: String) -> bool:
-		return r.direction == "" or branch.get(id, "") in ["", r.direction]).size()
+		return not is_soon(id) and (r.direction == "" or branch.get(id, "") in ["", r.direction])).size()
+
+
+## Every street in walking order along the map: the left side from its far end, the start, then the
+## right side outward. Each side is a chain, so walking it from the start's neighbour gives its order.
+func map_order() -> Array:
+	var out: Array = []
+	for nb: String in neighbors(start_node):
+		var chain: Array = []
+		var prev := start_node
+		var id := nb
+		while id != "":
+			chain.append(id)
+			var next := ""
+			for n: String in neighbors(id):
+				if n != prev and nodes.has(n) and not chain.has(n):
+					next = n
+			prev = id
+			id = next
+		if branch.get(nb, "") == "left":
+			chain.reverse()
+			out = chain + [start_node] + out
+		else:
+			out.append_array(chain)
+	if not out.has(start_node):
+		out.push_front(start_node)
+	return out
 
 
 # --- runs ---------------------------------------------------------------------

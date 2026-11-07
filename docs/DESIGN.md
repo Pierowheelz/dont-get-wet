@@ -139,7 +139,10 @@ moving toward the country thins out buildings.
 ## 8. Map, scoring, progression
 
 - After a level: score screen → **city map**. Nodes adjacent to the current node are selectable; hover/
-  focus shows a short preview popup (name, blurb, best score, difficulty).
+  focus shows a short preview popup (name, blurb, best score, difficulty). The map is one straight road
+  from the country to the city centre, longer than the screen: about five streets show at a time and it
+  scrolls to the focused one. Streets that aren't built yet show on it as "Coming soon" and can't be
+  picked. `levels/index.json` (hand-edited) holds the graph; a node with `"soon": true` has no level file.
 - **Runs.** The start street sits in the middle of the map, with streets leading left and right. Each
   direction is its own run with its own map position, best scores, tokens and upgrades, saved in its own
   slot. A new player's first run picks its direction with the first street they walk off the start;

@@ -15,6 +15,7 @@ const FAIL_LINES := [
 	"That suit was dry-clean only.",
 	"The rain wins this round.",
 	"He'll be wringing out that tie for a week.",
+	"He's late now. They don't like late.",
 ]
 
 var level: Node
@@ -481,6 +482,12 @@ func show_result(r: Dictionary) -> void:
 	head.add_child(hv)
 	hv.add_child(UIStyle.label("SHELTER REACHED", &"KickerLabel", 24))
 	hv.add_child(UIStyle.label(String(level.data.get("name", "")).to_upper(), &"HeaderLabel", 84))
+	var outro := String(Game.nodes.get(level.level_id, {}).get("outro", ""))
+	if outro != "":
+		var ol := UIStyle.label(outro, &"ItalicLabel", 24)
+		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ol.custom_minimum_size = Vector2(620, 0)
+		hv.add_child(ol)
 	# Grade stamp (slams in after the count-up).
 	var grade := String(r["grade"])
 	var stamp := DrawBox.new(func(ci: Control) -> void: _draw_stamp(ci, grade), Vector2(170, 150))

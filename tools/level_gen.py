@@ -20,25 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "levels"
 
-# Map nodes (index.json). map_pos is in a 0..1 normalised map space (x: country -> centre).
-NODES = [
-    {"id": "mill_road", "name": "Mill Road", "map_pos": [0.12, 0.62], "neighbors": ["canal_row"],
-     "blurb": "Edge of town. Long stretches of open sky, and the sun sometimes breaks through.",
-     "difficulty": 4},
-    {"id": "canal_row", "name": "Canal Row", "map_pos": [0.31, 0.45], "neighbors": ["mill_road", "main_street"],
-     "blurb": "Warehouses and loading docks by the canal. Fewer awnings, and the wind is picking up.",
-     "difficulty": 2},
-    {"id": "main_street", "name": "Main Street", "map_pos": [0.5, 0.55], "neighbors": ["canal_row", "arcade_lane"],
-     "blurb": "The old downtown. Most shops are shuttered, but the awnings still hold.",
-     "difficulty": 1},
-    {"id": "arcade_lane", "name": "Arcade Lane", "map_pos": [0.69, 0.42], "neighbors": ["main_street", "neon_junction"],
-     "blurb": "The first neon signs creep in. Watch the side streets: drivers here don't slow for puddles.",
-     "difficulty": 3},
-    {"id": "neon_junction", "name": "Neon Junction", "map_pos": [0.88, 0.5], "neighbors": ["arcade_lane"],
-     "blurb": "Chrome, neon and gale-force gusts between the towers. Nearly the city centre.",
-     "difficulty": 5},
-]
-
+# The map graph (levels/index.json) is hand-edited; this script only writes street layouts.
 LEVELS = {
     "main_street": dict(seed=1961, length=255, neon=0.0, wind=(0.0, 0.0), cars=False, rain=(0.75, 1.15),
                         d=(0.0, 0.75), lit=0.3, crossing_every=(55, 75), sun=1, aesthetic="rundown"),
@@ -263,9 +245,9 @@ def gen_level(lid, cfg):
     props = [p for p in props if not any(c["x"] - 0.5 < p["x"] < c["x"] + c["w"] + 0.5 for c in crossings)]
     rain = [[0.0, cfg["rain"][0]], [0.5, cfg["rain"][1]], [1.0, cfg["rain"][1]]]
     wind = [[0.0, cfg["wind"][0]], [0.5, cfg["wind"][1]], [1.0, cfg["wind"][1]]]
-    node = next(n for n in NODES if n["id"] == lid)
+    node = next(n for n in json.loads((OUT / "index.json").read_text())["nodes"] if n["id"] == lid)
     return {
-        "id": lid, "name": node["name"], "blurb": node["blurb"], "aesthetic": cfg["aesthetic"],
+        "id": lid, "name": node["name"], "blurb": node.get("blurb", ""), "aesthetic": cfg["aesthetic"],
         "neon": cfg["neon"], "length": round(x, 2), "end_x": round(door_x, 2),
         "rain": rain, "wind": wind, "gusts": cfg.get("gusts", False),
         "lots": lots, "crossings": crossings,
@@ -291,9 +273,6 @@ def main():
         gaps = [l for l in lvl["lots"] if l["cover"] == "none"]
         print(f"{lid}: length {lvl['length']} m, {len(lvl['lots'])} lots, {len(gaps)} open lots, "
               f"{len(lvl['crossings'])} crossings, {len(lvl['features'])} features")
-    index = {"start": "main_street",
-             "nodes": [dict(n, file=f"res://levels/{n['id']}.json") for n in NODES]}
-    (OUT / "index.json").write_text(json.dumps(index, indent=1))
 
 
 if __name__ == "__main__":

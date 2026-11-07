@@ -340,12 +340,8 @@ func _replay_list() -> void:
 	var heading: String = {"": "", "left": "  ·  ← RUN", "right": "  ·  RUN →"}[Game.run.direction]
 	_page.add_child(UIStyle.label("REPLAY A STREET" + heading, &"HeaderSmall", 0, UIStyle.AMBER))
 	var first: Button = null
-	var ids: Array = []
-	for id: String in Game.nodes:   # map order, country -> centre
-		if Game.run.completed.has(id) and not Game.other_way(id):
-			ids.append(id)
-	ids.sort_custom(func(a: String, b: String) -> bool:
-		return float(Game.nodes[a]["map_pos"][0]) < float(Game.nodes[b]["map_pos"][0]))
+	var ids: Array = Game.map_order().filter(func(id: String) -> bool:   # country -> centre
+		return Game.run.completed.has(id) and not Game.other_way(id))
 	for id: String in ids:
 		var n: Dictionary = Game.nodes.get(id, {})
 		var best: Dictionary = Game.run.best.get(id, {})

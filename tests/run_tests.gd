@@ -188,6 +188,27 @@ func _run_tests() -> void:
 	Game.run.current_node = start
 	check(Game.can_select(lnb) and not Game.can_select(rnb), "a reloaded left run, back on the start, still locks out the right branch")
 
+	# Coming-soon streets: on the map in road order, never selectable, not counted as reachable.
+	var order := Game.map_order()
+	check(order.size() == Game.nodes.size() and order.has(start), "map order lists every street once: %s" % [order])
+	var si := order.find(start)
+	check(order.slice(0, si).all(func(id: String) -> bool: return Game.branch[id] == "left")
+		and order.slice(si + 1).all(func(id: String) -> bool: return Game.branch[id] == "right"),
+		"map order runs left side, start, right side")
+	check(order[si - 1] == lnb and order[si + 1] == rnb, "the start's neighbours sit either side of it in map order")
+	var soon: Array = Game.nodes.keys().filter(func(id: String) -> bool: return Game.is_soon(id))
+	check(not soon.is_empty(), "the map shows streets that aren't built yet")
+	var everywhere := Run.new("left", start)
+	everywhere.completed = Game.nodes.keys()
+	Game.run = everywhere
+	for id: String in soon:
+		everywhere.current_node = Game.neighbors(id)[0]
+		check(not Game.can_select(id), "coming-soon %s can't be picked even from next door" % id)
+		check(not Game.nodes[id].has("file") and Game.branch.has(id), "coming-soon %s has a side but no level file" % id)
+	var built_left := Game.nodes.keys().filter(func(id: String) -> bool:
+		return not Game.is_soon(id) and Game.branch[id] in ["", "left"]).size()
+	check(Game.reachable_count(everywhere) == built_left, "streets-walked count leaves out coming-soon streets")
+
 	for f in DirAccess.get_files_at(dir):
 		DirAccess.remove_absolute(dir.path_join(f))
 	DirAccess.remove_absolute(dir)

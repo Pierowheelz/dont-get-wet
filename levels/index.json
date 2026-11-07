@@ -2,25 +2,91 @@
  "start": "main_street",
  "nodes": [
   {
+   "id": "county_road",
+   "name": "The County Road",
+   "map_pos": [
+    0.0333,
+    0.6
+   ],
+   "neighbors": [
+    "long_lane"
+   ],
+   "soon": true
+  },
+  {
+   "id": "long_lane",
+   "name": "Long Lane",
+   "map_pos": [
+    0.1,
+    0.63
+   ],
+   "neighbors": [
+    "county_road",
+    "the_bypass"
+   ],
+   "soon": true
+  },
+  {
+   "id": "the_bypass",
+   "name": "The Bypass",
+   "map_pos": [
+    0.1667,
+    0.569
+   ],
+   "neighbors": [
+    "long_lane",
+    "viaduct_road"
+   ],
+   "soon": true
+  },
+  {
+   "id": "viaduct_road",
+   "name": "Viaduct Road",
+   "map_pos": [
+    0.2333,
+    0.601
+   ],
+   "neighbors": [
+    "the_bypass",
+    "kiln_street"
+   ],
+   "soon": true
+  },
+  {
+   "id": "kiln_street",
+   "name": "Kiln Street",
+   "map_pos": [
+    0.3,
+    0.63
+   ],
+   "neighbors": [
+    "viaduct_road",
+    "mill_road"
+   ],
+   "soon": true
+  },
+  {
    "id": "mill_road",
    "name": "Mill Road",
    "map_pos": [
-    0.12,
-    0.62
+    0.3667,
+    0.569
    ],
    "neighbors": [
+    "kiln_street",
     "canal_row"
    ],
-   "blurb": "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through.",
+   "blurb": "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through. Out here you'd see anyone coming.",
    "difficulty": 4,
-   "file": "res://levels/mill_road.json"
+   "file": "res://levels/mill_road.json",
+   "outro": "He signs the register with a name that isn't his."
   },
   {
    "id": "canal_row",
    "name": "Canal Row",
    "map_pos": [
-    0.31,
-    0.45
+    0.4333,
+    0.601
    ],
    "neighbors": [
     "mill_road",
@@ -35,22 +101,23 @@
    "name": "Main Street",
    "map_pos": [
     0.5,
-    0.55
+    0.63
    ],
    "neighbors": [
     "canal_row",
     "arcade_lane"
    ],
-   "blurb": "The old downtown. Most shops are shuttered, but the awnings still hold.",
+   "blurb": "The old downtown, on your way to work. Most shops are shuttered, but the awnings still hold.",
    "difficulty": 1,
-   "file": "res://levels/main_street.json"
+   "file": "res://levels/main_street.json",
+   "outro": "The desk clerk hands over your key without asking your name."
   },
   {
    "id": "arcade_lane",
    "name": "Arcade Lane",
    "map_pos": [
-    0.69,
-    0.42
+    0.5667,
+    0.569
    ],
    "neighbors": [
     "main_street",
@@ -64,15 +131,81 @@
    "id": "neon_junction",
    "name": "Neon Junction",
    "map_pos": [
-    0.88,
-    0.5
+    0.6333,
+    0.602
    ],
    "neighbors": [
-    "arcade_lane"
+    "arcade_lane",
+    "telstar_parade"
    ],
    "blurb": "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns in your face.",
    "difficulty": 5,
-   "file": "res://levels/neon_junction.json"
+   "file": "res://levels/neon_junction.json",
+   "outro": "The night porter says a man was asking for you. He didn't leave a name."
+  },
+  {
+   "id": "telstar_parade",
+   "name": "Telstar Parade",
+   "map_pos": [
+    0.7,
+    0.629
+   ],
+   "neighbors": [
+    "neon_junction",
+    "atomic_avenue"
+   ],
+   "soon": true
+  },
+  {
+   "id": "atomic_avenue",
+   "name": "Atomic Avenue",
+   "map_pos": [
+    0.7667,
+    0.569
+   ],
+   "neighbors": [
+    "telstar_parade",
+    "rocket_row"
+   ],
+   "soon": true
+  },
+  {
+   "id": "rocket_row",
+   "name": "Rocket Row",
+   "map_pos": [
+    0.8333,
+    0.602
+   ],
+   "neighbors": [
+    "atomic_avenue",
+    "skyway_terminal"
+   ],
+   "soon": true
+  },
+  {
+   "id": "skyway_terminal",
+   "name": "Skyway Terminal",
+   "map_pos": [
+    0.9,
+    0.629
+   ],
+   "neighbors": [
+    "rocket_row",
+    "the_zenith"
+   ],
+   "soon": true
+  },
+  {
+   "id": "the_zenith",
+   "name": "The Zenith",
+   "map_pos": [
+    0.9667,
+    0.568
+   ],
+   "neighbors": [
+    "skyway_terminal"
+   ],
+   "soon": true
   }
  ]
 }

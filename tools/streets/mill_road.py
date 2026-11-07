@@ -5,7 +5,7 @@ from street import Street
 
 
 s = Street("mill_road", "Mill Road",
-           "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through.",
+           "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through. Out here you'd see anyone coming.",
            aesthetic="outskirts", neon=0.0, rain=[[0.0, 0.85], [0.5, 1.15], [1.0, 1.2]],
            wind=[[0.0, -0.05], [0.2, -0.2], [0.45, -0.3], [0.75, -0.3], [0.85, -0.4], [1.0, -0.4]],
            gusts=True)
@@ -77,6 +77,7 @@ s.lot("verge", 6, "vacant", "none", floors=0)
 s.xing("county", 10, car=True)
 s.lot("inn", 8, "inn", "awning", sign="ROADHOUSE INN", color="red", floors=2, awning_style="wide_stripe")
 s.lot("barn2", 8, "warehouse", "awning", color="brown", floors=1, awning_style="tin")
+s.figure(s.mid("store"))
 s.door("inn")
 
 # Features
@@ -132,7 +133,7 @@ s.prop("gas_pump", s.start("gas") + 2.5)
 s.prop("gas_pump", s.start("gas") + 5.5)
 s.prop("vending_machine_a", s.end("kiosk") - 0.8)
 s.prop("newspaper_box", s.start("kiosk") + 0.8)
-s.prop("phone_booth", s.end("garage") - 1.0)
+s.prop("phone_booth", s.end("garage") - 1.0, ring=True)
 s.prop("chainlink_fence_4", s.start("fieldA") + 18.0)
 s.prop("crates", s.start("barn") + 1.0)
 s.prop("chainlink_fence_4", s.end("fieldB") - 2.5)
