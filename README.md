@@ -2,14 +2,13 @@
 
 # Don't Get Wet
 
-A game by **Peter Wells** (game design).
+A game by **Peter Wells**.
 
-A close-up 3D side-scroller in a city where it never stops raining. He walks on his own; you keep
-him dry: open the umbrella under open sky, close it under cover to get your stamina back, hurry
-across gaps, tilt into the wind, and shield yourself from passing cars.
+It never stops raining in this city, and he isn't dressed for it. He walks on his own — your job is
+to get him to shelter as dry as you can: open the umbrella under open sky, close it under cover to
+get your breath back, hurry across the gaps, tilt into the wind, and watch out for passing cars.
 
-Built with **Godot 4.7** (GDScript, Forward+). Design: [`docs/DESIGN.md`](docs/DESIGN.md).
-Content interfaces: [`docs/CONTRACTS.md`](docs/CONTRACTS.md). Asset credits: [`assets/CREDITS.md`](assets/CREDITS.md).
+> **Alpha v0.1.0** — an early version. Expect rough edges, and tell us what you think!
 
 ![Neon Junction](docs/screenshots/neon_junction.jpg)
 
@@ -28,24 +27,65 @@ Content interfaces: [`docs/CONTRACTS.md`](docs/CONTRACTS.md). Asset credits: [`a
   </tr>
 </table>
 
-## Running
+## Download and play
+
+Get the latest version from the [**Releases**](../../releases) page — just download the one file
+for your computer. There's nothing to install.
+
+**Windows** — download the file ending in **`-windows.exe`** and double-click it.
+If Windows says it protected your PC, click **More info → Run anyway** (the game isn't signed yet).
+
+**Linux / Steam Deck** — download the file ending in **`-linux.x86_64`**. The first time, right-click
+it → **Properties → Permissions** → tick **Is executable** (or "Allow executing file as program"),
+then double-click it. On Steam Deck, do this in Desktop Mode; you can also add it to Steam with
+**Add a Non-Steam Game** to play it in Game Mode.
+
+A gamepad is recommended, but keyboard and mouse work too.
+
+## How to play
+
+- **Rain soaks you wherever the sky is open.** Fill the wetness meter and it's game over.
+- **The umbrella takes a moment to open**, and holding it up tires you out.
+- **Close it under cover** (awnings, balconies) — stamina only comes back while it's closed.
+- **Watch for gutters, wind and cars.** Keep the umbrella upright under overflowing gutters, tilt it
+  into slanting rain, and tilt it forward when headlights come — cars splash!
+- **Sunny breaks dry you off** — close the umbrella and enjoy them.
+- Beat your best score on a street to earn tokens for umbrella upgrades.
+
+## Controls
+
+| Action | Gamepad | Keyboard / mouse |
+|---|---|---|
+| Open umbrella (hold — press lightly to half-open) | RT | Right mouse button or Space |
+| Hurry (press fully to run) | LT | Shift (W for a brisk walk) |
+| Stop for a breather (when puffed out) | LB | S |
+| Tilt the umbrella | Either stick | Q / E or mouse wheel |
+| Pause | Start | Esc |
+| Restart the street | Back | R |
+
+Touch screens get on-screen controls.
+
+## Credits
+
+Characters, sounds, fonts and other assets are listed in [`assets/CREDITS.md`](assets/CREDITS.md).
+
+---
+
+## Developers
+
+Built with **Godot 4.7** (GDScript, Forward+ renderer). Design notes: [`docs/DESIGN.md`](docs/DESIGN.md).
+Content interfaces: [`docs/CONTRACTS.md`](docs/CONTRACTS.md).
+
+### Running from source
 
 ```sh
 godot --path .                 # play (opens the main menu)
 godot --path . --editor        # open in the editor
 ```
 
-## Controls
+Builds: export the **Linux** and **Windows Desktop** presets (to `build/linux/` and `build/windows/`).
 
-| Action | Gamepad | Keyboard / mouse | Touch |
-|---|---|---|---|
-| Umbrella (hold; partial press = partly open) | RT | Right mouse / Space | Right pad |
-| Hurry (full = run) | LT | Shift (W = brisk walk) | Left pad |
-| Stop for breath (only at ≤25% stamina) | LB | S / Ctrl | Stop button |
-| Tilt umbrella forward / back | Either stick (both = averaged) | E / Q, mouse wheel | Drag on right pad |
-| Pause / restart | Start / Back | Esc / R | — |
-
-## Developer tools
+### Tools
 
 ```sh
 python3 tools/level_gen.py                   # regenerate first-draft level layouts into levels/*.json
@@ -53,6 +93,7 @@ tools/playtest.sh [--human] [level ...]      # autopilot bot plays levels headle
 godot --headless --path . res://tests/run_tests.tscn   # rain-exposure / umbrella / splash tests
 tools/shots.sh OUT_DIR "1,3,5" res://src/level/level.tscn --autopilot --level=main_street --start-x=40
 python3 tools/grid.py sheet.png OUT_DIR/shot_*.png      # contact sheet of screenshots
+tools/posture_sheet.sh OUT.png               # walker posture contact sheet
 ```
 
 Debug game args (after `--`): `--level=ID`, `--autopilot`, `--human`, `--lazy` (never opens the
@@ -60,7 +101,7 @@ umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 
-## Layout
+### Layout
 
 ```
 src/core     autoloads: Tun (tunables), Inputs, Game (progression, save, scene flow)

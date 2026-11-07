@@ -57,7 +57,7 @@ func _ready() -> void:
 	_hints.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_hints.position = Vector2(LEFT, -84)
 	_root.add_child(_hints)
-	var ver := UIStyle.label("A game by Peter Wells  ·  v0.1 prototype", &"CaptionLabel")
+	var ver := UIStyle.label("A game by Peter Wells  ·  v%s alpha" % ProjectSettings.get_setting("application/config/version", "0.1.0"), &"CaptionLabel")
 	ver.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	ver.position = Vector2(-520, -84)
