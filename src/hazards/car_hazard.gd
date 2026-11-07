@@ -9,8 +9,8 @@ signal splashed_puddle(at: Vector3)
 enum S { IDLE, DRIVING, GONE }
 
 const TRIGGER_DIST := 8.5
-const SPEED := 15.0
-const START_Z := -42.0
+const SPEED := 11.0
+const START_Z := -30.0
 
 var level: Node
 var crossing_x := 0.0
@@ -20,6 +20,8 @@ var _splashed := false
 var _body: Node3D
 var _spray: GPUParticles3D
 var _lights: Array[SpotLight3D] = []
+var _beacon: Label3D
+var _t := 0.0
 
 
 func _ready() -> void:
@@ -44,6 +46,20 @@ func _ready() -> void:
 		add_child(sl)
 		_lights.append(sl)
 	visible = false
+	# Warning beacon at the corner: flashes while a car is coming down the side street.
+	_beacon = Label3D.new()
+	_beacon.text = "!"
+	_beacon.font_size = 220
+	_beacon.pixel_size = 0.0065
+	_beacon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_beacon.modulate = Color(1.0, 0.72, 0.2)
+	_beacon.outline_size = 40
+	_beacon.outline_modulate = Color(0.05, 0.03, 0.0, 0.85)
+	_beacon.no_depth_test = true
+	_beacon.top_level = true
+	_beacon.visible = false
+	add_child(_beacon)
+	_beacon.global_position = Vector3(crossing_x + 0.3, 2.9, 2.2)
 	_spray = _make_spray()
 	_spray.top_level = true
 	add_child(_spray)
@@ -112,17 +128,32 @@ func _make_spray() -> GPUParticles3D:
 	pm.scale_max = 1.6
 	p.process_material = pm
 	var q := QuadMesh.new()
-	q.size = Vector2(0.06, 0.06)
+	q.size = Vector2(0.09, 0.09)
 	var dm := StandardMaterial3D.new()
 	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	dm.albedo_color = Color(0.7, 0.78, 0.9, 0.7)
+	dm.albedo_color = Color(0.7, 0.78, 0.9, 0.55)
+	dm.albedo_texture = _droplet_tex()
 	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	q.material = dm
 	p.draw_pass_1 = q
 	p.visibility_aabb = AABB(Vector3(-10, -2, -6), Vector3(20, 8, 12))
 	return p
+
+
+static func _droplet_tex() -> GradientTexture2D:
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(1.0, 0.5)
+	t.width = 32
+	t.height = 32
+	return t
 
 
 func is_threat_for(x: float) -> bool:
@@ -141,9 +172,12 @@ func _physics_process(delta: float) -> void:
 				visible = true
 				approaching.emit()
 		S.DRIVING:
+			_t += delta
+			_beacon.visible = not _splashed and fmod(_t, 0.4) < 0.26
 			position.z += SPEED * delta
 			if not _splashed and position.z >= 0.6:
 				_splashed = true
+				_beacon.visible = false
 				_do_splash(player)
 			if position.z > 40.0:
 				state = S.GONE

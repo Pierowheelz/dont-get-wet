@@ -15,11 +15,11 @@
   "umbrella_droop_coverage": 0.65,
 
   "stamina_max": 100.0,
-  "stamina_drain_umbrella": 3.5,
+  "stamina_drain_umbrella": 3.0,
   "stamina_drain_wind": 4.0,
   "stamina_drain_hurry": 9.0,
   "stamina_drain_run": 18.0,
-  "stamina_regen": 10.0,
+  "stamina_regen": 12.0,
   "stamina_regen_stopped": 20.0,
   "stop_threshold": 0.25,
   "exhausted_recover": 0.15,
@@ -31,7 +31,7 @@
   "wet_puddle_run": 5.0,
   "wet_car_splash": 28.0,
   "dry_sun_rate": 3.0,
-  "dry_vent_rate": 8.0,
+  "dry_vent_rate": 4.5,
 
   "camera_distance": 7.2,
   "camera_height": 2.6,
@@ -40,6 +40,7 @@
   "camera_lead": 1.9,
   "player_z": 1.6,
 
+  "par_speed": 1.12,
   "score_dry_weight": 700,
   "score_time_weight": 300,
   "upgrade_costs": [4, 8, 12],

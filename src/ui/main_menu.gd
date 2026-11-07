@@ -310,10 +310,8 @@ func _credits() -> void:
 	rt.custom_minimum_size = Vector2(760, 360)
 	rt.focus_mode = Control.FOCUS_ALL
 	rt.add_theme_font_size_override("normal_font_size", 18)
-	var txt := "Don't Get Wet — made with Godot Engine (godotengine.org/license).\n\n"
-	if FileAccess.file_exists("res://assets/CREDITS.md"):
-		txt += FileAccess.get_file_as_string("res://assets/CREDITS.md").replace("#", "").replace("**", "").replace("`", "")
-	rt.text = txt
+	rt.text = FileAccess.get_file_as_string("res://data/credits.txt") if FileAccess.file_exists("res://data/credits.txt") else ""
+	rt.add_theme_font_size_override("normal_font_size", 22)
 	_page.add_child(rt)
 	var back := _btn("Back", _main_buttons, &"", &"ui_back")
 	back.grab_focus.call_deferred()

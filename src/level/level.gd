@@ -42,7 +42,7 @@ func _ready() -> void:
 	data = Game.level_data(level_id)
 	length = data.get("length", 100.0)
 	end_x = data.get("end_x", length - 10.0)
-	par_time = end_x / Tun.f("walk_speed")
+	par_time = end_x / Tun.f("par_speed")
 	_rain_curve = data.get("rain", [[0, 1], [1, 1]])
 	_wind_curve = data.get("wind", [[0, 0], [1, 0]])
 	_gusts = data.get("gusts", false)
@@ -59,7 +59,7 @@ func _ready() -> void:
 		print("build: %d ms" % (Time.get_ticks_msec() - t0))
 	if builder.inn_door_x > 0.0:
 		end_x = builder.inn_door_x
-		par_time = end_x / Tun.f("walk_speed")
+		par_time = end_x / Tun.f("par_speed")
 	_parse_features()
 	_setup_environment()
 	_setup_shop_lights()

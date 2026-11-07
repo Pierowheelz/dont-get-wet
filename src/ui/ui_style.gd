@@ -35,7 +35,8 @@ static func grade_color(g: String) -> Color:
 
 static func fmt_time(t: float, tenths := false) -> String:
 	if tenths:
-		return "%d:%04.1f" % [floori(t / 60.0), fmod(t, 60.0)]
+		var d := roundi(t * 10.0)        # round first so 59.97 s shows 1:00.0, never 0:60.0
+		return "%d:%02d.%d" % [d / 600, (d / 10) % 60, d % 10]
 	return "%d:%02d" % [floori(t / 60.0), int(t) % 60]
 
 

@@ -75,12 +75,12 @@ func _ready() -> void:
 	_meters.position = Vector2(40, 28)
 	_root.add_child(_meters)
 
-	_progress = DrawBox.new(_draw_progress, Vector2(640, 90), true)
+	_progress = DrawBox.new(_draw_progress, Vector2(640, 104), true)
 	_progress.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_progress.offset_left = -320
 	_progress.offset_right = 320
 	_progress.offset_top = 20
-	_progress.offset_bottom = 110
+	_progress.offset_bottom = 124
 	_root.add_child(_progress)
 
 	var tbox := VBoxContainer.new()
@@ -165,6 +165,9 @@ func _key_text(action: String) -> String:
 
 
 func hint(text: String, duration := 3.0) -> void:
+	var st: int = level.player.state if level and level.player else 0
+	if st == Player.State.DEFEATED or st == Player.State.ENTERING or st == Player.State.DONE:
+		return
 	_hint.text = text
 	_hint_t = duration
 	_hint_box.reset_size()
@@ -321,11 +324,11 @@ func _draw_progress(ci: Control) -> void:
 	var w := ci.size.x
 	var lvl_name := String(level.data.get("name", "")).to_upper()
 	var f := UIStyle.F_TITLE
-	var fs := 34
+	var fs := 30
 	var nw := f.get_string_size(lvl_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	ci.draw_string(f, Vector2((w - nw) * 0.5, 30 + 2), lvl_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0, 0, 0, 0.5))
-	ci.draw_string(f, Vector2((w - nw) * 0.5, 30), lvl_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(C_TEXT, 0.88))
-	var y := 70.0
+	ci.draw_string(f, Vector2((w - nw) * 0.5, 24 + 2), lvl_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0, 0, 0, 0.5))
+	ci.draw_string(f, Vector2((w - nw) * 0.5, 24), lvl_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(C_TEXT, 0.88))
+	var y := 84.0   # track sits well below the title so the walker icon never covers it
 	var x0 := 16.0
 	var x1 := w - 46.0
 	var prog: float = level.progress()

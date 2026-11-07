@@ -1,0 +1,23 @@
+DON'T GET WET
+
+Made with the Godot Engine — godotengine.org/license
+
+CHARACTERS
+Player and pedestrians built with MPFB2 / MakeHuman — MakeHuman Community (CC0)
+Animations: Universal Animation Library — Quaternius (CC0)
+Clothing by Margaret Toigo and RehmanPolanski (CC0)
+Winter coat by punkduck — CC-BY 4.0 — makehumancommunity.org
+Hooded sweat jacket by Elvaerwyn — CC-BY 4.0 — makehumancommunity.org
+
+TEXTURES
+Poly Haven (CC0): Rob Tuytel, Dimitrios Savva, Dario Barresi,
+Charlotte Baglioni, Amal Kumar — polyhaven.com
+
+FONTS (SIL Open Font License 1.1)
+Bebas Neue — Ryoichi Tsunekawa / Dharma Type
+Barlow — Jeremy Tribby
+Alfa Slab One — José María Solé
+
+EVERYTHING ELSE
+Buildings, props, cars, umbrella, painted signs and interiors,
+sound effects, rain and music: original to this project.

@@ -10,6 +10,8 @@ const ROAD_Y := -0.16
 const AWNING_WALL_Y := 3.05
 const AWNING_FRONT_Y := 2.6
 const AWNING_DEPTH := 2.35
+const BALCONY_Y := 4.12   # above the 3.1–3.9 sign band so signs stay visible
+const ARCADE_Y := 4.15
 const SIGN_Z := 0.09   # just in front of the kit's fascia board face (z 0.055)
 const KIT_PATH := "res://assets/buildings/kit.json"
 const PROPS_PATH := "res://assets/props/props.json"
@@ -103,9 +105,9 @@ func cover_map() -> Array:
 				for sgm in segs:
 					_cover_fill(img, x0, lx + sgm[0], lx + sgm[1], 0.0, AWNING_DEPTH, true)
 			"balcony":
-				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, false, 3.35)
+				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, false, BALCONY_Y)
 			"arcade":
-				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, false, 3.6)
+				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, false, ARCADE_Y)
 			"canopy":
 				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, false, 3.55)
 	var tex := ImageTexture.create_from_image(img)
@@ -250,6 +252,10 @@ func _build_lot(lot: Dictionary) -> void:
 		var st: String = lot.get("style", "wall")
 		if retro.get("ground", {}).has(st):
 			kit = retro
+			if not lot.has("sign") and st != "vacant":
+				lot = lot.duplicate()
+				lot["sign"] = RETRO_FILLER_NAMES[rng.randi() % RETRO_FILLER_NAMES.size()]
+				lot["neon"] = true
 	var x: float = lot["x"]
 	var w: float = lot["w"]
 	var style: String = lot.get("style", "wall")
@@ -262,9 +268,9 @@ func _build_lot(lot: Dictionary) -> void:
 		"awning":
 			_build_awning(x, w, lot.get("tears", []), lot.get("awning_color", "red"))
 		"balcony":
-			_build_slab(x, w, 3.35, 2.4, false)
+			_build_slab(x, w, BALCONY_Y, 2.4, false)
 		"arcade":
-			_build_slab(x, w, 3.6, 2.9, true)
+			_build_slab(x, w, ARCADE_Y, 2.9, true)
 		"canopy":
 			# Gas-station canopy (the kit module draws it; we add the collider).
 			_cover_box(Vector3(w - 0.3, 0.4, 3.5), Transform3D(Basis(), Vector3(x + w * 0.5, 3.75, 1.55)))
@@ -570,11 +576,27 @@ func _drips(a: float, b: float, y: float, z: float) -> void:
 
 
 func _build_slab(x: float, w: float, y: float, depth: float, columns: bool) -> void:
-	var conc := _material_res("concrete", _mat("slab", Color(0.42, 0.4, 0.37), 0.85))
-	_box(Vector3(w, 0.28, depth), Vector3(x + w * 0.5, y, depth * 0.5), conc)
-	_box(Vector3(w, 0.9, 0.08), Vector3(x + w * 0.5, y + 0.6, depth - 0.04), _mat("rail", Color(0.12, 0.12, 0.12), 0.5, 0.7))
+	# Pale painted concrete with a moulded fascia, lit from below by the shopfront, so it reads
+	# as a balcony/arcade and not a black void.
+	var conc := _mat("slab_paint", Color(0.62, 0.58, 0.52), 0.7)
+	conc.uv1_triplanar = true
+	var fascia := _mat("slab_fascia", Color(0.72, 0.68, 0.6), 0.6)
+	_box(Vector3(w, 0.22, depth), Vector3(x + w * 0.5, y, depth * 0.5), conc)
+	_box(Vector3(w, 0.34, 0.14), Vector3(x + w * 0.5, y - 0.02, depth - 0.07), fascia)
+	_box(Vector3(w, 0.06, 0.06), Vector3(x + w * 0.5, y + 0.95, depth - 0.1), _mat("rail", Color(0.12, 0.12, 0.12), 0.5, 0.7))
+	var px := x + 0.15
+	while px <= x + w:
+		_box(Vector3(0.03, 0.8, 0.03), Vector3(px, y + 0.52, depth - 0.1), _mat("rail", Color(0.12, 0.12, 0.12), 0.5, 0.7))
+		px += 0.3
 	_cover_box(Vector3(w, 0.28, depth), Transform3D(Basis(), Vector3(x + w * 0.5, y, depth * 0.5)))
 	_drips(x, x + w, y - 0.15, depth + 0.02)
+	var under := OmniLight3D.new()
+	under.light_color = Color(1.0, 0.8, 0.6)
+	under.light_energy = 0.5
+	under.omni_range = 3.0
+	under.light_volumetric_fog_energy = 0.0
+	under.position = Vector3(x + w * 0.5, y - 0.6, depth * 0.6)
+	root.add_child(under)
 	if columns:
 		var cx := x + 0.3
 		while cx < x + w:
@@ -582,6 +604,7 @@ func _build_slab(x: float, w: float, y: float, depth: float, columns: bool) -> v
 			cx += 3.5
 
 
+const RETRO_FILLER_NAMES := ["OPEN", "VACANCY", "BAR", "LIVE", "EAT", "TV", "ROOMS", "GAMES", "CAFE", "NO VACANCY"]
 const NEON_COLORS := [Color(0.2, 1.0, 0.95), Color(1.0, 0.25, 0.75), Color(1.0, 0.55, 0.15),
 	Color(0.55, 0.35, 1.0), Color(0.35, 1.0, 0.4), Color(1.0, 0.2, 0.25)]
 
@@ -622,7 +645,8 @@ func _build_neon(x: float, w: float, text: String) -> void:
 		tm.pixel_size *= (w - 0.6) / est_w
 	var mi := MeshInstance3D.new()
 	mi.mesh = tm
-	mi.material_override = _neon_mat(col, 6.0)
+	# White-hot tube core with a coloured halo (light + bloom) keeps the lettering readable.
+	mi.material_override = _neon_mat(col.lerp(Color(1, 1, 1), 0.55), 2.6)
 	mi.position = Vector3(x + w * 0.5, 3.42, SIGN_Z)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(mi)
@@ -678,7 +702,7 @@ func _build_neon(x: float, w: float, text: String) -> void:
 				lt.font = sign_font
 			var li := MeshInstance3D.new()
 			li.mesh = lt
-			li.material_override = _neon_mat(col2, 7.0)
+			li.material_override = _neon_mat(col2.lerp(Color(1, 1, 1), 0.55), 3.0)
 			li.position = Vector3(0, h - 0.45 - i * 0.5, 0.07)
 			blade.add_child(li)
 		var bl := OmniLight3D.new()
@@ -857,6 +881,9 @@ func _build_backdrop() -> void:
 func _build_prop(p: Dictionary) -> void:
 	var id: String = p["id"]
 	var x: float = p["x"]
+	for c in data.get("crossings", []):
+		if x > float(c["x"]) - 0.4 and x < float(c["x"]) + float(c["w"]) + 0.4:
+			return     # never in the roadway
 	if props_kit.has(id):
 		var n := _instance(props_kit[id]["scene"])
 		if n:

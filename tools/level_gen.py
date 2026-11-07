@@ -44,12 +44,12 @@ LEVELS = {
     "canal_row": dict(seed=1962, length=320, neon=0.0, wind=(0.0, 0.35), cars=False, rain=(0.85, 1.2),
                       d=(0.1, 0.85), lit=0.15, crossing_every=(60, 85), sun=1, aesthetic="industrial",
                       vacant=0.18),
-    "arcade_lane": dict(seed=1963, length=330, neon=0.35, wind=(0.0, 0.15), cars=True, rain=(0.85, 1.25),
+    "arcade_lane": dict(seed=1963, length=330, neon=0.35, wind=(0.0, 0.12), cars=True, rain=(0.8, 1.12),
                         d=(0.1, 0.85), lit=0.45, crossing_every=(45, 60), sun=1, aesthetic="rundown_neon"),
-    "neon_junction": dict(seed=1964, length=420, neon=0.85, wind=(0.1, 0.45), cars=True, rain=(0.9, 1.25),
-                          d=(0.2, 1.0), lit=0.7, crossing_every=(45, 60), sun=0, aesthetic="neon", gusts=True),
-    "mill_road": dict(seed=1965, length=420, neon=0.0, wind=(-0.1, -0.4), cars=True, rain=(0.75, 1.05),
-                      d=(0.15, 0.9), lit=0.1, crossing_every=(70, 95), sun=3, aesthetic="outskirts",
+    "neon_junction": dict(seed=1964, length=420, neon=0.85, wind=(0.1, 0.38), cars=True, rain=(0.85, 1.15),
+                          d=(0.2, 0.9), lit=0.7, crossing_every=(45, 60), sun=0, aesthetic="neon", gusts=True),
+    "mill_road": dict(seed=1965, length=420, neon=0.0, wind=(-0.1, -0.42), cars=True, rain=(0.8, 1.2),
+                      d=(0.2, 1.0), lit=0.1, crossing_every=(70, 95), sun=3, aesthetic="outskirts",
                       vacant=0.3, gusts=True),
 }
 
@@ -57,7 +57,12 @@ SHOP_NAMES = ["DINER", "LAUNDROMAT", "PAWN", "BARBER", "NEWS", "DRUGS", "SHOES",
               "BAKERY", "TAILOR", "DELI", "LIQUOR", "CAFE", "BOOKS", "TOYS", "FLORIST", "LOANS", "CLEANERS",
               "RECORDS", "CHECKS CASHED", "SODA", "TOBACCO", "WATCH REPAIR", "PHOTO", "GROCERY", "GIFTS"]
 NEON_NAMES = ["NOODLES", "ARCADE", "CYBER CAFE", "KARAOKE", "ROBOTICS", "HOLO-TV", "SYNTH", "VR DEN",
-              "CHROME", "JUICE BAR", "PACHINKO", "NEO DINER", "24 HR", "PARTS & MODS"]
+              "CHROME", "JUICE BAR", "PACHINKO", "NEO DINER", "24 HR", "PARTS & MODS", "RAMEN", "ATOMIC",
+              "JETSET", "ORBIT", "LASER TAG", "DATA DEN", "VOLTS", "SATELLITE", "COMET", "FUSION",
+              "MAG-LEV", "HYPER", "PIXEL", "ROCKET", "NEON NITES", "CAPSULE", "STARLITE", "TUBES"]
+INDUSTRIAL_NAMES = ["FREIGHT", "MARINE SUPPLY", "COLD STORAGE", "ROPE & CHAIN", "SHIP CHANDLER", "BAIT",
+                    "MACHINE SHOP", "SALVAGE", "DOCK 7", "TIMBER", "WELDING", "FEED & SEED", "TIRES",
+                    "AUTO PARTS", "PLUMBING", "TRUCK STOP", "MOTEL", "GARAGE", "SCRAP METAL"]
 
 
 def lerp(a, b, t):
@@ -78,18 +83,24 @@ def gen_level(lid, cfg):
         p = x / L
         return lerp(cfg["d"][0], cfg["d"][1], min(1.0, p / 0.5))
 
+    recent = []
+
     def pick_name():
-        pool = NEON_NAMES if rng.random() < cfg["neon"] else SHOP_NAMES
-        for _ in range(10):
-            n = rng.choice(pool)
-            if n not in names_used:
-                names_used.add(n)
-                return n
-        return rng.choice(pool)
+        if rng.random() < cfg["neon"]:
+            pool = NEON_NAMES
+        elif cfg["aesthetic"] in ("industrial", "outskirts") and rng.random() < 0.6:
+            pool = INDUSTRIAL_NAMES
+        else:
+            pool = SHOP_NAMES
+        fresh = [n for n in pool if n not in names_used]
+        n = rng.choice(fresh) if fresh else rng.choice([n for n in pool if n not in recent[-8:]] or pool)
+        names_used.add(n)
+        recent.append(n)
+        return n
 
     def building_style(lit_bias=0.0, covered=True):
-        if cfg["aesthetic"] in ("industrial", "outskirts") and rng.random() < (0.35 if cfg["aesthetic"] == "outskirts" else 0.25):
-            return "warehouse" if covered or rng.random() < 0.5 else "loading_dock"
+        if cfg["aesthetic"] in ("industrial", "outskirts") and rng.random() < (0.4 if cfg["aesthetic"] == "outskirts" else 0.45):
+            return "warehouse" if covered or rng.random() < 0.4 else "loading_dock"
         r = rng.random()
         lit = cfg["lit"] + lit_bias
         if r < lit:
@@ -108,7 +119,8 @@ def gen_level(lid, cfg):
     def add_lot(x, w, cover, style=None, tears=None, **extra):
         style = style or building_style()
         lot = {"x": round(x, 2), "w": round(w, 2), "style": style, "cover": cover,
-               "floors": rng.choice([1, 2, 2, 3, 3, 4]) if style != "vacant" else 0}
+               "floors": (rng.choice([1, 1, 2]) if cfg["aesthetic"] in ("industrial", "outskirts")
+                          else rng.choice([1, 2, 2, 3, 3, 4])) if style != "vacant" else 0}
         if style in ("shop_lit", "shop_dark", "inn") or (style == "shuttered" and rng.random() < 0.5):
             lot["sign"] = "THE RAINY DAY INN" if style == "inn" else pick_name()
         if cover == "awning":
@@ -118,7 +130,8 @@ def gen_level(lid, cfg):
         if cfg["neon"] > 0 and rng.random() < cfg["neon"] * 0.8 and style not in ("vacant", "inn"):
             lot["neon"] = True
             if "sign" not in lot:
-                lot["sign"] = rng.choice(NEON_NAMES)
+                lot["sign"] = pick_name() if rng.random() < 0.3 else rng.choice([n for n in NEON_NAMES if n not in recent[-8:]])
+            recent.append(lot["sign"])
         lot.update(extra)
         lots.append(lot)
         return lot
@@ -246,6 +259,7 @@ def gen_level(lid, cfg):
     for c in crossings:
         props.append({"id": "street_sign", "x": round(c["x"] - 0.6, 2)})
 
+    props = [p for p in props if not any(c["x"] - 0.5 < p["x"] < c["x"] + c["w"] + 0.5 for c in crossings)]
     rain = [[0.0, cfg["rain"][0]], [0.5, cfg["rain"][1]], [1.0, cfg["rain"][1]]]
     wind = [[0.0, cfg["wind"][0]], [0.5, cfg["wind"][1]], [1.0, cfg["wind"][1]]]
     node = next(n for n in NODES if n["id"] == lid)

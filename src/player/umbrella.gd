@@ -12,7 +12,7 @@ const ANGLE_OPEN := deg_to_rad(72.0)
 const ANGLE_CLOSED := deg_to_rad(174.0)
 const UMBRELLA_LAYER := 1 << 3
 
-@export var canopy_color := Color(0.09, 0.1, 0.13)
+@export var canopy_color := Color(0.58, 0.1, 0.09)   # oxblood: reads against dark streets
 
 var open := 0.0
 var radius := 0.62          # rim radius when fully open
@@ -39,10 +39,12 @@ func _ready() -> void:
 	_canopy_mat.roughness = 0.28
 	_canopy_mat.metallic_specular = 0.7
 	_canopy_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_canopy_mat.vertex_color_use_as_albedo = true
 	_canopy_mat.rim_enabled = true
-	_canopy_mat.rim = 0.25
+	_canopy_mat.rim = 0.35
+	_canopy_mat.rim_tint = 0.3
 	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.55, 0.55, 0.58)
+	metal.albedo_color = Color(0.78, 0.78, 0.8)
 	metal.metallic = 0.9
 	metal.roughness = 0.3
 	var wood := StandardMaterial3D.new()
@@ -55,8 +57,8 @@ func _ready() -> void:
 
 	_shaft = MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.008
-	cyl.bottom_radius = 0.008
+	cyl.top_radius = 0.016
+	cyl.bottom_radius = 0.018
 	cyl.height = SHAFT_LEN + 0.12
 	cyl.radial_segments = 10
 	_shaft.mesh = cyl
@@ -151,6 +153,8 @@ func _rebuild() -> void:
 			var b: Vector3 = rows[s + 1][r]
 			var c: Vector3 = rows[s + 1][r + 1]
 			var d2: Vector3 = rows[s][r + 1]
+			var edge := 1.0 if r == RING_STEPS - 1 else 0.0
+			st.set_color(Color(0.72, 0.72, 0.72).lerp(Color(1.0, 0.95, 0.9), edge))
 			st.set_uv(Vector2(float(s) / segs, float(r) / RING_STEPS))
 			st.add_vertex(a)
 			st.add_vertex(c)

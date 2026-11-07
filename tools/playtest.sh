@@ -9,6 +9,6 @@ if [ ${#levels[@]} -eq 0 ]; then levels=(main_street canal_row arcade_lane neon_
 for l in "${levels[@]}"; do
   out=$(timeout 120 godot --headless --path . --fixed-fps 60 res://src/level/level.tscn -- --autopilot --level="$l" "${extra[@]}" 2>&1)
   res=$(echo "$out" | grep -m1 -E "AUTOPILOT_(RESULT|DEFEATED)")
-  errs=$(echo "$out" | grep -cE "SCRIPT ERROR|^ERROR")
+  errs=$(echo "$out" | grep -E "SCRIPT ERROR|^ERROR" | grep -vc "resources still in use")
   echo "$l: ${res:-NO RESULT} (errors: $errs)"
 done

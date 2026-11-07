@@ -4,7 +4,7 @@ extends Node3D
 ## the curb) as a foreground occluder. They never affect gameplay.
 
 const MANIFEST := "res://assets/characters/pedestrians/peds.json"
-const LANE_BACK := 1.0     # clear of wall props (vending machines, benches, crates ≤ ~0.8 m)
+const LANE_BACK := 0.95    # clear of wall props (vending machines, benches, crates ≤ ~0.8 m)
 const LANE_FRONT := 2.45   # clear of curb props (lamps, meters, hydrants at z ≈ 3.2)
 
 var level: Node
@@ -85,6 +85,12 @@ func _process(delta: float) -> void:
 		var n: Node3D = a[0]
 		n.position.x += a[1] * delta
 		n.position.y = level.ground_y(n.position.x)
+		# Step aside (toward the wall or the curb) while passing the walker so nobody clips.
+		var lane: float = a[2]
+		var target := lane
+		if absf(n.position.x - level.player.position.x) < 2.2:
+			target = 0.25 if lane < 1.6 else 3.0
+		n.position.z = move_toward(n.position.z, target, 1.6 * delta)
 		if absf(n.position.x - cam_x) > 26.0:
 			n.queue_free()
 			_active.erase(a)
@@ -96,7 +102,7 @@ func _spawn_walker() -> void:
 		return
 	var n: Node3D = _walkers[_rng.randi() % _walkers.size()].instantiate()
 	var speed: float = n.get("suggested_speed") if n.get("suggested_speed") != null else 1.2
-	var oncoming := _rng.randf() < 0.75
+	var oncoming := true   # never overtake the walker
 	var front := _rng.randf() < 0.25
 	var cam_x: float = level.camera.position.x
 	var dir := -1.0 if oncoming else 1.0
@@ -110,4 +116,4 @@ func _spawn_walker() -> void:
 		n.setup(_rng.randi())
 	if n.has_method("set_walking"):
 		n.set_walking(speed)
-	_active.append([n, dir * speed])
+	_active.append([n, dir * speed, n.position.z])
