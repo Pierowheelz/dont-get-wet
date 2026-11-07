@@ -45,44 +45,81 @@ func _ready() -> void:
 	_canopy_mat.rim = 0.35
 	_canopy_mat.rim_tint = 0.3
 	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.78, 0.78, 0.8)
+	metal.albedo_color = Color(0.46, 0.47, 0.5)
 	metal.metallic = 0.9
-	metal.roughness = 0.3
+	metal.roughness = 0.32
 	var wood := StandardMaterial3D.new()
 	wood.albedo_color = Color(0.32, 0.17, 0.08)
 	wood.roughness = 0.45
+	var bore := StandardMaterial3D.new()
+	bore.albedo_color = Color(0.02, 0.02, 0.025)
+	bore.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
 	_canopy = MeshInstance3D.new()
 	_canopy.material_override = _canopy_mat
 	_pivot.add_child(_canopy)
 
+	# Stout shaft from the collar above the grip to a rounded tip with a small hole in it.
+	const SHAFT_BASE := 0.06
+	const SHAFT_TOP := SHAFT_LEN + 0.08
+	const TIP_R := 0.034
 	_shaft = MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.016
-	cyl.bottom_radius = 0.018
-	cyl.height = SHAFT_LEN + 0.12
-	cyl.radial_segments = 10
+	cyl.top_radius = 0.025
+	cyl.bottom_radius = 0.027
+	cyl.height = SHAFT_TOP - SHAFT_BASE
+	cyl.radial_segments = 14
 	_shaft.mesh = cyl
-	_shaft.position.y = (SHAFT_LEN + 0.12) * 0.5 - 0.02
+	_shaft.position.y = (SHAFT_TOP + SHAFT_BASE) * 0.5
 	_shaft.material_override = metal
 	_pivot.add_child(_shaft)
+	var tip := MeshInstance3D.new()
+	var ball := SphereMesh.new()
+	ball.radius = TIP_R
+	ball.height = TIP_R * 1.7
+	ball.radial_segments = 16
+	ball.rings = 8
+	tip.mesh = ball
+	tip.position.y = SHAFT_TOP
+	tip.material_override = metal
+	_pivot.add_child(tip)
+	var hole := MeshInstance3D.new()
+	var hc := CylinderMesh.new()
+	hc.top_radius = 0.011
+	hc.bottom_radius = 0.011
+	hc.height = 0.004
+	hc.radial_segments = 12
+	hole.mesh = hc
+	hole.position.y = SHAFT_TOP + TIP_R * 0.85 - 0.0015
+	hole.material_override = bore
+	_pivot.add_child(hole)
+	var collar := MeshInstance3D.new()
+	var cc := CylinderMesh.new()
+	cc.top_radius = 0.03
+	cc.bottom_radius = 0.031
+	cc.height = 0.024
+	cc.radial_segments = 14
+	collar.mesh = cc
+	collar.position.y = SHAFT_BASE + 0.008
+	collar.material_override = metal
+	_pivot.add_child(collar)
 
 	# J-shaped handle below the grip.
 	_handle = MeshInstance3D.new()
 	var torus := TorusMesh.new()
-	torus.inner_radius = 0.035
-	torus.outer_radius = 0.058
+	torus.inner_radius = 0.033
+	torus.outer_radius = 0.063
 	torus.rings = 16
 	torus.ring_segments = 8
 	_handle.mesh = torus
 	_handle.rotation = Vector3(PI * 0.5, 0, 0)
-	_handle.position = Vector3(-0.046, -0.06, 0)
+	_handle.position = Vector3(-0.048, -0.06, 0)
 	_handle.material_override = wood
 	_pivot.add_child(_handle)
 	var grip_cyl := MeshInstance3D.new()
 	var gc := CylinderMesh.new()
-	gc.top_radius = 0.016
-	gc.bottom_radius = 0.016
+	gc.top_radius = 0.022
+	gc.bottom_radius = 0.02
 	gc.height = 0.14
 	grip_cyl.mesh = gc
 	grip_cyl.position.y = 0.0
