@@ -14,12 +14,14 @@ const ANIMS := {
 
 ## The UAL jog is a long, deep-kneed stride; a full blend reads as a sprint/lunge. Running is a
 ## phase-locked walk/jog mix that tops out at this jog weight (a hurried office-worker trot).
-@export_range(0.0, 1.0) var jog_blend_max := 0.5
+@export var foot_lift_walk := 0.045
+@export var foot_lift_run := 0.1
+@export_range(0.0, 1.0) var jog_blend_max := 0.26
 ## Ground distance (m) covered by one full gait cycle at jog weight 0, 0.25, 0.5, 0.75, 1.0.
 ## Measured on this skeleton with test/measure_blend.gd (planted-foot speed at 1 cycle/s).
 const CYCLE_M := [1.38, 2.52, 3.78, 4.94, 5.81]
 const SAD_STRIDE := 0.85
-const MAX_RUN_CYCLE_M := 2.9  # shorter, shuffling steps when defeated
+const MAX_RUN_CYCLE_M := 2.35  # shorter, shuffling steps when defeated
 
 @onready var _model: Node3D = $Model
 var _skel: Skeleton3D
@@ -231,7 +233,7 @@ func _apply_params(delta: float) -> void:
 	var jog_w := _run_s * jog_blend_max
 	# The jog's natural stride is too long for our run speeds; past ~2.9 m/cycle we keep a believable
 	# cadence instead and accept a little slide during the jog's very short ground contacts.
-	var cycle_m := minf(cycle_length(jog_w), lerpf(1.39, MAX_RUN_CYCLE_M, _run_s))
+	var cycle_m: float = minf(cycle_length(jog_w), lerpf(1.39, MAX_RUN_CYCLE_M, _run_s)) * float(_mod.stride_now())
 	cycle_m *= lerpf(1.0, SAD_STRIDE, _sad_s * (1.0 - _run_s))
 	var cps := maxf(_speed, 0.0) / cycle_m
 	_tree.set(&"parameters/run/blend_amount", jog_w)
@@ -243,6 +245,9 @@ func _apply_params(delta: float) -> void:
 	_mod.tilt = _tilt
 	_mod.droop = _droop
 	_mod.sad = _sad_s * (1.0 - _run_s)
+	# Hurrying leans the whole body forward from the ankles (not just a fold at the waist).
+	_model.rotation.z = -lerpf(0.055, 0.15, _run_s)   # slight whole-body lean from the ankles
+	_model.position.y = lerpf(foot_lift_walk, foot_lift_run, _run_s)   # keep toes out of the ground
 	_mod.breath = _breath_s
 	_mod.time = _t
 
