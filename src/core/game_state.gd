@@ -17,6 +17,8 @@ var upgrades := {&"sturdy": 0, &"wide": 0, &"light": 0}
 var completed: Array = []
 var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
+var debug_lazy := false             # --lazy: autopilot never opens the umbrella (testing defeat)
+var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
 var last_result: Dictionary = {}
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false}
 
@@ -26,11 +28,14 @@ func _ready() -> void:
 	load_game()
 	var args := OS.get_cmdline_user_args()
 	autopilot = args.has("--autopilot")
+	debug_lazy = args.has("--lazy")
 	for a in args:
 		if a.begins_with("--level="):
 			current_level = a.substr(8)
 		if a.begins_with("--start-x="):
 			debug_start_x = float(a.substr(10))
+		if a.begins_with("--wet="):
+			debug_start_wet = float(a.substr(6))
 		if a.begins_with("--shots="):
 			for t in a.substr(8).split(","):
 				_shots.append(float(t))

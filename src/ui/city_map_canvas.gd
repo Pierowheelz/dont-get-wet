@@ -72,6 +72,12 @@ func _draw() -> void:
 			pts.append(Vector2(u * canal_x * s.x, ly + sin(u * 4.0 + i) * 18.0))
 		draw_polyline(pts, Color(0.6, 0.6, 0.5, 0.18), 3.0, true)
 
+	# City-light haze: warm sodium glow over the old town, cold neon glow downtown.
+	for i in 14:
+		var k := float(i) / 14.0
+		draw_circle(Vector2(0.55 * s.x, 0.55 * s.y), lerpf(0.42, 0.05, k) * s.x, Color(1.0, 0.65, 0.3, 0.012))
+		draw_circle(Vector2(0.95 * s.x, 0.5 * s.y), lerpf(0.4, 0.05, k) * s.x, Color(0.3, 0.9, 1.0, 0.014))
+
 	# Town grid: block size shrinks toward the centre (right); outskirts have gaps.
 	var x0 := (canal_x + 0.06) * s.x
 	var bx := x0
@@ -87,7 +93,11 @@ func _draw() -> void:
 				var col := BLOCK.lerp(BLOCK_DT, clampf((u - 0.4) * 1.6, 0.0, 1.0))
 				col = col.darkened(_rng.randf_range(0.0, 0.25))
 				var r := Rect2(bx, by, bw, bh)
+				draw_rect(Rect2(r.position + Vector2(3, 4), r.size), Color(0, 0, 0, 0.35))
 				draw_rect(r, col)
+				# Lit top/left edges, like ink on blueprint paper.
+				draw_line(r.position, r.position + Vector2(bw, 0), Color(0.75, 0.85, 1.0, 0.16), 1.5)
+				draw_line(r.position, r.position + Vector2(0, bh), Color(0.75, 0.85, 1.0, 0.1), 1.5)
 				# Subdivide downtown blocks into building footprints.
 				if u > 0.55 and _rng.randf() < 0.6:
 					draw_line(Vector2(bx + bw * 0.5, by), Vector2(bx + bw * 0.5, by + bh), Color(0, 0, 0, 0.25), 2.0)

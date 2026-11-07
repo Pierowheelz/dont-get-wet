@@ -119,6 +119,8 @@ func _physics_process(delta: float) -> void:
 	var stop_req: bool
 	if Game.autopilot:
 		var ap := _autopilot(delta)
+		if Game.debug_lazy:
+			ap[0] = 0.0
 		u = ap[0]; h = ap[1]; tl = ap[2]; stop_req = ap[3]
 	else:
 		u = Inputs.umbrella()

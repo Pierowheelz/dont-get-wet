@@ -63,6 +63,7 @@ func _ready() -> void:
 	player.level = self
 	player.position = Vector3(Game.debug_start_x if Game.debug_start_x > 0.0 else 1.5, 0.0, Tun.f("player_z"))
 	add_child(player)
+	player.wet = Game.debug_start_wet
 	player.defeated.connect(_on_defeated)
 	player.arrived.connect(_on_arrived)
 
@@ -227,11 +228,17 @@ func _on_car_approaching() -> void:
 
 func _on_defeated() -> void:
 	_cam_locked = true
-	if Game.autopilot:
+	if Game.autopilot and Game._shots.is_empty():
 		print("AUTOPILOT_DEFEATED x=%.1f t=%.1f stats=%s" % [player.position.x, elapsed, JSON.stringify(player.stats)])
 		get_tree().quit()
 		return
-	await get_tree().create_timer(3.6).timeout
+	# Let him trudge off the left of the frozen screen before the fail card.
+	var t := 0.0
+	while t < 7.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		if t > 3.5 and player.position.x < camera.position.x - 6.5:
+			break
 	hud.show_fail()
 
 
@@ -243,7 +250,7 @@ func _on_arrived() -> void:
 		await get_tree().process_frame
 	await get_tree().create_timer(0.6).timeout
 	var result := Game.finish_level(level_id, wet, t, par_time)
-	if Game.autopilot:
+	if Game.autopilot and Game._shots.is_empty():
 		print("AUTOPILOT_RESULT ", JSON.stringify(result), " stats=", JSON.stringify(player.stats))
 		get_tree().quit()
 		return

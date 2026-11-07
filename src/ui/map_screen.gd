@@ -23,6 +23,7 @@ var _shop: VBoxContainer
 var _tokens_lbl: Label
 var _shop_buttons: Array[Button] = []
 var _menu_btn: Button
+var _umb_stats: HBoxContainer
 var _sound: UISound
 var _fade: ColorRect
 var _t := 0.0
@@ -195,7 +196,6 @@ func _draw_routes(ci: Control) -> void:
 	# Current position: a little walker under an umbrella above the marker, bobbing.
 	if Game.nodes.has(Game.current_node):
 		var p := _map_point(Game.current_node) + Vector2(0, -NodeButton.R - 16.0 + sin(_t * 3.0) * 3.0)
-		ci.draw_circle(p + Vector2(0, -26), 30.0, Color(0, 0, 0, 0.35))
 		UIStyle.draw_walker(ci, p, 46.0, UIStyle.AMBER, _t * 6.0)
 	# Leader line from the preview card down to the focused street.
 	if _card_id != "" and _card.modulate.a > 0.05:
@@ -394,6 +394,11 @@ func _build_shop() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_shop.add_child(spacer)
+	_shop.add_child(UIStyle.label("YOUR UMBRELLA", &"KickerLabel", 18, UIStyle.MUTED))
+	_umb_stats = HBoxContainer.new()
+	_umb_stats.add_theme_constant_override("separation", 30)
+	_shop.add_child(_umb_stats)
+	_shop.add_child(HSeparator.new())
 	_menu_btn = Button.new()
 	_menu_btn.text = "Main menu"
 	_menu_btn.theme_type_variation = &"SmallButton"
@@ -435,7 +440,9 @@ func _upgrade_button(u: StringName) -> Button:
 	h.add_child(v)
 	var name_lbl := UIStyle.label(String(info[0]).to_upper(), &"HeaderSmall", 34)
 	v.add_child(name_lbl)
-	v.add_child(UIStyle.label(String(info[1]), &"MutedLabel", 20))
+	var desc := UIStyle.label(String(info[1]), &"MutedLabel", 20)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(desc)
 	var paint_pips := func(ci: Control) -> void:
 		var lvl := Game.upgrade_level(u)
 		for i in 3:
@@ -446,7 +453,7 @@ func _upgrade_button(u: StringName) -> Button:
 	var cost_box := VBoxContainer.new()
 	cost_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	cost_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cost_box.custom_minimum_size = Vector2(96, 0)
+	cost_box.custom_minimum_size = Vector2(92, 0)
 	h.add_child(cost_box)
 	var cost_row := HBoxContainer.new()
 	cost_row.alignment = BoxContainer.ALIGNMENT_END
@@ -474,6 +481,8 @@ func _upgrade_button(u: StringName) -> Button:
 			cost_lbl.add_theme_color_override("font_color", UIStyle.GOLD if ok else Color(UIStyle.DANGER, 0.85))
 			need.text = "BUY" if ok else "NEED %d MORE" % (cost - Game.tokens)
 			need.add_theme_color_override("font_color", Color(UIStyle.GOLD, 0.8) if ok else UIStyle.MUTED)
+			v.modulate.a = 1.0 if ok else 0.62
+			icon.modulate.a = v.modulate.a
 		name_lbl.add_theme_color_override("font_color", UIStyle.AMBER if b.has_focus() else UIStyle.CREAM)
 	refresh.call()
 	b.set_meta(&"refresh", refresh)
@@ -504,6 +513,11 @@ func _draw_token(ci: CanvasItem, c: Vector2, r: float) -> void:
 
 func _refresh_tokens() -> void:
 	_tokens_lbl.text = str(Game.tokens)
+	for c in _umb_stats.get_children():
+		c.queue_free()
+	_stat(_umb_stats, "CANOPY", "%.2f m" % Game.umbrella_radius())
+	_stat(_umb_stats, "OPENS IN", "%.2f s" % Game.umbrella_open_time())
+	_stat(_umb_stats, "STRAIN", "%d%%" % int(round(Game.umbrella_drain_mult() * 100.0)))
 	for b in _shop_buttons:
 		(b.get_meta(&"refresh") as Callable).call()
 
