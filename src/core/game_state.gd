@@ -18,6 +18,7 @@ var completed: Array = []
 var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
 var debug_lazy := false             # --lazy: autopilot never opens the umbrella (testing defeat)
+var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
 var last_result: Dictionary = {}
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false}
@@ -29,6 +30,7 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	autopilot = args.has("--autopilot")
 	debug_lazy = args.has("--lazy")
+	debug_human = args.has("--human")
 	for a in args:
 		if a.begins_with("--level="):
 			current_level = a.substr(8)
@@ -51,7 +53,18 @@ var _shot_t := 0.0
 var _shot_i := 0
 
 
+var _fps_t := 0.0
+
+
 func _process(delta: float) -> void:
+	if OS.get_cmdline_user_args().has("--fps-log"):
+		_fps_t += delta
+		if _fps_t > 2.0:
+			_fps_t = 0.0
+			print("FPS %d  draw_calls %d  objects %d  vram %.0fMB" % [Engine.get_frames_per_second(),
+				RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+				RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
+				RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) / 1048576.0])
 	if _shots.is_empty():
 		return
 	_shot_t += delta
