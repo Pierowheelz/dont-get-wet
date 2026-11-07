@@ -31,7 +31,7 @@ tilt into the wind, and watch out for passing cars.
 
 ## Download and play
 
-Get the latest version from the [**Releases**](../../releases) page. Sownload the one file
+Get the latest version from the [**Releases**](../../releases) page. Download the correct file
 for your computer.
 
 **Windows**: download the file ending in **`-windows.exe`** and double-click it.
