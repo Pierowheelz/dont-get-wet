@@ -40,10 +40,14 @@ stamina; the bots stop under cover once stamina falls to 24.
 
 Wetness runs from 0 to 50 (the HUD shows a percentage). Open sky adds 9/s x rain intensity x the
 exposed fraction of the body, so one bare second in the rain costs about 9 (18%). Only sun breaks,
-vents and fire barrels dry the walker.
+vents and fire barrels dry the walker, at their full rate only above 90% wet. Below that the rate
+halves for every 7 points drier (`dry_falloff` 10), so at 50% it is about 2% of full. Drying
+rescues a near-soaked run; it never pays back the time spent standing in it. On the early streets
+every sun break, vent and fire barrel ends before two thirds of `end_x`, so drying can save a bad
+start but never the finish.
 
-Score is `700 x (1 - wet/50) + 300 x min(1, par/time)`, with par = `end_x / 1.3`. S needs 950,
-which allows about 2 to 4% wet at a typical time ratio of 0.88 to 0.92.
+Score is `250 x (1 - wet/50) + 750 x min(1, par/time)`, with par = `end_x / 1.2`. Time dominates:
+S needs 950, which a run at par reaches with up to 20% wet.
 
 **Lots** (`x`, `w`, `style`, `cover`, `floors`, optional `sign`, `awning_color`, `awning_style`, `tears`,
 `neon`):
@@ -79,7 +83,7 @@ of it.
 |---|---|
 | `gutter` (`x`) | A falling column at z 1.65. Inside 0.45 m of it the rate is 26/s unless the umbrella is directly above. The bot opens for it even under cover. The column starts at 2.78 m, so it clips through intact awning canvas. Put it in a `wall` seam or inside a tear of 1 m or more. |
 | `puddle` (`x`, `w`, `deep`) | Stepping in costs 0.75 walking and 2.5 running (above about 2.2 m/s). `deep` multiplies that by 1.6. Nobody can step around one, so the lesson is "walk, don't run". |
-| `sun` (`x`, `w`) | No rain, and 3/s drying scaled by how closed the umbrella is (open shades him, no drying). The rain-free span stretches to meet cover within 2 m. Both bots close the umbrella in it. |
+| `sun` (`x`, `w`) | No rain, and 3/s drying (before the wetness falloff) scaled by how closed the umbrella is (open shades him, no drying). The rain-free span stretches to meet cover within 2 m. Both bots close the umbrella in it. |
 | `vent` (`x`, `w` = 1.6) | 4.5/s drying. |
 | `fire_barrel` (`x`, `w` = 1.8) | 5.4/s drying. It sits against the wall and looks right under a balcony. |
 
@@ -117,10 +121,10 @@ and the cover that follows it.
 |---|---|---|
 | 0 to 28 | The Bijou arcade (diner, cinema colonnade) | walk under continuous cover |
 | 28 to 68 | First gaps (2.5, 4, 3, 5 m) | open the umbrella for a short gap |
-| 80 to 104 | Elm Street and the Hotel Ambassador | cross 12 m (about 40 stamina), then close up under 12 m of balconies |
+| 80 to 104 | Elm Street and the Hotel Ambassador | cross 12 m (about 40 stamina), then close up under 12 m of balconies by a fire barrel |
 | 104 to 139 | The drainpipe at the Savings & Loan | keep the umbrella upright under a gutter, then walk through a puddle |
 | 139 to 162 | Oak Street | deep puddles at both kerbs, then 15 m of cover |
-| 162 to 192 | The Palace lot | close the umbrella in a 6 m sun break between two rainy strips, then a fire barrel |
+| 162 to 192 | The Palace lot | close the umbrella in a 6 m sun break between two rainy strips |
 | 220 to 257 | Pawn Row | torn awnings that keep the umbrella up, a gutter through a tear, a breather, a last gutter at the inn |
 
 Recovery needs real cover. After a gap the walker closes the umbrella (1.3 s) and only then starts to
@@ -133,8 +137,8 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
 - **The perfect bot hurries whenever stamina is above 80 and nothing is ahead.** It meets each gap
   with about 80, not 100, and stops (about 4 s each) once it falls to 24. Watch its `min stamina` and
   its time. Each stop costs score.
-- **Neither bot takes rain damage in normal play.** Their wetness comes from puddles minus drying.
-  To make the wetness curve move, put puddles at the tests and drying after them.
+- **Neither bot takes rain damage in normal play.** Their wetness comes from puddles, and they never
+  get wet enough for drying to matter. To make the wetness curve move, put puddles at the tests.
 - **`tests/run_tests.gd` uses the first untorn awning of 4 m or more and the first `none` lot of 4 m
   or more** on Main Street. It expects full exposure at the centre of that open lot, so it must not
   be a sun break.

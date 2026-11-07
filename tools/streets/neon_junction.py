@@ -88,7 +88,7 @@ shop("meteor", 6, "shop_dark", "awning", sign="METEOR", color="red", floors=4, a
 shop("lot7", 8, "vacant", "none", floors=0)
 shop("galaxy", 8, "shop_lit", "arcade", sign="GALAXY", floors=6)
 shop("cyber", 5, "shop_lit", "awning", sign="CYBER", color="teal", floors=4)
-# Ninth Street: a car into the headwind, then a vent under the balconies
+# Ninth Street: a car into the headwind, then the balconies
 s.xing("ninth", 9, car=True)
 shop("vision", 6, "shop_lit", "balcony", sign="VISION", floors=7)
 shop("helix", 6, "shuttered", "balcony", sign="HELIX", floors=7)
@@ -132,13 +132,10 @@ s.feature("puddle", s.mid("lot6"), w=1.2)
 s.feature("gutter", s.mid("alley4"))
 s.feature("puddle", s.mid("lot7"), w=1.4, deep=True)
 s.feature("puddle", s.start("ninth") + 1.2, w=1.4)
-s.feature("vent", s.mid("helix"), w=1.6)
 s.feature("puddle", s.end("last") - 1.2, w=1.4, deep=True)
-s.feature("vent", s.start("rocketeer") + 2.5, w=1.6)
 s.feature("gutter", s.start("bijou") + 4.4)
 s.feature("gutter", s.mid("pipe2"))
 s.feature("puddle", s.start("disco") + 4.2, w=1.0)
-s.feature("vent", s.mid("mall2"), w=1.6)
 
 for t in ["orbit", "holo", "zenith", "synth", "jetset", "atomic", "sat", "radar", "mono", "tube_tv",
           "pulsar", "hotel", "quasar", "galaxy", "vision", "plasma", "lounge", "tower"]:
@@ -202,6 +199,6 @@ s.set_piece("The Gutter Gauntlet", s.start("zap"), s.end("quark"),
 s.set_piece("Junction Square", s.start("junction"), s.end("skybar"),
             "a 14 m crossing with a car at the gust peak (deep puddles at both kerbs), then 16 m of Hotel Orbit balconies and a vent")
 s.set_piece("The Neon Mile and the Bubble Mall", s.start("bijou"), s.end("inn"),
-            "finale into the headwind: 18 m of torn marquees with gutters in the tears, a vent and a breath under the Rocketeer, Last Avenue's car with a deep puddle at the far kerb, then chrome bubble canopies and a vent before the inn")
+            "finale into the headwind: 18 m of torn marquees with gutters in the tears, a breath under the Rocketeer, Last Avenue's car with a deep puddle at the far kerb, then chrome bubble canopies before the inn")
 
 s.write()

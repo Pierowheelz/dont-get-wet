@@ -47,7 +47,7 @@ s.lot("salvage", 5, "shop_dark", "awning", sign="SALVAGE", color="orange", floor
 s.lot("coal", 16, "vacant", "none", floors=0)
 s.lot("truckstop", 8, "gas_station", "canopy", sign="TRUCK STOP", floors=0)
 s.lot("tires", 5, "shop_dark", "awning", sign="TIRES", color="teal", floors=2)
-# 7. The sun wharf: rain, a sun break on the open quay, rain, then a barrel under the flats
+# 7. The sun wharf: rain, a sun break on the open quay, rain, then the flats
 s.lot("alley5", 4, "wall", "none", floors=2)
 s.lot("pawn", 5, "shuttered", "awning", sign="PAWN", color="green", floors=2)
 s.lot("quay", 14, "vacant", "none", floors=0)
@@ -84,8 +84,7 @@ s.feature("puddle", s.start("coal") + 5.0, w=1.2)
 s.feature("puddle", s.end("coal") - 4.0, w=1.2, deep=True)
 s.feature("vent", s.mid("tires"), w=1.6)
 s.feature("puddle", s.mid("alley5"), w=1.2)
-s.feature("sun", s.start("quay") + 4.0, w=6.0)
-s.feature("fire_barrel", s.mid("flats"), w=1.8)
+s.feature("sun", s.start("quay") + 2.0, w=6.0)
 s.feature("puddle", s.start("basin") + 1.2, w=1.4, deep=True)
 s.feature("puddle", s.end("basin") - 1.2, w=1.4, deep=True)
 s.feature("puddle", s.mid("slip"), w=1.2)
@@ -164,7 +163,7 @@ s.set_piece("Tin shed row", s.start("shed1"), s.end("salvage"),
             "shed, a deep puddle in the yard, then 19 m of intact cover before the coal yard")
 s.set_piece("The coal wharf", s.start("coal"), s.end("flats"),
             "the longest gap: 16 m of open quay at full wind (~70 stamina), the truck stop canopy and the vent at "
-            "TIRES to recover, then rain, a 6 m sun break, rain on the next quay, and the barrel under the flats")
+            "TIRES to recover, then rain, a 6 m sun break, rain on the next quay, and the flats")
 s.set_piece("Turning Basin and Ferry Lane", s.start("lot3"), s.start("inn"),
             "final exam: a 12 m crossing with deep puddles at both kerbs, the 7 m slipway, torn canvas at "
             "HARDWARE and a downpipe at the inn door")

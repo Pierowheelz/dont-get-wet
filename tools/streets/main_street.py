@@ -43,7 +43,7 @@ s.xing("oak", 8)
 s.lot("news", 4, "shop_lit", "awning", sign="NEWS", color="teal", floors=3)
 s.lot("cleaners", 5, "shuttered", "awning", sign="CLEANERS", color="brown", floors=2)
 s.lot("grocery", 6, "shop_lit", "awning", sign="GROCERY", color="orange", floors=2)
-# 6. The Palace lot: a sun break where closing pays, then the fire barrel
+# 6. The Palace lot: a sun break where closing pays
 s.lot("palace", 12, "vacant", "none", floors=0)
 s.lot("laundro", 6, "shop_lit", "awning", sign="LAUNDROMAT", color="blue", floors=2)
 s.lot("alley4", 4, "wall", "none", floors=2)
@@ -69,12 +69,12 @@ s.door("inn")
 
 s.feature("gutter", s.mid("pipe"))
 s.feature("puddle", s.mid("lot2"), w=1.2)
+s.feature("fire_barrel", s.start("hotel") + 2.0, w=1.8)
 s.feature("puddle", s.start("oak") + 1.2, w=1.4, deep=True)
 s.feature("puddle", s.end("oak") - 1.2, w=1.4, deep=True)
 s.feature("puddle", s.start("palace") + 1.6, w=1.0)
 s.feature("sun", s.start("palace") + 3.0, w=6.0)
 s.feature("puddle", s.mid("alley4"), w=1.4, deep=True)
-s.feature("fire_barrel", s.mid("flats"), w=1.8)
 s.feature("puddle", s.start("records") + 1.9, w=1.0)
 s.feature("gutter", s.start("toys") + 3.7)
 s.feature("gutter", s.mid("pipe2"))
@@ -116,13 +116,13 @@ s.set_piece("The Bijou arcade", 0.0, s.end("candy"),
 s.set_piece("First gaps", s.start("alley1"), s.end("parking"),
             "open the umbrella for a short gap: 2.5, 4, 3 and 5 m, each followed by cover")
 s.set_piece("Elm Street and the Hotel Ambassador", s.start("carlot"), s.end("lounge"),
-            "a 12 m gap (used-car lot + Elm St) that costs ~40 stamina, then 12 m of balconies to close up and recover")
+            "a 12 m gap (used-car lot + Elm St) that costs ~40 stamina, then 12 m of balconies and a fire barrel to close up and recover")
 s.set_piece("The drainpipe at the Savings & Loan", s.start("bank"), s.end("photo"),
             "a gutter in a 1.5 m seam between awnings (keep the umbrella upright), then a puddle in the next lot (walk, don't run)")
 s.set_piece("Oak Street", s.start("oak"), s.end("grocery"),
             "re-test: deep puddles at both kerbs, then 15 m of cover to recover")
 s.set_piece("The Palace lot", s.start("palace"), s.end("flats"),
-            "sun break mid-lot (rain, 6 m sun, rain): close it in the sun to recover, reopen in time; then the fire barrel under the flats")
+            "sun break mid-lot (rain, 6 m sun, rain): close it in the sun to recover, reopen in time")
 s.set_piece("Pawn Row", s.start("pawn"), s.start("inn"),
             "final exam: torn awnings keep the umbrella up (stamina), a gutter through the toy shop's torn awning, a breather under SECOND HAND, a last gutter at the inn")
 

@@ -59,7 +59,7 @@ s.lot("cigars", 5, "shop_dark", "awning", sign="CIGARS", color="brown", floors=4
 s.xing("elm", 8, car=True)
 s.lot("flats", 8, "boarded", "balcony", floors=3)
 s.lot("deli", 6, "shop_lit", "awning", sign="DELI", color="red", floors=2)
-# 8. The Starlite drive-in: a sun break in the car park, then gaps with puddles
+# 8. The Starlite drive-in: the open car park, then gaps with puddles
 s.lot("drivein", 12, "vacant", "none", floors=0)
 s.lot("starlite", 8, "shop_lit", "awning", neon=True, sign="STARLITE", color="blue", awning_style="googie", floors=2)
 s.lot("alley4", 4, "wall", "none", floors=2)
@@ -89,8 +89,8 @@ s.feature("puddle", s.mid("alley3"), w=1.0)
 s.feature("gutter", s.start("tv") + 2.8)
 s.feature("puddle", s.mid("lot3"), w=1.0)
 s.feature("puddle", s.end("elm") - 1.2, w=1.4, deep=True)
+s.feature("fire_barrel", s.mid("flats"), w=1.8)
 s.feature("puddle", s.start("drivein") + 1.6, w=1.0)
-s.feature("sun", s.start("drivein") + 3.0, w=6.0)
 s.feature("puddle", s.mid("lot4"), w=1.2, deep=True)
 s.feature("gutter", s.mid("pipe2"))
 s.feature("puddle", s.start("blvd") + 1.2, w=1.6, deep=True)
@@ -145,7 +145,7 @@ s.set_piece("Bell Street", s.start("alley1"), s.end("candy"),
 s.set_piece("Orbit Avenue", s.start("hobby"), s.end("rooms"),
             "harder car: an open bus-stop kerb, then a 10 m crossing with a deep puddle at the kerb, then motel balconies")
 s.set_piece("The Flatiron Diner", s.start("carwash"), s.end("deli"),
-            "double crossing: a car down each of two side streets, 11 m of diner awning between them to retilt")
+            "double crossing: a car down each of two side streets, 11 m of diner awning between them to retilt, then a fire barrel under the flats")
 s.set_piece("The Boulevard", s.start("tiki"), s.end("inn"),
             "final exam: torn neon awnings, a gutter right at the kerb, the widest crossing with a deep puddle, a last gutter at the inn")
 

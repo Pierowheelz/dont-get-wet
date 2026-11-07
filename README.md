@@ -54,8 +54,10 @@ A gamepad is recommended, but keyboard and mouse work too.
 - **Watch for gutters, wind and cars.** Keep the umbrella upright under overflowing gutters, tilt it
   into slanting rain, and tilt it forward when headlights come — cars splash!
 - **Hold Stop to stand still.** Catch your breath under cover, or wait for a gap in the traffic. He walks on when you let go, and you can keep the umbrella up while you wait.
-- **Sunny breaks dry you off** — close the umbrella and enjoy them.
-- Beat your best score on a street to earn tokens for umbrella upgrades.
+- **Sunny breaks and warm vents dry you off**, fast when you're soaked and barely at all when you're not.
+  They can rescue a bad start, but don't linger.
+- **Time counts most.** Your score is mostly how fast you reach shelter, then how dry you stayed.
+  Beat your best score on a street to earn tokens for umbrella upgrades.
 
 ## Controls
 

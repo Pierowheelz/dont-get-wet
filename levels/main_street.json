@@ -13,10 +13,10 @@
  "set_pieces": [
   {"name": "The Bijou arcade", "x0": 0.0, "x1": 28.0, "teaches": "walking under continuous cover (diner awning, then the cinema colonnade)"},
   {"name": "First gaps", "x0": 28.0, "x1": 68.5, "teaches": "open the umbrella for a short gap: 2.5, 4, 3 and 5 m, each followed by cover"},
-  {"name": "Elm Street and the Hotel Ambassador", "x0": 80.5, "x1": 104.5, "teaches": "a 12 m gap (used-car lot + Elm St) that costs ~40 stamina, then 12 m of balconies to close up and recover"},
+  {"name": "Elm Street and the Hotel Ambassador", "x0": 80.5, "x1": 104.5, "teaches": "a 12 m gap (used-car lot + Elm St) that costs ~40 stamina, then 12 m of balconies and a fire barrel to close up and recover"},
   {"name": "The drainpipe at the Savings & Loan", "x0": 104.5, "x1": 139.0, "teaches": "a gutter in a 1.5 m seam between awnings (keep the umbrella upright), then a puddle in the next lot (walk, don't run)"},
   {"name": "Oak Street", "x0": 139.0, "x1": 162.0, "teaches": "re-test: deep puddles at both kerbs, then 15 m of cover to recover"},
-  {"name": "The Palace lot", "x0": 162.0, "x1": 192.0, "teaches": "sun break mid-lot (rain, 6 m sun, rain): close it in the sun to recover, reopen in time; then the fire barrel under the flats"},
+  {"name": "The Palace lot", "x0": 162.0, "x1": 192.0, "teaches": "sun break mid-lot (rain, 6 m sun, rain): close it in the sun to recover, reopen in time"},
   {"name": "Pawn Row", "x0": 220.0, "x1": 257.0, "teaches": "final exam: torn awnings keep the umbrella up (stamina), a gutter through the toy shop's torn awning, a breather under SECOND HAND, a last gutter at the inn"}
  ],
  "lots": [
@@ -75,6 +75,7 @@
   {"x": 139.0, "w": 8.0}
  ],
  "features": [
+  {"type": "fire_barrel", "x": 94.5, "w": 1.8},
   {"type": "gutter", "x": 113.25},
   {"type": "puddle", "x": 126.5, "w": 1.2},
   {"type": "puddle", "x": 140.2, "w": 1.4, "deep": true},
@@ -82,7 +83,6 @@
   {"type": "puddle", "x": 163.6, "w": 1.0},
   {"type": "sun", "x": 165.0, "w": 6.0},
   {"type": "puddle", "x": 182.0, "w": 1.4, "deep": true},
-  {"type": "fire_barrel", "x": 188.0, "w": 1.8},
   {"type": "puddle", "x": 227.9, "w": 1.0},
   {"type": "gutter", "x": 233.7},
   {"type": "gutter", "x": 253.5}

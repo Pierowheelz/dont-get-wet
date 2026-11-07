@@ -46,6 +46,8 @@ func _test_sun_drying() -> void:
 	var shut: float = level.dry_rate(x, 0.0)
 	check(shut > 0.0, "sun break, umbrella closed: dries at %.2f/s" % shut)
 	check(level.dry_rate(x, 1.0) == 0.0, "sun break, umbrella open: the canopy shades him, no drying")
+	check(Player.dry_factor(0.95) == 1.0 and Player.dry_factor(0.5) < 0.05,
+		"drying runs at full rate when soaked and almost stops when fairly dry (%.3f at 50%%)" % Player.dry_factor(0.5))
 	check(not level.player._exposed_at(x), "autopilot treats the sunlit lot as safe, so it closes the umbrella")
 
 

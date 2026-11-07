@@ -14,7 +14,7 @@
   {"name": "First breeze at Cold Storage", "x0": 36.5, "x1": 64.5, "teaches": "the wind picks up under Cold Storage (hint: tilt into it), then one 4 m yard in a light headwind with 13 m of dock cover after it"},
   {"name": "Lock Bridge", "x0": 89.0, "x1": 118.0, "teaches": "after the grain store downpipe, a 10 m crossing over the canal into the headwind (~45 stamina, slowed), puddles at both kerbs, then 13 m of harbour office balconies to close up"},
   {"name": "Tin shed row", "x0": 118.0, "x1": 155.0, "teaches": "torn tin awnings keep the umbrella up for ~22 m (stamina), a gutter through a tear in the second shed, a deep puddle in the yard, then 19 m of intact cover before the coal yard"},
-  {"name": "The coal wharf", "x0": 155.0, "x1": 215.0, "teaches": "the longest gap: 16 m of open quay at full wind (~70 stamina), the truck stop canopy and the vent at TIRES to recover, then rain, a 6 m sun break, rain on the next quay, and the barrel under the flats"},
+  {"name": "The coal wharf", "x0": 155.0, "x1": 215.0, "teaches": "the longest gap: 16 m of open quay at full wind (~70 stamina), the truck stop canopy and the vent at TIRES to recover, then rain, a 6 m sun break, rain on the next quay, and the flats"},
   {"name": "Turning Basin and Ferry Lane", "x0": 226.0, "x1": 300.5, "teaches": "final exam: a 12 m crossing with deep puddles at both kerbs, the 7 m slipway, torn canvas at HARDWARE and a downpipe at the inn door"}
  ],
  "lots": [
@@ -83,8 +83,7 @@
   {"type": "puddle", "x": 167.0, "w": 1.2, "deep": true},
   {"type": "vent", "x": 181.5, "w": 1.6},
   {"type": "puddle", "x": 186.0, "w": 1.2},
-  {"type": "sun", "x": 197.0, "w": 6.0},
-  {"type": "fire_barrel", "x": 211.0, "w": 1.8},
+  {"type": "sun", "x": 195.0, "w": 6.0},
   {"type": "puddle", "x": 230.2, "w": 1.4, "deep": true},
   {"type": "puddle", "x": 236.8, "w": 1.4, "deep": true},
   {"type": "puddle", "x": 266.5, "w": 1.2},
