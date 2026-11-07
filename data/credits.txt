@@ -1,5 +1,13 @@
 DON'T GET WET
 
+A game by Peter Wells
+
+GAME DESIGN
+Peter Wells
+
+DEVELOPMENT
+Peter Wells, with Claude (Anthropic)
+
 Made with the Godot Engine — godotengine.org/license
 
 CHARACTERS

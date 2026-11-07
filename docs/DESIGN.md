@@ -1,5 +1,7 @@
 # Don't Get Wet — Game Design Document
 
+Game design: **Peter Wells**
+
 Status: living document. Prototype phase (v0.1). Numbers in **Tunables** are starting points and live in
 `data/tunables.json`; change them there, not in code.
 

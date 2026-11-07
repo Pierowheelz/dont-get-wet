@@ -147,9 +147,11 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var upright := 1.0 - 0.6 * sad
 	var pitch_spine := -0.04 * upright + sad * 0.11 + breath * (0.13 + 0.03 * heave)
 	var pitch_chest := sad * 0.10 + breath * (0.10 - 0.05 * heave)
-	var pitch_upper := sad * 0.08 + breath * (0.05 - 0.04 * heave)
-	var pitch_neck := -0.12 * upright + sad * 0.14 + breath * 0.04
-	var pitch_head := -0.05 * upright + sad * 0.30 + breath * (0.10 + 0.04 * heave)
+	var pitch_upper := -0.08 * upright + sad * 0.08 + breath * (0.05 - 0.04 * heave)
+	# Pull the neck back hard, then pitch the head forward again so the face stays level:
+	# moves the head back over the shoulders instead of jutting forward.
+	var pitch_neck := -0.30 * upright + sad * 0.14 + breath * 0.04
+	var pitch_head := 0.16 * upright + sad * 0.30 + breath * (0.10 + 0.04 * heave)
 	# Forward pitch = rotate +Y toward +X = negative rotation about the character's +Z axis.
 	_rot_global(skel, _b["Spine"], right_axis, -pitch_spine)
 	_rot_global(skel, _b["Chest"], right_axis, -pitch_chest)

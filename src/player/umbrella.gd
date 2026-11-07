@@ -20,6 +20,7 @@ var droop := 0.0
 var _built_key := Vector3(-1, -1, -1)
 var _ready_done := false
 var _sway_t := 0.0
+var _rim_r := 0.0
 
 var _canopy: MeshInstance3D
 var _shaft: MeshInstance3D
@@ -121,29 +122,34 @@ func _process(delta: float) -> void:
 
 func _rebuild() -> void:
 	var t := ease(open, -1.6)
-	var ang := lerpf(ANGLE_CLOSED, ANGLE_OPEN, t)
 	# droop crumples the canopy a little (smaller effective radius)
-	var cover_scale := lerpf(1.0, Tun.f("umbrella_droop_coverage") if is_inside_tree() else 0.65, droop)
-	var rib_len := radius / sin(ANGLE_OPEN) * cover_scale
+	var cover_scale := lerpf(1.0, Tun.f("umbrella_droop_coverage"), droop)
+	# Ribs are arcs: their angle from the shaft runs from a0 at the apex to a1 at the tip, so a
+	# fully open umbrella is a taut dome — a crescent when seen side-on. Closed, both fold down.
+	var a0 := lerpf(ANGLE_CLOSED, deg_to_rad(86.0), t)
+	var a1 := lerpf(ANGLE_CLOSED, deg_to_rad(138.0), t)
+	var rib_len := radius / _open_extent() * cover_scale
+	var seg_len := rib_len / RING_STEPS
 	var apex := Vector3(0, SHAFT_LEN, 0)
-	# Vertices: grid [rib_index_interp][ring] where rib directions interpolate around the shaft.
+	# Fabric is slack while opening/closing and taut when fully open.
+	var slack := 0.07 * sin(t * PI) + 0.012 * t
 	var segs := RIBS * 3
 	var rows: Array = []
+	_rim_r = 0.0
 	for s in segs + 1:
 		var a := TAU * float(s) / segs
 		var rib_phase := fmod(float(s), 3.0) / 3.0   # 0 at a rib, sag between ribs
-		var sag := sin(rib_phase * PI) * 0.06 * t
+		var sag := sin(rib_phase * PI) * slack
 		var dir_h := Vector3(cos(a), 0, sin(a))
-		var row: Array = []
-		for r in RING_STEPS + 1:
-			var u := float(r) / RING_STEPS
-			# curve: ribs bend downward toward the tip when open
-			var local_ang := ang + u * u * 0.35 * t
-			var d := sin(local_ang) * dir_h + Vector3(0, cos(local_ang), 0)
-			var p := apex + d * rib_len * u
-			p.y -= sag * u * u            # scallop between ribs
-			p -= dir_h * sag * 0.5 * u * u
-			row.append(p)
+		var row: Array = [apex]
+		var p := apex
+		for r in RING_STEPS:
+			var ang := lerpf(a0, a1, (float(r) + 0.5) / RING_STEPS)
+			p += (sin(ang) * dir_h + Vector3(0, cos(ang), 0)) * seg_len
+			var u := float(r + 1) / RING_STEPS
+			var q := p - Vector3(0, sag * u * u, 0) - dir_h * sag * 0.6 * u * u
+			row.append(q)
+		_rim_r = maxf(_rim_r, Vector2(p.x, p.z).length())
 		rows.append(row)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -182,5 +188,12 @@ func canopy_center() -> Vector3:
 
 
 func current_radius() -> float:
-	var t := ease(open, -1.6)
-	return sin(lerpf(ANGLE_CLOSED, ANGLE_OPEN, t)) * radius / sin(ANGLE_OPEN)
+	return _rim_r
+
+
+## Horizontal reach of a unit-length rib when fully open (for sizing ribs to the radius).
+static func _open_extent() -> float:
+	var h := 0.0
+	for r in RING_STEPS:
+		h += sin(lerpf(deg_to_rad(86.0), deg_to_rad(138.0), (float(r) + 0.5) / RING_STEPS)) / RING_STEPS
+	return h

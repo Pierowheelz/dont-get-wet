@@ -2,6 +2,8 @@
 
 # Don't Get Wet
 
+A game by **Peter Wells** (game design).
+
 A close-up 3D side-scroller in a city where it never stops raining. He walks on his own; you keep
 him dry: open the umbrella under open sky, close it under cover to get your stamina back, hurry
 across gaps, tilt into the wind, and shield yourself from passing cars.

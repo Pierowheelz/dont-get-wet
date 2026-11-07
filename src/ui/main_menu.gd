@@ -13,6 +13,7 @@ var _page: VBoxContainer
 var _page_name := ""
 var _title_box: VBoxContainer
 var _fade: ColorRect
+var _bg_fade: ColorRect
 var _dialog: Control
 var _post: CanvasLayer
 var _sound: UISound
@@ -37,6 +38,12 @@ func _ready() -> void:
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(_root)
+	# Backdrop-only fade (under the title and menu) for hiding the street loop.
+	_bg_fade = ColorRect.new()
+	_bg_fade.color = Color(0, 0, 0, 0)
+	_bg_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_bg_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_bg_fade)
 	_shades()
 	_build_title()
 
@@ -50,11 +57,11 @@ func _ready() -> void:
 	_hints.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_hints.position = Vector2(LEFT, -84)
 	_root.add_child(_hints)
-	var ver := UIStyle.label("v0.1  ·  prototype", &"CaptionLabel")
+	var ver := UIStyle.label("A game by Peter Wells  ·  v0.1 prototype", &"CaptionLabel")
 	ver.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	ver.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	ver.position = Vector2(-300, -84)
-	ver.custom_minimum_size = Vector2(240, 0)
+	ver.position = Vector2(-520, -84)
+	ver.custom_minimum_size = Vector2(460, 0)
 	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_root.add_child(ver)
 
@@ -122,8 +129,6 @@ func _build_title() -> void:
 	_title_box.position = Vector2(LEFT, 150)
 	_title_box.add_theme_constant_override("separation", 0)
 	_root.add_child(_title_box)
-	var kicker := UIStyle.label("A SHORT WALK IN A CITY WHERE IT NEVER STOPS RAINING", &"KickerLabel")
-	_title_box.add_child(kicker)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 34)
 	_title_box.add_child(row)
@@ -134,7 +139,7 @@ func _build_title() -> void:
 	drips.set_anchors_preset(Control.PRESET_FULL_RECT)
 	drips.offset_bottom = -30
 	wet.add_child(drips)
-	var tag := UIStyle.label("He isn't dressed for it. Get him to the inn dry.", &"ItalicLabel")
+	var tag := UIStyle.label("He isn't dressed for it.", &"ItalicLabel")
 	_title_box.add_child(tag)
 	# entrance
 	_title_box.modulate.a = 0.0
@@ -147,9 +152,9 @@ func _build_title() -> void:
 func _dip_to_black() -> void:
 	# Cover the walker looping back to the start of the street.
 	var tw := create_tween()
-	tw.tween_property(_fade, "color:a", 1.0, 1.4)
+	tw.tween_property(_bg_fade, "color:a", 1.0, 1.4)
 	tw.tween_interval(0.9)
-	tw.tween_property(_fade, "color:a", 0.0, 1.6)
+	tw.tween_property(_bg_fade, "color:a", 0.0, 1.6)
 
 
 func _set_painterly(on: bool) -> void:
