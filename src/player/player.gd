@@ -133,6 +133,8 @@ func _physics_process(delta: float) -> void:
 	var smax := Tun.f("stamina_max")
 	# --- umbrella open/close: same speed both ways, reverses from wherever it is ---------------
 	var open_rate := 1.0 / maxf(Game.umbrella_open_time(), 0.05)
+	if state == State.STOPPED:
+		u = 0.0     # stopping puts the umbrella away; the trigger can't reopen it until he walks on
 	open = move_toward(open, u, open_rate * delta)
 	if open <= 0.0:
 		Inputs.wheel_tilt = 0.0

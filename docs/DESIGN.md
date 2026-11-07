@@ -60,8 +60,9 @@ Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger
 
 - Drains while the umbrella is open (× open fraction; × wind load), and while hurrying.
 - Regenerates whenever the umbrella is fully closed — even in the rain.
-- **Stop** (LB) is only accepted at ≤25% stamina; otherwise the bar shakes/flashes red. Once stopped,
-  the character waits until stamina is full and then walks on automatically.
+- **Stop** (LB) is only accepted at ≤25% stamina; otherwise the bar shakes/flashes red. Stopping closes
+  the umbrella and the trigger can't reopen it while stopped. The character waits until stamina is
+  full and then walks on automatically (hurrying resumes early).
 
 ### Wetness (0–100)
 
