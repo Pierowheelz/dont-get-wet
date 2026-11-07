@@ -34,9 +34,9 @@
   "dry_vent_rate": 8.0,
 
   "camera_distance": 7.2,
-  "camera_height": 2.25,
+  "camera_height": 2.6,
   "camera_fov": 50.0,
-  "camera_pitch_deg": -4.0,
+  "camera_pitch_deg": -3.0,
   "camera_lead": 1.9,
   "player_z": 1.6,
 

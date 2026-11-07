@@ -89,6 +89,7 @@ func _ready() -> void:
 			car.crossing_w = float(c["w"])
 			world.add_child(car)
 			cars.append(car)
+			car.approaching.connect(_on_car_approaching)
 
 	var traffic := preload("res://src/level/traffic.gd").new()
 	traffic.level = self
@@ -214,6 +215,16 @@ func _update_camera(delta: float) -> void:
 
 # --- flow -----------------------------------------------------------------------------------
 
+var _car_hints := 0
+
+
+func _on_car_approaching() -> void:
+	if _car_hints < 2 and hud and hud.has_method("hint"):
+		_car_hints += 1
+		var pad := Inputs.last_device == &"gamepad"
+		hud.hint("Headlights! Tilt the umbrella forward to block the splash  (%s)" % ("right stick →" if pad else "E / scroll up"), 3.5)
+
+
 func _on_defeated() -> void:
 	_cam_locked = true
 	if Game.autopilot:
@@ -272,8 +283,9 @@ func _setup_environment() -> void:
 	env.glow_hdr_threshold = 0.9
 	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.028
-	env.volumetric_fog_albedo = Color(0.55, 0.6, 0.7)
-	env.volumetric_fog_emission = Color(0.03, 0.035, 0.05)
+	var neon: float = data.get("neon", 0.0)
+	env.volumetric_fog_albedo = Color(0.55, 0.6, 0.7).lerp(Color(0.6, 0.5, 0.75), neon)
+	env.volumetric_fog_emission = Color(0.03, 0.035, 0.05).lerp(Color(0.05, 0.02, 0.07), neon)
 	env.volumetric_fog_anisotropy = 0.4
 	env.volumetric_fog_length = 70.0
 	env.fog_enabled = true
@@ -281,14 +293,14 @@ func _setup_environment() -> void:
 	env.fog_density = 0.012
 	env.fog_aerial_perspective = 0.4
 	env.adjustment_enabled = true
-	env.adjustment_saturation = 0.82
+	env.adjustment_saturation = lerpf(0.82, 1.05, neon)
 	env.adjustment_contrast = 1.05
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 
 	var moon := DirectionalLight3D.new()
-	moon.light_color = Color(0.55, 0.66, 0.92)
+	moon.light_color = Color(0.55, 0.66, 0.92).lerp(Color(0.5, 0.55, 1.0), float(data.get("neon", 0.0)))
 	moon.light_energy = 0.5
 	moon.rotation = Vector3(deg_to_rad(-55), deg_to_rad(-30), 0)
 	moon.shadow_enabled = true

@@ -11,6 +11,8 @@ var _splash: GPUParticles3D
 var _hf: GPUParticlesCollisionHeightField3D
 var _mat: ShaderMaterial
 var _near_mat: ShaderMaterial
+var _debris: GPUParticles3D
+var _debris_mat: ParticleProcessMaterial
 
 
 func _ready() -> void:
@@ -29,6 +31,9 @@ func _ready() -> void:
 	_near_mat.shader = shader
 	_near = _make_layer(_near_mat, 900, Vector3(6.0, 4.5, 1.2), 0.9, 0.02, 0.12)
 	add_child(_near)
+
+	_debris = _make_debris()
+	add_child(_debris)
 
 	_hf = GPUParticlesCollisionHeightField3D.new()
 	_hf.size = Vector3(44.0, 24.0, 18.0)
@@ -110,6 +115,41 @@ func _make_splash() -> GPUParticles3D:
 	return p
 
 
+## Wind-blown litter: scraps of newspaper and leaves tumbling along the street.
+func _make_debris() -> GPUParticles3D:
+	var p := GPUParticles3D.new()
+	p.amount = 40
+	p.lifetime = 4.0
+	p.local_coords = false
+	_debris_mat = ParticleProcessMaterial.new()
+	_debris_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	_debris_mat.emission_box_extents = Vector3(1.0, 1.6, 2.0)
+	_debris_mat.direction = Vector3(1, 0.3, 0)
+	_debris_mat.spread = 25.0
+	_debris_mat.initial_velocity_min = 3.0
+	_debris_mat.initial_velocity_max = 6.0
+	_debris_mat.gravity = Vector3(0, -0.8, 0)
+	_debris_mat.angular_velocity_min = -360.0
+	_debris_mat.angular_velocity_max = 360.0
+	_debris_mat.turbulence_enabled = true
+	_debris_mat.turbulence_noise_strength = 2.0
+	_debris_mat.turbulence_noise_scale = 3.0
+	_debris_mat.scale_min = 0.5
+	_debris_mat.scale_max = 1.5
+	_debris_mat.particle_flag_rotate_y = true
+	p.process_material = _debris_mat
+	var q := QuadMesh.new()
+	q.size = Vector2(0.14, 0.1)
+	var dm := StandardMaterial3D.new()
+	dm.albedo_color = Color(0.62, 0.58, 0.48)
+	dm.roughness = 0.9
+	dm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	q.material = dm
+	p.draw_pass_1 = q
+	p.visibility_aabb = AABB(Vector3(-30, -3, -6), Vector3(60, 10, 12))
+	return p
+
+
 func _process(_delta: float) -> void:
 	if camera == null or level == null:
 		return
@@ -121,6 +161,14 @@ func _process(_delta: float) -> void:
 	for m in [_mat, _near_mat]:
 		m.set_shader_parameter("fall_dir", dir)
 		m.set_shader_parameter("intensity", inten)
+	var w: float = level.wind(cx)
+	_debris.amount_ratio = clampf((absf(w) - 0.12) * 1.6, 0.0, 1.0)
+	_debris.emitting = absf(w) > 0.12
+	var side := signf(w) if w != 0.0 else 1.0
+	_debris.global_position = Vector3(cx - side * 14.0, 0.8, 2.0)
+	_debris_mat.direction = Vector3(side, 0.25, 0)
+	_debris_mat.initial_velocity_min = 3.0 + absf(w) * 6.0
+	_debris_mat.initial_velocity_max = 5.0 + absf(w) * 9.0
 	var zones: Array = level.sun_zones
 	var arr := PackedVector4Array()
 	for z in zones:

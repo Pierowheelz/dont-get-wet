@@ -77,8 +77,7 @@ func _shades() -> void:
 	left.texture = _gradient(Vector2(0, 0), Vector2(1, 0), [
 		[0.0, Color(UIStyle.INK, 0.92)], [0.45, Color(UIStyle.INK, 0.72)], [1.0, Color(UIStyle.INK, 0.0)]])
 	left.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-	left.custom_minimum_size = Vector2(1180, 0)
-	left.size.x = 1180
+	left.offset_right = 1180
 	left.stretch_mode = TextureRect.STRETCH_SCALE
 	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(left)

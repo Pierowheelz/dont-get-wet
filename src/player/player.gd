@@ -52,7 +52,8 @@ var _prev_x := 0.0
 var _step_phase := 0.0
 var _end_t := 0.0
 var _dropped_umbrella := false
-var _ap_hold := 0.0                 # autopilot: keep umbrella up a little after leaving rain
+var _ap_hold := 0.0
+var _drips: GPUParticles3D                 # autopilot: keep umbrella up a little after leaving rain
 
 
 func _ready() -> void:
@@ -77,6 +78,30 @@ func _ready() -> void:
 	fill.position = Vector3(0.35, 1.15, 1.7)
 	fill.light_specular = 0.3
 	add_child(fill)
+	_drips = GPUParticles3D.new()
+	_drips.amount = 40
+	_drips.lifetime = 0.6
+	_drips.local_coords = false
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(0.18, 0.5, 0.16)
+	pm.gravity = Vector3(0, -9.8, 0)
+	pm.initial_velocity_min = 0.0
+	pm.initial_velocity_max = 0.3
+	_drips.process_material = pm
+	var q := QuadMesh.new()
+	q.size = Vector2(0.012, 0.05)
+	var dm := StandardMaterial3D.new()
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	dm.albedo_color = Color(0.75, 0.82, 0.95, 0.6)
+	dm.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+	q.material = dm
+	_drips.draw_pass_1 = q
+	_drips.position = Vector3(0, 1.0, 0)
+	_drips.emitting = false
+	add_child(_drips)
 
 
 func _physics_process(delta: float) -> void:
@@ -187,6 +212,9 @@ func _process(_delta: float) -> void:
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
 	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt, droop)
 	visual.set_wetness(wet / Tun.f("wet_max"))
+	var w01 := wet / Tun.f("wet_max")
+	_drips.emitting = w01 > 0.15 and visible
+	_drips.amount_ratio = clampf(w01, 0.0, 1.0)
 	_update_umbrella()
 
 

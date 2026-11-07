@@ -113,8 +113,10 @@ def gen_level(lid, cfg):
             lot["awning_color"] = rng.choice(["red", "green", "blue", "brown", "orange", "teal"])
         if tears:
             lot["tears"] = tears
-        if cfg["neon"] > 0 and rng.random() < cfg["neon"] * 0.8 and style != "vacant":
+        if cfg["neon"] > 0 and rng.random() < cfg["neon"] * 0.8 and style not in ("vacant", "inn"):
             lot["neon"] = True
+            if "sign" not in lot:
+                lot["sign"] = rng.choice(NEON_NAMES)
         lot.update(extra)
         lots.append(lot)
         return lot

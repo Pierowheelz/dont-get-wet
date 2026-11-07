@@ -83,6 +83,14 @@ func _spawn_walker() -> void:
 	_walker = (load(path) as PackedScene).instantiate() as Node3D
 	_walker.position = Vector3(_x, 0.0, Tun.f("player_z"))
 	add_child(_walker)
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(0.85, 0.88, 1.0)
+	fill.light_energy = 0.9
+	fill.omni_range = 3.4
+	fill.omni_attenuation = 1.5
+	fill.position = Vector3(0.4, 1.9, 1.4)
+	fill.light_specular = 0.3
+	_walker.add_child(fill)
 	_umbrella = Umbrella.new()
 	_umbrella.top_level = true
 	add_child(_umbrella)

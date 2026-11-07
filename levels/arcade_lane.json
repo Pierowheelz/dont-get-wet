@@ -93,302 +93,334 @@
    "cover": "awning",
    "floors": 3,
    "awning_color": "orange",
-   "neon": true
+   "neon": true,
+   "sign": "NOODLES"
   },
   {
    "x": 28.5,
-   "w": 2.0,
-   "style": "shop_lit",
-   "cover": "none",
-   "floors": 2,
-   "sign": "NEWS"
-  },
-  {
-   "x": 30.5,
-   "w": 3.0,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 2,
-   "sign": "SODA",
-   "awning_color": "blue",
-   "neon": true
-  },
-  {
-   "x": 33.5,
-   "w": 6.5,
-   "style": "shop_dark",
-   "cover": "awning",
-   "floors": 1,
-   "sign": "TOBACCO",
-   "awning_color": "brown"
-  },
-  {
-   "x": 40.0,
-   "w": 6.5,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "brown"
-  },
-  {
-   "x": 46.5,
-   "w": 6.5,
-   "style": "shop_dark",
-   "cover": "none",
-   "floors": 2,
-   "sign": "SYNTH",
-   "neon": true
-  },
-  {
-   "x": 53.0,
-   "w": 4.0,
+   "w": 5.5,
    "style": "doorway",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "blue",
-   "neon": true
+   "cover": "none",
+   "floors": 2
   },
   {
-   "x": 57.0,
-   "w": 7.5,
+   "x": 34.0,
+   "w": 6.5,
    "style": "shop_dark",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "ARCADE",
-   "awning_color": "green"
+   "cover": "balcony",
+   "floors": 2,
+   "sign": "ARCADE"
   },
   {
-   "x": 74.5,
-   "w": 4.0,
-   "style": "shuttered",
+   "x": 40.5,
+   "w": 5.0,
+   "style": "boarded",
    "cover": "awning",
    "floors": 4,
-   "awning_color": "brown"
-  },
-  {
-   "x": 78.5,
-   "w": 7.0,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 1,
    "awning_color": "teal"
   },
   {
-   "x": 85.5,
-   "w": 4.5,
-   "style": "wall",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "red",
-   "tears": [
-    [
-     1.6,
-     2.9
-    ]
-   ],
-   "neon": true
-  },
-  {
-   "x": 90.0,
+   "x": 45.5,
    "w": 5.5,
-   "style": "shuttered",
+   "style": "shop_lit",
    "cover": "none",
    "floors": 3,
    "sign": "CAFE"
   },
   {
-   "x": 95.5,
-   "w": 3.0,
-   "style": "doorway",
+   "x": 51.0,
+   "w": 2.0,
+   "style": "wall",
    "cover": "none",
    "floors": 3
   },
   {
-   "x": 98.5,
-   "w": 6.5,
+   "x": 53.0,
+   "w": 4.5,
    "style": "shuttered",
    "cover": "awning",
+   "floors": 2,
+   "sign": "NEWS",
+   "awning_color": "orange"
+  },
+  {
+   "x": 57.5,
+   "w": 4.0,
+   "style": "shop_lit",
+   "cover": "arcade",
    "floors": 3,
-   "sign": "BARBER",
+   "sign": "DINER"
+  },
+  {
+   "x": 61.5,
+   "w": 3.0,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 1,
+   "awning_color": "teal"
+  },
+  {
+   "x": 73.0,
+   "w": 6.5,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 3,
+   "sign": "GIFTS",
    "awning_color": "orange",
    "neon": true
   },
   {
-   "x": 105.0,
-   "w": 8.0,
-   "style": "shop_dark",
+   "x": 79.5,
+   "w": 5.5,
+   "style": "shop_lit",
    "cover": "awning",
-   "floors": 2,
-   "sign": "DELI",
+   "floors": 4,
+   "sign": "DRUGS",
    "awning_color": "red"
   },
   {
-   "x": 113.0,
-   "w": 7.5,
-   "style": "wall",
+   "x": 85.0,
+   "w": 3.5,
+   "style": "shop_dark",
    "cover": "none",
-   "floors": 2
+   "floors": 3,
+   "sign": "FLORIST",
+   "neon": true
   },
   {
-   "x": 120.5,
-   "w": 3.0,
+   "x": 88.5,
+   "w": 5.0,
+   "style": "shuttered",
+   "cover": "none",
+   "floors": 3,
+   "sign": "TOYS"
+  },
+  {
+   "x": 93.5,
+   "w": 7.0,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 1,
+   "sign": "NEO DINER",
+   "awning_color": "red"
+  },
+  {
+   "x": 100.5,
+   "w": 7.5,
+   "style": "boarded",
+   "cover": "balcony",
+   "floors": 3
+  },
+  {
+   "x": 108.0,
+   "w": 6.0,
+   "style": "shuttered",
+   "cover": "none",
+   "floors": 4,
+   "sign": "BOOKS"
+  },
+  {
+   "x": 114.0,
+   "w": 7.0,
+   "style": "boarded",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "red",
+   "neon": true,
+   "sign": "24 HR"
+  },
+  {
+   "x": 121.0,
+   "w": 7.5,
+   "style": "boarded",
+   "cover": "awning",
+   "floors": 1,
+   "awning_color": "red",
+   "tears": [
+    [
+     4.4,
+     5.6
+    ]
+   ],
+   "neon": true,
+   "sign": "JUICE BAR"
+  },
+  {
+   "x": 139.0,
+   "w": 5.0,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "SHOES",
+   "awning_color": "blue",
+   "neon": true
+  },
+  {
+   "x": 144.0,
+   "w": 5.0,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 4,
+   "sign": "PAWN",
+   "awning_color": "green",
+   "tears": [
+    [
+     3.5,
+     4.2
+    ]
+   ]
+  },
+  {
+   "x": 149.0,
+   "w": 2.5,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 1,
+   "sign": "PHOTO"
+  },
+  {
+   "x": 151.5,
+   "w": 4.5,
+   "style": "doorway",
+   "cover": "awning",
+   "floors": 3,
+   "awning_color": "blue"
+  },
+  {
+   "x": 156.0,
+   "w": 6.0,
+   "style": "wall",
+   "cover": "awning",
+   "floors": 1,
+   "awning_color": "teal"
+  },
+  {
+   "x": 162.0,
+   "w": 5.0,
+   "style": "doorway",
+   "cover": "none",
+   "floors": 4,
+   "neon": true,
+   "sign": "NOODLES"
+  },
+  {
+   "x": 167.0,
+   "w": 2.0,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 3,
+   "sign": "KARAOKE"
+  },
+  {
+   "x": 169.0,
+   "w": 3.5,
    "style": "shop_lit",
    "cover": "awning",
    "floors": 2,
    "sign": "RADIO & TV",
-   "awning_color": "green"
+   "awning_color": "blue",
+   "neon": true
   },
   {
-   "x": 123.5,
-   "w": 6.0,
-   "style": "wall",
+   "x": 172.5,
+   "w": 5.0,
+   "style": "shop_lit",
    "cover": "awning",
-   "floors": 3,
-   "awning_color": "brown",
+   "floors": 2,
+   "sign": "VR DEN",
+   "awning_color": "red",
    "tears": [
     [
-     3.0,
-     3.8
+     2.1,
+     3.7
     ]
    ],
    "neon": true
   },
   {
-   "x": 138.5,
-   "w": 4.0,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 2,
-   "sign": "PAWN",
-   "awning_color": "blue"
-  },
-  {
-   "x": 142.5,
-   "w": 8.0,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "NEO DINER",
-   "awning_color": "red"
-  },
-  {
-   "x": 150.5,
-   "w": 3.0,
-   "style": "doorway",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "brown"
-  },
-  {
-   "x": 153.5,
-   "w": 3.0,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 1,
-   "neon": true
-  },
-  {
-   "x": 156.5,
-   "w": 3.0,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 2,
-   "sign": "LAUNDROMAT",
-   "awning_color": "teal"
-  },
-  {
-   "x": 159.5,
-   "w": 4.5,
-   "style": "doorway",
-   "cover": "awning",
-   "floors": 4,
-   "awning_color": "green",
-   "tears": [
-    [
-     1.2,
-     3.1
-    ]
-   ]
-  },
-  {
-   "x": 164.0,
-   "w": 4.0,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "DRUGS",
-   "awning_color": "red",
-   "neon": true
-  },
-  {
-   "x": 168.0,
-   "w": 3.0,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 1,
-   "awning_color": "brown"
-  },
-  {
-   "x": 171.0,
+   "x": 177.5,
    "w": 3.5,
-   "style": "shop_lit",
+   "style": "doorway",
    "cover": "none",
-   "floors": 4,
-   "sign": "FLORIST"
+   "floors": 1
   },
   {
-   "x": 174.5,
-   "w": 4.5,
-   "style": "shuttered",
+   "x": 181.0,
+   "w": 5.0,
+   "style": "wall",
    "cover": "none",
-   "floors": 3
-  },
-  {
-   "x": 179.0,
-   "w": 7.0,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 4,
-   "awning_color": "green",
-   "neon": true
+   "floors": 4
   },
   {
    "x": 186.0,
-   "w": 6.0,
-   "style": "shop_lit",
+   "w": 2.0,
+   "style": "shuttered",
+   "cover": "none",
+   "floors": 4,
+   "neon": true,
+   "sign": "SYNTH"
+  },
+  {
+   "x": 188.0,
+   "w": 4.5,
+   "style": "shuttered",
    "cover": "awning",
    "floors": 3,
-   "sign": "SHOES",
    "awning_color": "orange"
   },
   {
-   "x": 202.5,
+   "x": 192.5,
    "w": 4.0,
    "style": "shop_lit",
    "cover": "awning",
    "floors": 2,
-   "sign": "DINER",
-   "awning_color": "blue"
+   "sign": "ROBOTICS",
+   "awning_color": "orange",
+   "tears": [
+    [
+     1.4,
+     2.4
+    ]
+   ],
+   "neon": true
   },
   {
-   "x": 206.5,
+   "x": 196.5,
    "w": 3.0,
-   "style": "shop_lit",
+   "style": "shuttered",
    "cover": "awning",
    "floors": 2,
-   "sign": "JUICE BAR",
+   "sign": "CLEANERS",
    "awning_color": "teal"
   },
   {
-   "x": 209.5,
-   "w": 3.0,
-   "style": "wall",
+   "x": 208.5,
+   "w": 8.0,
+   "style": "shop_dark",
    "cover": "awning",
-   "floors": 4,
-   "awning_color": "green"
+   "floors": 1,
+   "sign": "HOLO-TV",
+   "awning_color": "orange"
   },
   {
-   "x": 212.5,
+   "x": 216.5,
+   "w": 4.5,
+   "style": "wall",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "orange"
+  },
+  {
+   "x": 221.0,
+   "w": 6.5,
+   "style": "doorway",
+   "cover": "none",
+   "floors": 4,
+   "neon": true,
+   "sign": "PACHINKO"
+  },
+  {
+   "x": 227.5,
    "w": 4.0,
    "style": "shop_lit",
    "cover": "none",
@@ -396,204 +428,161 @@
    "sign": "HARDWARE"
   },
   {
-   "x": 216.5,
-   "w": 5.5,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 2,
-   "neon": true
-  },
-  {
-   "x": 222.0,
-   "w": 7.5,
-   "style": "shop_dark",
-   "cover": "awning",
-   "floors": 3,
-   "sign": "GIFTS",
-   "awning_color": "brown",
-   "neon": true
-  },
-  {
-   "x": 229.5,
-   "w": 4.5,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 4,
-   "sign": "LOANS",
-   "awning_color": "blue"
-  },
-  {
-   "x": 234.0,
-   "w": 3.0,
-   "style": "shop_lit",
-   "cover": "arcade",
-   "floors": 3,
-   "sign": "BAKERY"
-  },
-  {
-   "x": 237.0,
-   "w": 2.0,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 2,
-   "neon": true
-  },
-  {
-   "x": 239.0,
-   "w": 4.0,
-   "style": "wall",
-   "cover": "awning",
-   "floors": 4,
-   "awning_color": "teal"
-  },
-  {
-   "x": 243.0,
-   "w": 3.0,
-   "style": "boarded",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "orange",
-   "neon": true
-  },
-  {
-   "x": 246.0,
-   "w": 3.0,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 1,
-   "sign": "BOOKS",
-   "awning_color": "red"
-  },
-  {
-   "x": 249.0,
-   "w": 3.0,
-   "style": "shop_lit",
-   "cover": "none",
-   "floors": 2,
-   "sign": "CYBER CAFE"
-  },
-  {
-   "x": 252.0,
-   "w": 6.5,
-   "style": "shop_lit",
-   "cover": "awning",
-   "floors": 4,
-   "sign": "RECORDS",
-   "awning_color": "orange"
-  },
-  {
-   "x": 258.5,
+   "x": 231.5,
    "w": 3.5,
-   "style": "shuttered",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "red"
-  },
-  {
-   "x": 270.5,
-   "w": 5.5,
    "style": "shop_lit",
    "cover": "awning",
-   "floors": 2,
-   "sign": "PHOTO",
-   "awning_color": "orange",
+   "floors": 3,
+   "sign": "LAUNDROMAT",
+   "awning_color": "red",
    "neon": true
   },
   {
-   "x": 276.0,
+   "x": 235.0,
    "w": 5.5,
    "style": "shuttered",
-   "cover": "awning",
-   "floors": 2,
-   "awning_color": "orange",
-   "tears": [
-    [
-     1.3,
-     3.3
-    ]
-   ],
-   "neon": true
-  },
-  {
-   "x": 281.5,
-   "w": 2.0,
-   "style": "shop_lit",
-   "cover": "none",
-   "floors": 2,
-   "sign": "TOYS"
-  },
-  {
-   "x": 283.5,
-   "w": 4.0,
-   "style": "boarded",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "brown",
-   "neon": true
-  },
-  {
-   "x": 287.5,
-   "w": 4.5,
-   "style": "doorway",
-   "cover": "awning",
-   "floors": 3,
-   "awning_color": "teal"
-  },
-  {
-   "x": 292.0,
-   "w": 3.0,
-   "style": "doorway",
-   "cover": "arcade",
-   "floors": 4
-  },
-  {
-   "x": 295.0,
-   "w": 5.5,
-   "style": "shuttered",
-   "cover": "none",
-   "floors": 3,
-   "sign": "24 HR"
-  },
-  {
-   "x": 300.5,
-   "w": 4.5,
-   "style": "shop_lit",
-   "cover": "none",
-   "floors": 3,
-   "sign": "WATCH REPAIR",
-   "neon": true
-  },
-  {
-   "x": 305.0,
-   "w": 5.5,
-   "style": "shop_lit",
-   "cover": "arcade",
-   "floors": 4,
-   "sign": "PACHINKO"
-  },
-  {
-   "x": 310.5,
-   "w": 4.5,
-   "style": "shop_lit",
    "cover": "awning",
    "floors": 4,
-   "sign": "VR DEN",
-   "awning_color": "teal",
+   "sign": "BARBER",
+   "awning_color": "green",
    "tears": [
     [
-     2.5,
-     3.6
+     1.0,
+     2.0
     ]
    ]
   },
   {
-   "x": 315.0,
-   "w": 5.0,
-   "style": "wall",
+   "x": 240.5,
+   "w": 2.5,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 2,
+   "sign": "24 HR"
+  },
+  {
+   "x": 243.0,
+   "w": 7.0,
+   "style": "boarded",
+   "cover": "balcony",
+   "floors": 2
+  },
+  {
+   "x": 250.0,
+   "w": 4.0,
+   "style": "shop_lit",
    "cover": "awning",
-   "floors": 3,
-   "awning_color": "blue",
+   "floors": 2,
+   "sign": "RECORDS",
+   "awning_color": "red",
+   "tears": [
+    [
+     1.3,
+     2.5
+    ]
+   ]
+  },
+  {
+   "x": 254.0,
+   "w": 4.0,
+   "style": "wall",
+   "cover": "none",
+   "floors": 3
+  },
+  {
+   "x": 258.0,
+   "w": 2.5,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 1,
+   "sign": "CYBER CAFE"
+  },
+  {
+   "x": 260.5,
+   "w": 7.0,
+   "style": "shuttered",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "red"
+  },
+  {
+   "x": 267.5,
+   "w": 3.0,
+   "style": "shuttered",
+   "cover": "balcony",
+   "floors": 3
+  },
+  {
+   "x": 280.5,
+   "w": 5.5,
+   "style": "doorway",
+   "cover": "awning",
+   "floors": 2,
+   "awning_color": "orange",
+   "neon": true,
+   "sign": "KARAOKE"
+  },
+  {
+   "x": 286.0,
+   "w": 3.0,
+   "style": "shop_lit",
+   "cover": "awning",
+   "floors": 1,
+   "sign": "NOODLES",
+   "awning_color": "red"
+  },
+  {
+   "x": 289.0,
+   "w": 6.0,
+   "style": "boarded",
+   "cover": "none",
+   "floors": 1,
+   "neon": true,
+   "sign": "ARCADE"
+  },
+  {
+   "x": 295.0,
+   "w": 3.5,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 2,
+   "sign": "BAKERY",
    "neon": true
+  },
+  {
+   "x": 298.5,
+   "w": 7.0,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 1,
+   "sign": "TOBACCO",
+   "awning_color": "orange"
+  },
+  {
+   "x": 305.5,
+   "w": 6.0,
+   "style": "shop_dark",
+   "cover": "awning",
+   "floors": 2,
+   "sign": "TAILOR",
+   "awning_color": "green"
+  },
+  {
+   "x": 311.5,
+   "w": 3.0,
+   "style": "shop_lit",
+   "cover": "none",
+   "floors": 2,
+   "sign": "WATCH REPAIR",
+   "neon": true
+  },
+  {
+   "x": 314.5,
+   "w": 5.5,
+   "style": "boarded",
+   "cover": "awning",
+   "floors": 1,
+   "awning_color": "brown"
   },
   {
    "x": 320.0,
@@ -609,125 +598,151 @@
    "w": 8.0,
    "style": "shop_dark",
    "cover": "awning",
-   "floors": 2,
-   "sign": "LIQUOR",
-   "awning_color": "red",
+   "floors": 4,
+   "sign": "FLORIST",
+   "awning_color": "teal",
    "neon": true
   }
  ],
  "crossings": [
   {
    "x": 64.5,
-   "w": 10.0
+   "w": 8.5
   },
   {
-   "x": 129.5,
-   "w": 9.0,
-   "car": true
-  },
-  {
-   "x": 192.0,
+   "x": 128.5,
    "w": 10.5,
    "car": true
   },
   {
-   "x": 262.0,
-   "w": 8.5,
+   "x": 199.5,
+   "w": 9.0,
+   "car": true
+  },
+  {
+   "x": 270.5,
+   "w": 10.0,
    "car": true
   }
  ],
  "features": [
   {
-   "type": "vent",
-   "x": 27.0,
-   "w": 1.6
+   "type": "gutter",
+   "x": 28.25
+  },
+  {
+   "type": "puddle",
+   "x": 48.6,
+   "w": 1.0
+  },
+  {
+   "type": "gutter",
+   "x": 64.25
+  },
+  {
+   "type": "puddle",
+   "x": 69.68,
+   "w": 1.2
   },
   {
    "type": "vent",
-   "x": 55.0,
+   "x": 76.25,
    "w": 1.6
   },
   {
-   "type": "vent",
-   "x": 101.75,
-   "w": 1.6
+   "type": "puddle",
+   "x": 91.79,
+   "w": 1.0
   },
   {
    "type": "sun",
-   "x": 113.5,
-   "w": 6.5
-  },
-  {
-   "type": "gutter",
-   "x": 129.25
+   "x": 108.5,
+   "w": 5.0
   },
   {
    "type": "puddle",
-   "x": 130.7,
-   "w": 1.6,
-   "deep": true
-  },
-  {
-   "type": "puddle",
-   "x": 154.32,
-   "w": 1.0
-  },
-  {
-   "type": "vent",
-   "x": 169.5,
-   "w": 1.6
-  },
-  {
-   "type": "gutter",
-   "x": 191.75
-  },
-  {
-   "type": "puddle",
-   "x": 193.2,
+   "x": 129.7,
    "w": 1.6,
    "deep": true
   },
   {
    "type": "gutter",
-   "x": 212.25
+   "x": 148.75
   },
   {
    "type": "puddle",
-   "x": 218.95,
+   "x": 149.9,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 236.75
+   "x": 161.75
   },
   {
    "type": "puddle",
-   "x": 238.07,
+   "x": 164.85,
    "w": 1.0
   },
   {
+   "type": "gutter",
+   "x": 177.25
+  },
+  {
+   "type": "fire_barrel",
+   "x": 182.75,
+   "w": 1.8
+  },
+  {
+   "type": "gutter",
+   "x": 199.25
+  },
+  {
    "type": "puddle",
-   "x": 263.2,
+   "x": 200.7,
    "w": 1.6,
    "deep": true
   },
   {
    "type": "puddle",
-   "x": 282.2,
+   "x": 224.15,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 294.75
+   "x": 240.25
+  },
+  {
+   "type": "gutter",
+   "x": 253.75
   },
   {
    "type": "puddle",
-   "x": 296.71,
+   "x": 258.17,
    "w": 1.0
   },
   {
    "type": "gutter",
-   "x": 319.75
+   "x": 270.25
+  },
+  {
+   "type": "puddle",
+   "x": 271.7,
+   "w": 1.6,
+   "deep": true
+  },
+  {
+   "type": "gutter",
+   "x": 288.75
+  },
+  {
+   "type": "puddle",
+   "x": 295.56,
+   "w": 1.0
+  },
+  {
+   "type": "puddle",
+   "x": 312.33,
+   "w": 1.0
   }
  ],
  "props": [
@@ -736,156 +751,152 @@
    "x": 6.0
   },
   {
-   "id": "lamp_post",
-   "x": 19.48
-  },
-  {
-   "id": "lamp_post",
-   "x": 35.7
-  },
-  {
    "id": "trash_can",
-   "x": 40.06
-  },
-  {
-   "id": "parking_meter",
-   "x": 46.09
-  },
-  {
-   "id": "mailbox",
-   "x": 49.51
-  },
-  {
-   "id": "newspaper_box",
-   "x": 52.16
-  },
-  {
-   "id": "lamp_post",
-   "x": 53.18
-  },
-  {
-   "id": "newspaper_box",
-   "x": 67.06
-  },
-  {
-   "id": "lamp_post",
-   "x": 68.33
-  },
-  {
-   "id": "newspaper_box",
-   "x": 74.62
-  },
-  {
-   "id": "lamp_post",
-   "x": 81.18
-  },
-  {
-   "id": "trash_can",
-   "x": 82.64
-  },
-  {
-   "id": "lamp_post",
-   "x": 95.31
-  },
-  {
-   "id": "lamp_post",
-   "x": 113.01
-  },
-  {
-   "id": "lamp_post",
-   "x": 125.61
-  },
-  {
-   "id": "lamp_post",
-   "x": 142.45
-  },
-  {
-   "id": "lamp_post",
-   "x": 155.08
-  },
-  {
-   "id": "newspaper_box",
-   "x": 161.29
-  },
-  {
-   "id": "lamp_post",
-   "x": 168.46
-  },
-  {
-   "id": "lamp_post",
-   "x": 181.14
-  },
-  {
-   "id": "trash_can",
-   "x": 197.72
-  },
-  {
-   "id": "lamp_post",
-   "x": 198.64
-  },
-  {
-   "id": "mailbox",
-   "x": 207.29
-  },
-  {
-   "id": "trash_can",
-   "x": 207.45
-  },
-  {
-   "id": "lamp_post",
-   "x": 213.01
-  },
-  {
-   "id": "lamp_post",
-   "x": 228.94
-  },
-  {
-   "id": "lamp_post",
-   "x": 242.39
-  },
-  {
-   "id": "lamp_post",
-   "x": 259.23
-  },
-  {
-   "id": "lamp_post",
-   "x": 274.5
-  },
-  {
-   "id": "lamp_post",
-   "x": 289.54
+   "x": 6.02
   },
   {
    "id": "hydrant",
-   "x": 293.97
+   "x": 11.01
   },
   {
    "id": "bench",
-   "x": 300.42
+   "x": 15.66
   },
   {
    "id": "lamp_post",
-   "x": 301.96
-  },
-  {
-   "id": "parking_meter",
-   "x": 302.24
+   "x": 20.69
   },
   {
    "id": "lamp_post",
-   "x": 315.61
+   "x": 37.17
+  },
+  {
+   "id": "hydrant",
+   "x": 38.36
+  },
+  {
+   "id": "lamp_post",
+   "x": 49.93
+  },
+  {
+   "id": "lamp_post",
+   "x": 67.1
+  },
+  {
+   "id": "lamp_post",
+   "x": 80.16
   },
   {
    "id": "parking_meter",
-   "x": 325.73
+   "x": 94.47
+  },
+  {
+   "id": "lamp_post",
+   "x": 94.82
+  },
+  {
+   "id": "lamp_post",
+   "x": 109.69
+  },
+  {
+   "id": "mailbox",
+   "x": 114.57
+  },
+  {
+   "id": "hydrant",
+   "x": 120.61
+  },
+  {
+   "id": "lamp_post",
+   "x": 126.54
   },
   {
    "id": "trash_can",
-   "x": 328.11
+   "x": 135.45
   },
   {
    "id": "lamp_post",
-   "x": 333.3
+   "x": 144.45
+  },
+  {
+   "id": "newspaper_box",
+   "x": 155.77
+  },
+  {
+   "id": "lamp_post",
+   "x": 162.1
+  },
+  {
+   "id": "lamp_post",
+   "x": 176.02
+  },
+  {
+   "id": "trash_can",
+   "x": 183.27
+  },
+  {
+   "id": "lamp_post",
+   "x": 193.3
+  },
+  {
+   "id": "lamp_post",
+   "x": 208.04
+  },
+  {
+   "id": "hydrant",
+   "x": 213.69
+  },
+  {
+   "id": "lamp_post",
+   "x": 224.91
+  },
+  {
+   "id": "lamp_post",
+   "x": 239.95
+  },
+  {
+   "id": "lamp_post",
+   "x": 253.19
+  },
+  {
+   "id": "lamp_post",
+   "x": 267.45
+  },
+  {
+   "id": "lamp_post",
+   "x": 279.87
+  },
+  {
+   "id": "lamp_post",
+   "x": 295.81
+  },
+  {
+   "id": "parking_meter",
+   "x": 304.67
+  },
+  {
+   "id": "bench",
+   "x": 305.78
+  },
+  {
+   "id": "lamp_post",
+   "x": 309.19
+  },
+  {
+   "id": "trash_can",
+   "x": 311.51
+  },
+  {
+   "id": "mailbox",
+   "x": 319.79
+  },
+  {
+   "id": "parking_meter",
+   "x": 319.79
+  },
+  {
+   "id": "lamp_post",
+   "x": 322.99
   }
  ]
 }

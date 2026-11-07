@@ -10,6 +10,7 @@ const ROAD_Y := -0.16
 const AWNING_WALL_Y := 3.05
 const AWNING_FRONT_Y := 2.6
 const AWNING_DEPTH := 2.35
+const SIGN_Z := 0.32   # in front of the kit's fascia board
 const KIT_PATH := "res://assets/buildings/kit.json"
 const PROPS_PATH := "res://assets/props/props.json"
 
@@ -178,6 +179,8 @@ func _build_lot(lot: Dictionary) -> void:
 			_build_slab(x, w, 3.6, 2.9, true)
 	if lot.has("sign") and style != "vacant":
 		_build_sign(x, w, String(lot["sign"]), style, bool(lot.get("neon", false)))
+	if style != "vacant" and rng.randf() < float(data.get("neon", 0.0)) * 0.45:
+		_build_holo(x, w, floors)
 
 
 func _wall_color() -> Color:
@@ -477,50 +480,235 @@ func _build_slab(x: float, w: float, y: float, depth: float, columns: bool) -> v
 			cx += 3.5
 
 
+const NEON_COLORS := [Color(0.2, 1.0, 0.95), Color(1.0, 0.25, 0.75), Color(1.0, 0.55, 0.15),
+	Color(0.55, 0.35, 1.0), Color(0.35, 1.0, 0.4), Color(1.0, 0.2, 0.25)]
+
+
 func _build_sign(x: float, w: float, text: String, style: String, neon: bool) -> void:
+	if neon:
+		_build_neon(x, w, text)
+		return
 	var lbl := Label3D.new()
 	lbl.text = text
-	lbl.font_size = 96
 	lbl.pixel_size = 0.004
 	if sign_font:
 		lbl.font = sign_font
-	lbl.width = (w - 0.6) / lbl.pixel_size
 	lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
-	lbl.position = Vector3(x + w * 0.5, 3.55, 0.05)
-	var lit := style in ["shop_lit", "inn"] or neon
-	lbl.modulate = Color(1.0, 0.85, 0.55) if not neon else Color(0.4, 1.0, 0.95)
-	if not lit:
-		lbl.modulate = Color(0.55, 0.5, 0.42)
+	lbl.position = Vector3(x + w * 0.5, 3.5, SIGN_Z)
+	var lit := style in ["shop_lit", "inn"]
+	lbl.modulate = Color(1.0, 0.85, 0.55) if lit else Color(0.55, 0.5, 0.42)
 	lbl.outline_size = 0
 	lbl.shaded = not lit
 	lbl.double_sided = false
 	var max_w := (w - 0.6) / lbl.pixel_size
 	lbl.font_size = int(clampf(max_w / maxf(1.0, text.length() * 0.62), 40.0, 110.0))
 	root.add_child(lbl)
-	if neon:
-		var om := OmniLight3D.new()
-		om.light_color = lbl.modulate
-		om.light_energy = 1.2
-		om.omni_range = 4.0
-		om.position = lbl.position + Vector3(0, 0, 0.6)
-		root.add_child(om)
+
+
+## Retro-future neon: glowing tube lettering on the fascia, a vertical blade sign, coloured spill.
+func _build_neon(x: float, w: float, text: String) -> void:
+	var col: Color = NEON_COLORS[rng.randi() % NEON_COLORS.size()]
+	var tm := TextMesh.new()
+	tm.text = text
+	tm.font_size = 64
+	tm.pixel_size = 0.0045
+	tm.depth = 0.03
+	if sign_font:
+		tm.font = sign_font
+	var est_w := text.length() * tm.font_size * 0.62 * tm.pixel_size
+	if est_w > w - 0.6:
+		tm.pixel_size *= (w - 0.6) / est_w
+	var mi := MeshInstance3D.new()
+	mi.mesh = tm
+	mi.material_override = _neon_mat(col, 6.0)
+	mi.position = Vector3(x + w * 0.5, 3.42, SIGN_Z)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mi)
+	var om := OmniLight3D.new()
+	om.light_color = col
+	om.light_energy = 2.2
+	om.omni_range = 5.5
+	om.light_volumetric_fog_energy = 1.2
+	om.position = Vector3(x + w * 0.5, 3.3, 0.9)
+	root.add_child(om)
+	# Vertical blade sign on taller buildings.
+	if w >= 4.0 and rng.randf() < 0.75:
+		var col2: Color = NEON_COLORS[rng.randi() % NEON_COLORS.size()]
+		var blade := Node3D.new()
+		blade.position = Vector3(x + w - 0.6, 4.15, 0.25)
+		root.add_child(blade)
+		var letters := text.split(" ")[0].left(6)
+		var h := letters.length() * 0.5 + 0.4
+		var back := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.7, h, 0.12)
+		back.mesh = bm
+		back.material_override = _mat("blade_back", Color(0.06, 0.06, 0.07), 0.4, 0.6)
+		back.position = Vector3(0, h * 0.5, 0)
+		blade.add_child(back)
+		var frame := MeshInstance3D.new()
+		var fm := BoxMesh.new()
+		fm.size = Vector3(0.74, h + 0.06, 0.1)
+		frame.mesh = fm
+		frame.material_override = _neon_mat(col2, 2.0)
+		frame.scale = Vector3(1.0, 1.0, 1.0)
+		frame.position = back.position
+		frame.transparency = 0.6
+		blade.add_child(frame)
+		for i in letters.length():
+			var lt := TextMesh.new()
+			lt.text = letters[i]
+			lt.font_size = 64
+			lt.pixel_size = 0.006
+			lt.depth = 0.02
+			if sign_font:
+				lt.font = sign_font
+			var li := MeshInstance3D.new()
+			li.mesh = lt
+			li.material_override = _neon_mat(col2, 7.0)
+			li.position = Vector3(0, h - 0.45 - i * 0.5, 0.07)
+			blade.add_child(li)
+		var bl := OmniLight3D.new()
+		bl.light_color = col2
+		bl.light_energy = 1.6
+		bl.omni_range = 5.0
+		bl.light_volumetric_fog_energy = 1.5
+		bl.position = Vector3(0.0, h * 0.5, 0.6)
+		blade.add_child(bl)
+		bl.set_script(load("res://src/fx/neon_flicker.gd"))
+
+
+func _neon_mat(col: Color, energy: float) -> StandardMaterial3D:
+	var key := "neon_%s_%.1f" % [col.to_html(), energy]
+	if _mats.has(key):
+		return _mats[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.emission_enabled = true
+	m.emission = col
+	m.emission_energy_multiplier = energy
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_mats[key] = m
+	return m
+
+
+## Animated holographic advert panel on upper floors (retro-future streets).
+func _build_holo(x: float, w: float, floors: int) -> void:
+	if floors < 2 or w < 4.0:
+		return
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(minf(w - 1.0, 4.0), 2.2)
+	mi.mesh = q
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://src/fx/holo_ad.gdshader")
+	mat.set_shader_parameter("tint", NEON_COLORS[rng.randi() % NEON_COLORS.size()])
+	mat.set_shader_parameter("seed", rng.randf() * 100.0)
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(x + w * 0.5, 4.0 + 3.2 * (floors - 1) + 1.4, 0.35)
+	root.add_child(mi)
 
 
 # --- crossings & backdrop -------------------------------------------------------------------
 
 func _build_crossing(c: Dictionary) -> void:
-	var x: float = c["x"]
-	var w: float = c["w"]
-	# Side-street buildings receding into the block.
-	for side in [-1, 1]:
-		var bx := x - 0.0 if side < 0 else x + w
-		var wall := _mat("side_%d" % side, _wall_color().darkened(0.2), 0.9)
-		for k in 3:
-			var h := rng.randf_range(8.0, 16.0)
-			var bw := 9.0
-			_box(Vector3(1.0, h, bw), Vector3(bx + side * -0.5 + (side * 0.0), h * 0.5, -10.0 - k * bw - bw * 0.5 + 9.0), wall)
-	# Sign post & stop line.
-	_box(Vector3(w - 1.0, 0.02, 0.3), Vector3(x + w * 0.5, ROAD_Y + 0.005, -1.0), _mat("zebra", Color(0.75, 0.74, 0.7), 0.35))
+	var x0: float = c["x"]
+	var x1: float = x0 + float(c["w"])
+	var floors_l := 2
+	var floors_r := 2
+	for lot in data.get("lots", []):
+		if absf(float(lot["x"]) + float(lot["w"]) - x0) < 0.05:
+			floors_l = int(lot.get("floors", 2))
+		if absf(float(lot["x"]) - x1) < 0.05:
+			floors_r = int(lot.get("floors", 2))
+	# Side walls of the corner buildings, receding down the side street.
+	_side_street_wall(x0, floors_l, 1.0)
+	_side_street_wall(x1, floors_r, -1.0)
+	# Far facade across the end of the side street, lost in the fog.
+	var far_z := -34.0
+	var fx := x0 - 4.0
+	while fx < x1 + 4.0:
+		var fw := rng.randf_range(4.0, 7.0)
+		var fh := 4.0 + 3.2 * rng.randi_range(1, 4)
+		_box(Vector3(fw, fh, 1.0), Vector3(fx + fw * 0.5, fh * 0.5, far_z), _mat("far_%d" % (rng.randi() % 3), _wall_color().darkened(0.45), 0.9))
+		if rng.randf() < 0.6:
+			var glow := _mat("farwin", Color(0.9, 0.7, 0.45), 0.5)
+			glow.emission_enabled = true
+			glow.emission = Color(1.0, 0.7, 0.4)
+			glow.emission_energy_multiplier = 0.9
+			_box(Vector3(1.0, 1.2, 0.05), Vector3(fx + fw * 0.5, 5.5 + rng.randi_range(0, 2) * 3.2, far_z + 0.55), glow)
+		fx += fw
+	# Side-street sidewalks.
+	var sidewalk := _material_res("sidewalk", _mat("sidewalk", Color(0.36, 0.35, 0.34), 0.25))
+	_box(Vector3(2.2, 0.3, 34.0), Vector3(x0 + 1.1, -0.15, -17.0), sidewalk)
+	_box(Vector3(2.2, 0.3, 34.0), Vector3(x1 - 1.1, -0.15, -17.0), sidewalk)
+	# Stop line and a street sign / traffic light at the far corner.
+	_box(Vector3(x1 - x0 - 4.4, 0.02, 0.3), Vector3((x0 + x1) * 0.5, ROAD_Y + 0.005, -1.0), _mat("zebra", Color(0.75, 0.74, 0.7), 0.35))
+	_traffic_light(x1 - 0.6)
+
+
+func _side_street_wall(x: float, floors: int, facing: float) -> void:
+	var sides: Dictionary = kit.get("side", {})
+	var mods: Array = []
+	for st in sides:
+		mods.append_array(sides[st])
+	var ground: Array = mods.filter(func(m): return String(m["id"]).contains("ground"))
+	var upper: Array = mods.filter(func(m): return String(m["id"]).contains("upper"))
+	var cap: Array = mods.filter(func(m): return String(m["id"]).contains("cap"))
+	var z := 0.0
+	var seg := 0
+	while z > -30.0:
+		var f := floors if seg == 0 else rng.randi_range(1, 4)
+		var depth := 10.0
+		if ground.is_empty():
+			var h := 4.0 + 3.2 * f
+			_box(Vector3(0.6, h, depth), Vector3(x - facing * 0.3, h * 0.5, z - depth * 0.5),
+				_mat("sidewall_%d" % (rng.randi() % 4), _wall_color().darkened(0.25), 0.9))
+		else:
+			var g: Dictionary = ground[rng.randi() % ground.size()]
+			depth = float(g["width"])
+			_place_side(g, x, 0.0, z, facing)
+			for i in f:
+				if not upper.is_empty():
+					_place_side(upper[rng.randi() % upper.size()], x, 4.0 + 3.2 * i, z, facing, depth)
+			if not cap.is_empty():
+				_place_side(cap[rng.randi() % cap.size()], x, 4.0 + 3.2 * f, z, facing, depth)
+		z -= depth
+		seg += 1
+
+
+func _place_side(m: Dictionary, x: float, y: float, z: float, facing: float, fit_depth := -1.0) -> void:
+	var n := _instance(m["scene"])
+	if n == null:
+		return
+	n.position = Vector3(x, y, z)
+	var sc := 1.0
+	if fit_depth > 0.0:
+		sc = fit_depth / float(m["width"])
+	# Modules face +X spanning z in [-width, 0]; mirror for walls that face -X.
+	n.scale = Vector3(facing, 1.0, sc)
+	root.add_child(n)
+
+
+func _traffic_light(x: float) -> void:
+	var pole := _mat("pole", Color(0.12, 0.13, 0.12), 0.5, 0.8)
+	_box(Vector3(0.12, 3.6, 0.12), Vector3(x, 1.8, -0.6), pole)
+	_box(Vector3(0.32, 0.9, 0.3), Vector3(x, 3.4, -0.6), _mat("tl_box", Color(0.18, 0.17, 0.08), 0.6, 0.3))
+	var lamp := StandardMaterial3D.new()
+	var amber := Color(1.0, 0.6, 0.1)
+	lamp.albedo_color = amber
+	lamp.emission_enabled = true
+	lamp.emission = amber
+	lamp.emission_energy_multiplier = 4.0
+	_box(Vector3(0.16, 0.16, 0.05), Vector3(x, 3.4, -0.44), lamp)
+	var ol := OmniLight3D.new()
+	ol.light_color = amber
+	ol.light_energy = 0.8
+	ol.omni_range = 3.0
+	ol.position = Vector3(x, 3.4, -0.2)
+	ol.set_script(load("res://src/fx/blink.gd"))
+	root.add_child(ol)
 
 
 func _build_backdrop() -> void:
