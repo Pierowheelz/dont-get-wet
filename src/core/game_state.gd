@@ -2,6 +2,7 @@ extends Node
 ## Persistent progression (settings and one run per direction) and scene flow.
 
 const SAVE_VERSION := 2
+const FEEDBACK_URL := "https://github.com/Pierowheelz/dont-get-wet/issues/new?template=feedback.yml"
 const INDEX_PATH := "res://levels/index.json"
 
 signal tokens_changed(tokens: int)
@@ -16,6 +17,7 @@ var save_path := "user://save.json"
 var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
 var debug_lazy := false             # --lazy: autopilot never opens the umbrella (testing defeat)
+var trace_path := ""                # --trace=PATH: autopilot writes a JSON-lines run trace
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
 var debug_auto_continue := false    # --auto-continue: result screen presses Continue (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
@@ -34,6 +36,8 @@ func _ready() -> void:
 	if args.has("--low"):
 		settings["low_quality"] = true
 	for a in args:
+		if a.begins_with("--trace="):
+			trace_path = a.substr(8)
 		if a.begins_with("--level="):
 			current_level = a.substr(8)
 		if a.begins_with("--start-x="):
@@ -453,6 +457,19 @@ func _level_scenes() -> PackedStringArray:
 func goto_map() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://src/ui/map_screen.tscn")
+
+
+## The feedback issue form, with the game version prefilled into its `version` field.
+func feedback_url() -> String:
+	return FEEDBACK_URL + "&version=" + String(ProjectSettings.get_setting("application/config/version", "")).uri_encode()
+
+
+## Returns what the button should say: with no browser (Steam Deck Game Mode) the link is copied instead.
+func open_feedback() -> String:
+	if OS.shell_open(feedback_url()) == OK:
+		return "Opened in browser"
+	DisplayServer.clipboard_set(feedback_url())
+	return "Link copied"
 
 
 func goto_menu() -> void:

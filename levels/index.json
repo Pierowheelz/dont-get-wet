@@ -11,7 +11,7 @@
    "neighbors": [
     "canal_row"
    ],
-   "blurb": "Edge of town. Long stretches of open sky, and the sun sometimes breaks through.",
+   "blurb": "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through.",
    "difficulty": 4,
    "file": "res://levels/mill_road.json"
   },
@@ -70,7 +70,7 @@
    "neighbors": [
     "arcade_lane"
    ],
-   "blurb": "Chrome, neon and gale-force gusts between the towers. Nearly the city centre.",
+   "blurb": "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns in your face.",
    "difficulty": 5,
    "file": "res://levels/neon_junction.json"
   }

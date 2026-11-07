@@ -10,7 +10,9 @@ to get him to shelter as dry as you can.
 Open the umbrella under rain, close it under cover to get your breath back, hurry across the gaps,
 tilt into the wind, and watch out for passing cars.
 
-> **Alpha v0.1.0** — an early version. Expect rough edges, and tell us what you think!
+> **Alpha v0.2.0** — an early version. Expect rough edges, and tell us what you think!
+> Use **Send feedback** on the title screen, or [fill in the feedback form](../../issues/new?template=feedback.yml)
+> (which streets you played, how you played, what felt good and what didn't).
 
 ![Neon Junction](docs/screenshots/neon_junction.jpg)
 
@@ -93,6 +95,9 @@ Builds: export the **Linux** and **Windows Desktop** presets (to `build/linux/` 
 ```sh
 python3 tools/level_gen.py                   # regenerate first-draft level layouts into levels/*.json
 tools/playtest.sh [--human] [level ...]      # autopilot bot plays levels headless, prints score & wetness sources
+python3 tools/streets/LEVEL_ID.py            # rewrite levels/LEVEL_ID.json from its plan (see docs/LEVEL_AUTHORING.md)
+tools/preview.sh LEVEL_ID [OUT_DIR]          # perfect + --human bots with traces, then PNG + design report (exit 1 if a rule fails)
+python3 tools/level_preview.py LEVEL_ID_OR_JSON [--trace a.jsonl ...] -o OUT.png [--report]   # renderer/checker alone
 godot --headless --path . res://tests/run_tests.tscn -- --save=/tmp/dgw/save.json   # rain, umbrella, splash, runs & save tests
 tools/shots.sh OUT_DIR "1,3,5" res://src/level/level.tscn --autopilot --level=main_street --start-x=40
 tools/shots.sh OUT_DIR "3.5" res://src/ui/main_menu.tscn --save=/tmp/dgw/save.json   # menu against a test save
@@ -102,7 +107,8 @@ tools/posture_sheet.sh OUT.png               # walker posture contact sheet
 
 Debug game args (after `--`): `--level=ID`, `--autopilot`, `--human`, `--lazy` (never opens the
 umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`, `--save=ABS_PATH`
-(read and write this save file instead of the player's own).
+(read and write this save file instead of the player's own), `--auto-continue` (the score screen
+presses Continue), `--trace=PATH` (autopilot writes a JSON-lines run trace).
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 

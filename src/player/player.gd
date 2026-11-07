@@ -56,6 +56,8 @@ var _step_phase := 0.0
 var _end_t := 0.0
 var _dropped_umbrella := false
 var _ap_hold := 0.0
+var _ap_resting := false          # autopilot is holding Stop until stamina is full
+var _ap_no_rest_before := -INF      # autopilot won't settle to rest again before this x
 var _drips: GPUParticles3D                 # autopilot: keep umbrella up a little after leaving rain
 
 
@@ -197,7 +199,7 @@ func _physics_process(delta: float) -> void:
 	gain += gutter_hit * Tun.f("wet_gutter_rate")
 	stats["wet_gutter"] += gutter_hit * Tun.f("wet_gutter_rate") * delta
 	_check_puddles()
-	drying = level.dry_rate(position.x)
+	drying = level.dry_rate(position.x, open)
 	stats["dried"] += minf(drying * delta, wet)
 	wet = clampf(wet + (gain - drying) * delta, 0.0, Tun.f("wet_max"))
 	if wet >= Tun.f("wet_max"):
@@ -475,6 +477,8 @@ func _humanise(ap: Array, delta: float) -> Array:
 	return out
 
 func _exposed_at(x: float, height := 1.6) -> bool:
+	if level.rain_intensity(x) <= 0.0:
+		return false
 	var p := Vector3(x, level.ground_y(x) + height, position.z)
 	return not _cast(p, p - rain_dir() * 30.0, COVER_MASK)
 
@@ -484,8 +488,16 @@ func _autopilot(delta: float) -> Array:
 	var lead := maxf(speed, Tun.f("walk_speed")) * Game.umbrella_open_time() + 0.6
 	var rd0 := rain_dir()
 	var tl0 := clampf(-atan2(rd0.x, -rd0.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
-	if state == State.STOPPED:
-		return [0.0, 0.0, tl0, stamina < Tun.f("stamina_max") - 0.01]
+	# Stop is held, like a player keeping the button down until the bar is full. Deciding from the
+	# live state instead let a flicker in the cover check release it mid-rest (worse with --human's
+	# delayed replay). Rest through a light sprinkle at the cover's edge, but if a gust drives real
+	# rain in, give up the rest and don't settle again until he has moved on a little.
+	if _ap_resting:
+		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5:
+			_ap_resting = false
+			_ap_no_rest_before = position.x + 1.5
+		else:
+			return [0.0, 0.0, tl0, true]
 	var danger := false
 	var dx := -0.4
 	while dx <= lead:
@@ -512,7 +524,7 @@ func _autopilot(delta: float) -> Array:
 		if absf(g - position.x) < 0.9:
 			tl = 0.0     # straighten up under a gutter stream
 	var stop := false
-	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered:
+	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before:
 		stop = true
 		for off in [-0.9, -0.45, 0.0, 0.45, 0.9]:
 			if _exposed_at(position.x + off) or _exposed_at(position.x + off, 0.5):
@@ -520,4 +532,5 @@ func _autopilot(delta: float) -> Array:
 		for g in level.gutters:
 			if absf(g - position.x) < 1.2:
 				stop = false
+	_ap_resting = stop
 	return [u, h, tl, stop]

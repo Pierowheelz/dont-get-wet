@@ -7,8 +7,6 @@ extends RefCounted
 const COVER_LAYER := 1 << 1
 const SIDEWALK_W := 3.5
 const ROAD_Y := -0.16
-const AWNING_WALL_Y := 3.05
-const AWNING_FRONT_Y := 2.6
 const AWNING_DEPTH := 2.35
 const BALCONY_Y := 4.12   # above the 3.1–3.9 sign band so signs stay visible
 const ARCADE_Y := 4.15
@@ -25,6 +23,55 @@ const AWNING_COLORS := {
 	"teal": [Color(0.08, 0.38, 0.38), Color(0.8, 0.8, 0.72)],
 }
 
+## Awning designs, keyed by the lot field `awning_style`. Every style shelters the same footprint
+## (z 0 → AWNING_DEPTH across the lot, minus tears), stays below the 3.1 m sign band, and crosses the
+## walker's line at the same height (see _check_awning_styles); they differ in silhouette so a street
+## of awnings doesn't read as one repeated module.
+##   eras / aesthetics: where the style may be picked automatically (empty aesthetics = any street)
+##   profile: canopy height over depth, see _awning_y ("line", "arc" + bulge, "dome")
+##   fabric: "canvas" (stripe_w 0 = solid, hem = front band, seam_w = rib seams), "tin", "acrylic", "enamel"
+##   valance: "none", "scallop", "straight", "zigzag"; valance_solid / piping are canvas trims
+##   frame: "arms", "brackets" (+ gutter), "chrome" (front tube + ribs), "chrome_edge", "bulbs", "none"
+##   ends: closed side cheeks; glow: neon strip under the front edge
+const AWNING_STYLES := {
+	"classic": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon"],
+		"profile": "line", "wall_y": 3.05, "front_y": 2.6, "fabric": "canvas", "stripe_w": 0.45, "hem": 0.0,
+		"sag": 0.05, "valance": "scallop", "valance_h": 0.28, "valance_solid": false, "piping": false,
+		"frame": "arms", "ends": false, "glow": false},
+	"wide_stripe": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon", "outskirts"],
+		"profile": "line", "wall_y": 3.05, "front_y": 2.55, "fabric": "canvas", "stripe_w": 1.1, "hem": 0.0,
+		"sag": 0.06, "valance": "straight", "valance_h": 0.3, "valance_solid": true, "piping": true,
+		"frame": "arms", "ends": false, "glow": false},
+	"pennant": {"eras": ["60s"], "aesthetics": [],
+		"profile": "line", "wall_y": 2.95, "front_y": 2.65, "fabric": "canvas", "stripe_w": 0.0, "hem": 0.0,
+		"sag": 0.03, "valance": "zigzag", "valance_h": 0.36, "valance_solid": false, "piping": true,
+		"frame": "arms", "ends": false, "glow": false},
+	"dome": {"eras": ["60s"], "aesthetics": [],
+		"profile": "dome", "wall_y": 2.83, "front_y": 2.5, "fabric": "canvas", "stripe_w": 0.0, "hem": 0.1, "seam_w": 0.75,
+		"sag": 0.0, "valance": "none", "valance_h": 0.0, "valance_solid": false, "piping": false,
+		"frame": "none", "ends": true, "glow": false},
+	"waterfall": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "industrial", "outskirts"],
+		"profile": "line", "wall_y": 3.05, "front_y": 2.6, "fabric": "canvas", "stripe_w": 0.7, "hem": 0.0,
+		"sag": 0.0, "valance": "straight", "valance_h": 0.34, "valance_solid": false, "piping": false,
+		"frame": "none", "ends": true, "glow": false},
+	"tin": {"eras": ["60s"], "aesthetics": ["industrial", "outskirts"],
+		"profile": "line", "wall_y": 2.95, "front_y": 2.65, "fabric": "tin", "stripe_w": 0.0, "hem": 0.0,
+		"sag": 0.0, "valance": "none", "valance_h": 0.0, "valance_solid": false, "piping": false,
+		"frame": "brackets", "ends": false, "glow": false},
+	"bubble": {"eras": ["retro"], "aesthetics": [],
+		"profile": "arc", "wall_y": 2.8, "front_y": 2.6, "bulge": 0.1, "fabric": "acrylic", "stripe_w": 0.0,
+		"hem": 0.0, "sag": 0.0, "valance": "none", "valance_h": 0.0, "valance_solid": false, "piping": false,
+		"frame": "chrome", "ends": false, "glow": true},
+	"googie": {"eras": ["retro"], "aesthetics": [],
+		"profile": "line", "wall_y": 2.72, "front_y": 2.76, "fabric": "enamel", "stripe_w": 0.0, "hem": 0.0,
+		"sag": 0.0, "valance": "straight", "valance_h": 0.2, "valance_solid": false, "piping": false,
+		"frame": "chrome_edge", "ends": false, "glow": true},
+	"marquee": {"eras": ["retro"], "aesthetics": [],
+		"profile": "line", "wall_y": 2.78, "front_y": 2.74, "fabric": "enamel", "stripe_w": 0.0, "hem": 0.0,
+		"sag": 0.0, "valance": "straight", "valance_h": 0.3, "valance_solid": false, "piping": false,
+		"frame": "bulbs", "ends": false, "glow": false},
+}
+
 var root: Node3D
 var data: Dictionary
 var rng := RandomNumberGenerator.new()
@@ -38,6 +85,9 @@ var _mats := {}
 var _awning_shader: Shader
 var _scene_cache := {}
 var _drip_mesh: QuadMesh
+var _awning_style_at := {}          # lot x -> AWNING_STYLES key, resolved while building
+var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
+var _awning_used := {}              # style -> lots given it so far
 
 
 func build(p_root: Node3D, p_data: Dictionary) -> void:
@@ -45,6 +95,7 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	data = p_data
 	rng.seed = hash(String(data.get("id", "level")))
 	_awning_shader = load("res://src/fx/awning.gdshader")
+	assert(_check_awning_styles())
 	_load_kits()
 	if ResourceLoader.exists("res://assets/fonts/sign.ttf"):
 		sign_font = load("res://assets/fonts/sign.ttf")
@@ -102,28 +153,27 @@ func cover_map() -> Array:
 						if t[0] > sgm[0]: ns.append([sgm[0], minf(float(t[0]), sgm[1])])
 						if t[1] < sgm[1]: ns.append([maxf(float(t[1]), sgm[0]), sgm[1]])
 					segs = ns
+				var s: Dictionary = AWNING_STYLES[_awning_style_at.get(lx, "classic")]
 				for sgm in segs:
-					_cover_fill(img, x0, lx + sgm[0], lx + sgm[1], 0.0, AWNING_DEPTH, true)
+					_cover_fill(img, x0, lx + sgm[0], lx + sgm[1], 0.0, AWNING_DEPTH, func(z): return _awning_y(s, z))
 			"balcony":
-				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, false, BALCONY_Y)
+				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, func(_z): return BALCONY_Y)
 			"arcade":
-				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, false, ARCADE_Y)
+				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, func(_z): return ARCADE_Y)
 			"canopy":
-				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, false, 3.55)
+				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, func(_z): return 3.55)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
 
 
-func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, sloped: bool, flat_y := 0.0) -> void:
+func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, height: Callable) -> void:
 	var ia := int((a - x0) * COVER_RES)
 	var ib := int((b - x0) * COVER_RES)
 	for ix in range(maxi(ia, 0), mini(ib, img.get_width())):
 		for iz in img.get_height():
 			var z := COVER_Z0 + (iz + 0.5) / COVER_RES_Z
 			if z >= z0 and z <= z1:
-				var y := flat_y
-				if sloped:
-					y = AWNING_WALL_Y - (AWNING_WALL_Y - AWNING_FRONT_Y) * (z / AWNING_DEPTH)
+				var y: float = height.call(z)
 				var old := img.get_pixel(ix, iz)
 				img.set_pixel(ix, iz, Color(y, 1.0, old.b))
 
@@ -247,11 +297,13 @@ func _build_ground() -> void:
 func _build_lot(lot: Dictionary) -> void:
 	# Retro-future modules replace 60s ones with probability = the level's neon value.
 	kit = _kits.get("60s", {})
+	var era := "60s"
 	var retro: Dictionary = _kits.get("retro", {})
 	if not retro.is_empty() and rng.randf() < float(data.get("neon", 0.0)):
 		var st: String = lot.get("style", "wall")
 		if retro.get("ground", {}).has(st):
 			kit = retro
+			era = "retro"
 			if not lot.has("sign") and st != "vacant":
 				lot = lot.duplicate()
 				lot["sign"] = RETRO_FILLER_NAMES[rng.randi() % RETRO_FILLER_NAMES.size()]
@@ -266,7 +318,10 @@ func _build_lot(lot: Dictionary) -> void:
 		_build_facade(x, w, style, floors, lot)
 	match lot.get("cover", "none"):
 		"awning":
-			_build_awning(x, w, lot.get("tears", []), lot.get("awning_color", "red"))
+			var aw := _pick_awning_style(lot, era)
+			_awning_style_at[x] = aw
+			_build_awning(x, w, lot.get("tears", []), lot.get("awning_color", "red"), AWNING_STYLES[aw],
+				NEON_COLORS[_lot_hash(x, "glow") % NEON_COLORS.size()])
 		"balcony":
 			_build_slab(x, w, BALCONY_Y, 2.4, false)
 		"arcade":
@@ -449,14 +504,87 @@ func _build_vacant(x: float, w: float) -> void:
 
 # --- cover ----------------------------------------------------------------------------------
 
-func _build_awning(x: float, w: float, tears: Array, color_name: String) -> void:
+func _lot_hash(x: float, salt: String) -> int:
+	# Stable per lot and independent of the shared rng, so awning choices never shift the level's
+	# other random choices (facade modules, signs, holograms).
+	var r := RandomNumberGenerator.new()
+	r.seed = hash("%s:%s:%.2f" % [data.get("id", "level"), salt, x])
+	return r.randi()
+
+
+func _pick_awning_style(lot: Dictionary, era: String) -> String:
+	var x: float = lot["x"]
+	var name: String = lot.get("awning_style", "")
+	if name != "" and not AWNING_STYLES.has(name):
+		push_warning("level %s: unknown awning_style '%s' at x=%s" % [data.get("id", "?"), name, x])
+		name = ""
+	if name == "":
+		var aes: String = data.get("aesthetic", "rundown")
+		var pool: Array = AWNING_STYLES.keys().filter(func(k):
+			var s: Dictionary = AWNING_STYLES[k]
+			return s["eras"].has(era) and (s["aesthetics"].is_empty() or s["aesthetics"].has(aes)))
+		if pool.size() > 1 and absf(float(_prev_awning[0]) - x) < 0.05:
+			pool.erase(_prev_awning[1])
+		# Shuffle bag: the least-used styles so far, so a street gets an even mix without clumps.
+		var least: int = pool.map(func(k): return _awning_used.get(k, 0)).min()
+		pool = pool.filter(func(k): return _awning_used.get(k, 0) == least)
+		name = pool[_lot_hash(x, "awning") % pool.size()]
+	_awning_used[name] = _awning_used.get(name, 0) + 1
+	_prev_awning = [x + float(lot["w"]), name]
+	return name
+
+
+## Canopy height at depth z (0 = wall, AWNING_DEPTH = front edge). The mesh, colliders, rain cover
+## map and drip line all read this, so rain stops exactly where the canopy is drawn.
+func _awning_y(s: Dictionary, z: float) -> float:
+	var t := clampf(z / AWNING_DEPTH, 0.0, 1.0)
+	var wy: float = s["wall_y"]
+	var fy: float = s["front_y"]
+	match s["profile"]:
+		"arc":
+			return lerpf(wy, fy, t) + float(s["bulge"]) * sin(PI * t)
+		"dome":
+			return fy + (wy - fy) * sqrt(1.0 - t * t)
+	return lerpf(wy, fy, t)
+
+
+## Depths of the canopy's mesh rows / collider joints, bunched toward the front edge where the dome
+## profile turns down steeply.
+func _awning_zs(s: Dictionary) -> PackedFloat32Array:
+	var zs := PackedFloat32Array()
+	for j in 13:
+		var v := j / 12.0
+		zs.append(AWNING_DEPTH * (1.0 - (1.0 - v) * (1.0 - v)))
+	return zs
+
+
+## Gameplay rain rays rise in the x-y plane at the walker's z, so where a taller awning meets a lower
+## one downwind they slip through the step. Holding every style to the classic's height across the
+## walker's band (z 1.4-1.8), and the front edge to the umbrella-safe range, keeps sheltering
+## identical for all styles.
+func _check_awning_styles() -> bool:
+	for k in AWNING_STYLES:
+		var s: Dictionary = AWNING_STYLES[k]
+		for z in [1.4, 1.6, 1.8]:
+			assert(absf(_awning_y(s, z) - _awning_y(AWNING_STYLES["classic"], z)) < 0.06,
+				"awning style %s leaves the walker's band at z=%.1f" % [k, z])
+		var fy := _awning_y(s, AWNING_DEPTH)
+		assert(fy >= 2.5 and fy <= 2.8, "awning style %s front edge %.2f outside 2.5-2.8" % [k, fy])
+		for z in _awning_zs(s):
+			assert(_awning_y(s, z) <= 3.05, "awning style %s rises into the sign band" % k)
+	return true
+
+
+## Bottom of whatever hangs at the front edge: where the drip line starts.
+func _awning_drip_y(s: Dictionary) -> float:
+	return _awning_y(s, AWNING_DEPTH) - float(s["valance_h"]) - 0.02
+
+
+func _build_awning(x: float, w: float, tears: Array, color_name: String, s: Dictionary, glow_col: Color) -> void:
 	var cols: Array = AWNING_COLORS.get(color_name, AWNING_COLORS["red"])
-	var mat := ShaderMaterial.new()
-	mat.shader = _awning_shader
-	mat.set_shader_parameter("color_a", cols[0])
-	mat.set_shader_parameter("color_b", cols[1])
-	mat.set_shader_parameter("stripe_count", roundf(w / 0.45))
-	mat.set_shader_parameter("grime", rng.randf_range(0.3, 0.8))
+	# Drawn for every style so the shared rng sequence (facades, signs) doesn't depend on the style.
+	var grime := rng.randf_range(0.3, 0.8)
+	var mats := _awning_materials(s, cols, w, grime)
 	# Split into segments around tears (tears are local [x0, x1]).
 	var segs: Array = []
 	var sx := 0.0
@@ -466,68 +594,213 @@ func _build_awning(x: float, w: float, tears: Array, color_name: String) -> void
 		segs.append([sx, float(t[0])])
 		sx = float(t[1])
 	segs.append([sx, w])
-	var slope := atan2(AWNING_WALL_Y - AWNING_FRONT_Y, AWNING_DEPTH)
-	var len := sqrt(AWNING_DEPTH * AWNING_DEPTH + pow(AWNING_WALL_Y - AWNING_FRONT_Y, 2))
-	for s in segs:
-		var a: float = x + s[0]
-		var b: float = x + s[1]
+	var zs := _awning_zs(s)
+	for sg in segs:
+		var a: float = x + sg[0]
+		var b: float = x + sg[1]
 		if b - a < 0.05:
 			continue
 		var mi := MeshInstance3D.new()
-		mi.mesh = _awning_mesh(b - a, len, a - x, w)
-		mi.material_override = mat
-		mi.position = Vector3(a, AWNING_WALL_Y, 0.0)
-		mi.rotation.x = slope
+		mi.mesh = _awning_mesh(s, sg[0], b - a, w, s["ends"] and sg[0] <= 0.0, s["ends"] and sg[1] >= w)
+		for i in mi.mesh.get_surface_count():
+			mi.set_surface_override_material(i, mats[i])
+		mi.position = Vector3(a, 0.0, 0.0)
 		root.add_child(mi)
-		var xf := Transform3D(Basis.from_euler(Vector3(slope, 0, 0)),
-			Vector3((a + b) * 0.5, (AWNING_WALL_Y + AWNING_FRONT_Y) * 0.5, AWNING_DEPTH * 0.5))
-		_cover_box(Vector3(b - a, 0.06, len), xf)
-		_drips(a, b, AWNING_FRONT_Y - 0.26, AWNING_DEPTH + 0.05)
+		for j in zs.size() - 1:
+			var p0 := Vector2(zs[j], _awning_y(s, zs[j]))
+			var d := Vector2(zs[j + 1], _awning_y(s, zs[j + 1])) - p0
+			var mid := p0 + d * 0.5
+			_cover_box(Vector3(b - a, 0.06, d.length() + 0.02),
+				Transform3D(Basis.from_euler(Vector3(atan2(-d.y, d.x), 0, 0)), Vector3((a + b) * 0.5, mid.y, mid.x)))
+		_drips(a, b, _awning_drip_y(s), AWNING_DEPTH + 0.05)
 	# Torn flaps hanging into tears.
+	var fy := _awning_y(s, AWNING_DEPTH)
 	for t in sorted_tears:
 		var flap := _box(Vector3((float(t[1]) - float(t[0])) * 0.35, 0.6, 0.02),
-			Vector3(x + float(t[0]) + 0.2, AWNING_FRONT_Y + 0.05, AWNING_DEPTH - 0.4), mat)
+			Vector3(x + float(t[0]) + 0.2, fy - 0.2, AWNING_DEPTH - 0.4), mats[0])
 		flap.rotation = Vector3(0.3, 0, 0.25)
-	# Metal frame arms.
-	var frame := _mat("frame", Color(0.15, 0.15, 0.15), 0.4, 0.8)
-	for fx in [x + 0.1, x + w - 0.1]:
-		var arm := _box(Vector3(0.04, 0.04, len), Vector3(fx, (AWNING_WALL_Y + AWNING_FRONT_Y) * 0.5 - 0.05, AWNING_DEPTH * 0.5), frame)
-		arm.rotation.x = slope
+	_awning_frame(s, x, w, glow_col)
 
 
-func _awning_mesh(w: float, len: float, u0: float, full_w: float) -> ArrayMesh:
-	# Slightly sagging canvas plane (local X along street, -Z... rotated by caller) + valance.
+## [canopy material, valance material], matching the mesh's surfaces.
+func _awning_materials(s: Dictionary, cols: Array, w: float, grime: float) -> Array:
+	match s["fabric"]:
+		"acrylic":
+			var m := StandardMaterial3D.new()
+			m.albedo_color = Color(cols[0].lightened(0.3), 0.42)
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.cull_mode = BaseMaterial3D.CULL_DISABLED
+			m.roughness = 0.06
+			m.metallic_specular = 1.0
+			m.rim_enabled = true
+			m.rim = 0.6
+			return [m, m]
+		"enamel":
+			var top := _mat("enamel_%s" % cols[1].to_html(), cols[1], 0.3, 0.15)
+			top.cull_mode = BaseMaterial3D.CULL_DISABLED
+			var fascia := _mat("enamel_%s" % cols[0].to_html(), cols[0].lightened(0.25), 0.25, 0.2)
+			fascia.cull_mode = BaseMaterial3D.CULL_DISABLED
+			return [top, fascia]
+	var mat := ShaderMaterial.new()
+	mat.shader = _awning_shader
+	mat.set_shader_parameter("color_a", cols[0])
+	mat.set_shader_parameter("color_b", cols[1])
+	mat.set_shader_parameter("width", w)
+	var sw: float = s["stripe_w"]
+	# Whole number of stripe pairs across the awning so both ends finish on a full stripe.
+	mat.set_shader_parameter("stripe_w", w / maxf(1.0, roundf(w / sw)) if sw > 0.0 else 0.0)
+	mat.set_shader_parameter("hem", s["hem"])
+	mat.set_shader_parameter("seam_w", s.get("seam_w", 0.0))
+	mat.set_shader_parameter("valance_solid", s["valance_solid"])
+	mat.set_shader_parameter("piping", s["piping"])
+	mat.set_shader_parameter("tin", s["fabric"] == "tin")
+	mat.set_shader_parameter("grime", grime)
+	return [mat, mat]
+
+
+## Canopy (surface 0, plus closed side cheeks) and valance (surface 1, if the style has one) for one
+## tear-free segment. Local x 0..w; u0 is the segment's offset within the full awning so stripes and
+## corrugations line up across tears. UV.y: 0..1 wall to front on the canopy, 1..2 down the valance.
+func _awning_mesh(s: Dictionary, u0: float, w: float, full_w: float, end_l: bool, end_r: bool) -> ArrayMesh:
+	var zs := _awning_zs(s)
+	var tin: bool = s["fabric"] == "tin"
+	var sag: float = s["sag"]
+	var vs: Array = [0.0]                # arc-length fraction of each row, for UV.y
+	for j in range(1, zs.size()):
+		vs.append(vs[j - 1] + Vector2(zs[j] - zs[j - 1], _awning_y(s, zs[j]) - _awning_y(s, zs[j - 1])).length())
+	for j in vs.size():
+		vs[j] /= vs[-1]
+	var pos := func(xl: float, j: int) -> Vector3:
+		var v: float = vs[j]
+		var y := _awning_y(s, zs[j]) - sag * (sin(v * PI) + 0.3 * sin(xl / w * PI * maxf(1.0, w / 1.5)) * v)
+		if tin:
+			y += 0.025 * sin((u0 + xl) / 0.2 * TAU)
+		return Vector3(xl, y, zs[j])
+	var nx := maxi(2, int(w / (0.04 if tin else 0.25)))
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var nx := maxi(2, int(w / 0.25))
-	var nz := 6
-	var grid: Array = []
-	for i in nx + 1:
-		var row: Array = []
-		for j in nz + 1:
-			var u := float(i) / nx
-			var v := float(j) / nz
-			var sag := sin(v * PI) * 0.05 + sin(u * PI * maxf(1.0, w / 1.5)) * 0.015 * v
-			row.append(Vector3(u * w, -sag, v * len))
-		grid.append(row)
 	for i in nx:
-		for j in nz:
-			_quad(st, grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1],
-				Vector2((u0 + float(i) / nx * w) / full_w, float(j) / nz),
-				Vector2((u0 + float(i + 1) / nx * w) / full_w, float(j + 1) / nz))
-	# Valance: hangs vertically from the front edge with a scalloped bottom.
-	var vh := 0.28
-	for i in nx:
-		var p0: Vector3 = grid[i][nz]
-		var p1: Vector3 = grid[i + 1][nz]
-		var s0 := vh - absf(sin(float(i) / nx * w / 0.45 * PI)) * 0.06
-		var s1 := vh - absf(sin(float(i + 1) / nx * w / 0.45 * PI)) * 0.06
-		# local frame is rotated by slope; build "down" in world by undoing the slope roughly
-		var down := Vector3(0, -cos(0.19), sin(0.19))
-		_quad(st, p0, p1, p1 + down * s1, p0 + down * s0,
-			Vector2((u0 + float(i) / nx * w) / full_w, 0.85), Vector2((u0 + float(i + 1) / nx * w) / full_w, 1.0))
+		var xa := w * i / nx
+		var xb := w * (i + 1) / nx
+		for j in zs.size() - 1:
+			_quad(st, pos.call(xa, j), pos.call(xb, j), pos.call(xb, j + 1), pos.call(xa, j + 1),
+				Vector2((u0 + xa) / full_w, vs[j]), Vector2((u0 + xb) / full_w, vs[j + 1]))
+	# Side cheeks: fan from the wall at front-edge height up to the profile, plus a wedge down to the
+	# valance hem. Inset so neighbouring awnings' cheeks are never coplanar.
+	var fy := _awning_y(s, AWNING_DEPTH)
+	for e in [[end_l, 0.01], [end_r, w - 0.01]]:
+		if not e[0]:
+			continue
+		var ex: float = e[1]
+		var anchor := Vector3(ex, fy, 0.0)
+		for j in zs.size() - 1:
+			var p0 := Vector3(ex, _awning_y(s, zs[j]), zs[j])
+			var p1 := Vector3(ex, _awning_y(s, zs[j + 1]), zs[j + 1])
+			st.set_uv(Vector2((u0 + ex) / full_w, 0.5)); st.add_vertex(anchor)
+			st.set_uv(Vector2((u0 + ex + zs[j]) / full_w, vs[j])); st.add_vertex(p0)
+			st.set_uv(Vector2((u0 + ex + zs[j + 1]) / full_w, vs[j + 1])); st.add_vertex(p1)
+		var front := Vector3(ex, fy, AWNING_DEPTH)
+		st.set_uv(Vector2((u0 + ex) / full_w, 0.5)); st.add_vertex(anchor)
+		st.set_uv(Vector2((u0 + ex + AWNING_DEPTH) / full_w, 1.0)); st.add_vertex(front)
+		st.set_uv(Vector2((u0 + ex + AWNING_DEPTH) / full_w, 1.0)); st.add_vertex(front + Vector3(0, -float(s["valance_h"]), 0.03))
 	st.generate_normals()
-	return st.commit()
+	var mesh := st.commit()
+	var vh: float = s["valance_h"]
+	if s["valance"] == "none":
+		return mesh
+	# Valance: hangs from the front edge, kicked slightly outward at the hem.
+	var last := zs.size() - 1
+	var vnx := maxi(2, int(w / 0.05))
+	var hem := func(xl: float) -> float:
+		var p := u0 + xl
+		match s["valance"]:
+			"scallop":
+				return vh - absf(sin(p / 0.45 * PI)) * 0.06
+			"zigzag":
+				return vh - absf(fposmod(p / 0.3, 1.0) - 0.5) * 2.0 * 0.12
+		return vh
+	st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in vnx:
+		var xa := w * i / vnx
+		var xb := w * (i + 1) / vnx
+		var pa: Vector3 = pos.call(xa, last)
+		var pb: Vector3 = pos.call(xb, last)
+		var ha: float = hem.call(xa)
+		var hb: float = hem.call(xb)
+		st.set_uv(Vector2((u0 + xa) / full_w, 1.0)); st.add_vertex(pa)
+		st.set_uv(Vector2((u0 + xb) / full_w, 1.0)); st.add_vertex(pb)
+		st.set_uv(Vector2((u0 + xb) / full_w, 1.0 + hb / vh)); st.add_vertex(pb + Vector3(0, -hb, 0.03))
+		st.set_uv(Vector2((u0 + xa) / full_w, 1.0)); st.add_vertex(pa)
+		st.set_uv(Vector2((u0 + xb) / full_w, 1.0 + hb / vh)); st.add_vertex(pb + Vector3(0, -hb, 0.03))
+		st.set_uv(Vector2((u0 + xa) / full_w, 1.0 + ha / vh)); st.add_vertex(pa + Vector3(0, -ha, 0.03))
+	st.generate_normals()
+	return st.commit(mesh)
+
+
+func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color) -> void:
+	var wy := _awning_y(s, 0.0)
+	var fy := _awning_y(s, AWNING_DEPTH)
+	var chrome := _mat("chrome", Color(0.82, 0.84, 0.88), 0.12, 1.0)
+	match s["frame"]:
+		"arms":
+			var frame := _mat("frame", Color(0.15, 0.15, 0.15), 0.4, 0.8)
+			for fx in [x + 0.1, x + w - 0.1]:
+				_strut(fx, Vector2(0.0, wy - 0.05), Vector2(AWNING_DEPTH, fy - 0.05), 0.04, frame)
+		"brackets":
+			# Rusty steel knee braces kept close to the wall (clear of the walker), and a front gutter.
+			var steel := _mat("tin_bracket", Color(0.22, 0.15, 0.1), 0.7, 0.5)
+			var n := maxi(1, ceili(w / 3.0))
+			for i in n + 1:
+				var bx := x + 0.15 + (w - 0.3) * i / n
+				_strut(bx, Vector2(0.0, wy - 0.8), Vector2(0.95, _awning_y(s, 0.95) - 0.04), 0.06, steel)
+			_box(Vector3(w, 0.09, 0.1), Vector3(x + w * 0.5, fy - 0.03, AWNING_DEPTH + 0.03), steel)
+		"chrome":
+			_box(Vector3(w, 0.06, 0.06), Vector3(x + w * 0.5, fy, AWNING_DEPTH), chrome)
+			var zs := _awning_zs(s)
+			var n := maxi(1, roundi(w / 1.5))
+			for i in n + 1:
+				var rx := x + 0.04 + (w - 0.08) * i / n
+				for j in zs.size() - 1:
+					_strut(rx, Vector2(zs[j], _awning_y(s, zs[j]) + 0.01), Vector2(zs[j + 1], _awning_y(s, zs[j + 1]) + 0.01), 0.035, chrome)
+		"chrome_edge":
+			_box(Vector3(w, 0.035, 0.05), Vector3(x + w * 0.5, fy + 0.01, AWNING_DEPTH + 0.01), chrome)
+		"bulbs":
+			_marquee_bulbs(x, w, fy, float(s["valance_h"]))
+	if s["glow"]:
+		var strip := _box(Vector3(w - 0.1, 0.03, 0.03), Vector3(x + w * 0.5, _awning_drip_y(s) + 0.005, AWNING_DEPTH + 0.04),
+			_neon_mat(glow_col.lerp(Color(1, 1, 1), 0.35), 2.4))
+		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Two staggered rows of lit bulbs on a marquee fascia, as one mesh.
+func _marquee_bulbs(x: float, w: float, fy: float, fascia_h: float) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var r := 0.035
+	for row in 2:
+		var by := fy - fascia_h * (0.3 + 0.4 * row)
+		var bx := 0.15 + 0.14 * row
+		while bx < w - 0.12:
+			var c := Vector3(bx, by, AWNING_DEPTH + 0.05)
+			_quad(st, c + Vector3(-r, -r, 0), c + Vector3(r, -r, 0), c + Vector3(r, r, 0), c + Vector3(-r, r, 0),
+				Vector2.ZERO, Vector2.ONE)
+			bx += 0.28
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var bulb: StandardMaterial3D = _neon_mat(Color(1.0, 0.86, 0.6), 3.0).duplicate()
+	bulb.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = bulb
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(x, 0.0, 0.0)
+	root.add_child(mi)
+
+
+## A square bar between two (z, y) points in the plane x = const.
+func _strut(x: float, p0: Vector2, p1: Vector2, thick: float, mat: Material) -> void:
+	var d := p1 - p0
+	var bar := _box(Vector3(thick, thick, d.length()), Vector3(x, (p0.y + p1.y) * 0.5, (p0.x + p1.x) * 0.5), mat)
+	bar.rotation.x = atan2(-d.y, d.x)
 
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, uv0: Vector2, uv1: Vector2) -> void:

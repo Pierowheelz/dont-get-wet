@@ -34,6 +34,27 @@ func _place(x: float, open: float, tilt := 0.0) -> float:
 	return p._rain_exposure()
 
 
+func _test_sun_drying() -> void:
+	var sun: Array = []
+	for f in level.data["features"]:
+		if f["type"] == "sun":
+			sun = [f["x"], f["x"] + f["w"]]
+	if sun.is_empty():
+		check(false, "main_street has a sun break to test")
+		return
+	var x: float = (sun[0] + sun[1]) * 0.5
+	var shut: float = level.dry_rate(x, 0.0)
+	check(shut > 0.0, "sun break, umbrella closed: dries at %.2f/s" % shut)
+	check(level.dry_rate(x, 1.0) == 0.0, "sun break, umbrella open: the canopy shades him, no drying")
+	check(not level.player._exposed_at(x), "autopilot treats the sunlit lot as safe, so it closes the umbrella")
+
+
+func _test_feedback_url() -> void:
+	var url := Game.feedback_url()
+	check(url.contains("template=feedback.yml") and url.ends_with("&version=%s" % ProjectSettings.get_setting("application/config/version")),
+		"feedback link opens the form with the version filled in")
+
+
 func _run() -> void:
 	Game.current_level = "main_street"
 	Game.autopilot = true
@@ -71,6 +92,8 @@ func _run() -> void:
 		p.receive_splash(src, 28.0)
 		print("  splash open=%.1f tilt=%.2f -> wet %.1f" % [cfg[0], cfg[1], p.wet])
 	print("umbrella center ", p.umbrella.canopy_center(), " player ", p.global_position, " radius ", p.umbrella.current_radius())
+	_test_sun_drying()
+	_test_feedback_url()
 	_run_tests()
 	print("\n%s (%d failures)" % ["PASSED" if failures == 0 else "FAILED", failures])
 	get_tree().quit(1 if failures > 0 else 0)

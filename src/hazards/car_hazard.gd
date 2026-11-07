@@ -167,7 +167,10 @@ func _physics_process(delta: float) -> void:
 	var player: Node3D = level.player
 	match state:
 		S.IDLE:
-			if player.position.x >= crossing_x - TRIGGER_DIST:
+			if player.position.x > crossing_x + crossing_w:
+				state = S.GONE
+				set_physics_process(false)
+			elif player.position.x >= crossing_x - TRIGGER_DIST:
 				state = S.DRIVING
 				visible = true
 				approaching.emit()

@@ -20,6 +20,7 @@ var _post: CanvasLayer
 var _sound: UISound
 var _hints: KeyHints
 var _busy := false
+var _feedback: Button
 
 
 func _ready() -> void:
@@ -65,6 +66,24 @@ func _ready() -> void:
 	ver.custom_minimum_size = Vector2(460, 0)
 	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_root.add_child(ver)
+	_feedback = Button.new()
+	_feedback.text = "Send feedback"
+	_feedback.theme_type_variation = &"SmallButton"
+	_feedback.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_feedback.offset_left = -340
+	_feedback.offset_right = -60
+	_feedback.offset_top = -150
+	_feedback.offset_bottom = -96
+	_feedback.pressed.connect(func() -> void:
+		if _busy or _dialog != null:
+			return
+		_sound.play(&"ui_confirm")
+		_feedback.text = Game.open_feedback()
+		_feedback.create_tween().tween_callback(func() -> void: _feedback.text = "Send feedback").set_delay(3.0))
+	_feedback.mouse_entered.connect(func() -> void:
+		if _dialog == null:
+			_feedback.grab_focus())
+	_root.add_child(_feedback)
 
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 1)
@@ -178,6 +197,7 @@ func _clear(page_name: String) -> void:
 		var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(_title_box, "scale", Vector2.ONE * (0.6 if compact else 1.0), 0.35)
 		tw.tween_property(_page, "position:y", 380.0 if compact else MAIN_Y, 0.35)
+	_feedback.visible = not compact
 	_sound.hush()
 	for c in _page.get_children():
 		_page.remove_child(c)
@@ -230,7 +250,13 @@ func _main_buttons() -> void:
 		_btn("Replay a street", _replay_list)
 	_btn("Settings", _settings)
 	_btn("Credits", _credits)
-	_btn("Quit", func() -> void: get_tree().quit(), &"", &"ui_back")
+	var quit := _btn("Quit", func() -> void: get_tree().quit(), &"", &"ui_back")
+	# The feedback button lives in the footer; down from Quit reaches it, and it wraps to the top.
+	quit.focus_neighbor_bottom = _feedback.get_path()
+	_feedback.focus_neighbor_top = quit.get_path()
+	_feedback.focus_neighbor_left = quit.get_path()
+	_feedback.focus_neighbor_bottom = first.get_path()
+	first.focus_neighbor_top = _feedback.get_path()
 	first.grab_focus.call_deferred()
 	_animate_page()
 

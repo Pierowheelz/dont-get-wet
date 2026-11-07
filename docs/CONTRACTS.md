@@ -87,7 +87,34 @@ Required: `sidewalk.tres`, `asphalt_wet.tres`, `curb.tres`, `brick_red.tres`, `b
 `ui_confirm`, `ui_back`, `ui_denied`, `fail_sting`, `win_sting`, `token`, `door_open`,
 `music_menu_loop`, `music_level_loop`.
 
-## 6. Credits
+## 6. Awning lots — `levels/*.json`
+
+A lot with `"cover": "awning"` shelters `z ∈ [0, 2.35]` across its width, minus any `tears`
+(local `[x0, x1]` gaps). Every style keeps that footprint, mounts at or below y = 3.05 (under the
+sign band) and has its front edge between 2.5 and 2.8 m, so the style is purely visual.
+
+- `awning_color` (optional, default `red`): `red`, `green`, `blue`, `brown`, `orange`, `teal`.
+- `awning_style` (optional): one of the styles below. When absent, the builder picks one from the
+  styles allowed for the lot's era and the level's `aesthetic`. It deals them like a shuffle bag
+  (least-used first, ties broken by a hash of level id and lot x), and never gives two touching
+  awning lots the same style. An unknown name logs a warning and falls back to the automatic pick.
+
+| style | look | auto-picked for |
+|---|---|---|
+| `classic` | narrow stripes, scalloped valance, black arms | 60s lots on `rundown`, `rundown_neon`, `neon` |
+| `wide_stripe` | broad stripes, straight solid valance with piping | 60s lots on `rundown`, `rundown_neon`, `neon`, `outskirts` |
+| `pennant` | solid canvas, deep zigzag valance with piping | 60s lots, any street |
+| `dome` | rounded quarter-barrel with rib seams, hem band, closed ends | 60s lots, any street |
+| `waterfall` | near-flat top, upright striped front, closed ends | 60s lots on `rundown`, `rundown_neon`, `industrial`, `outskirts` |
+| `tin` | corrugated rusty metal, knee braces, gutter | 60s lots on `industrial`, `outskirts` |
+| `bubble` | tinted acrylic canopy, chrome ribs, neon edge strip | retro-future lots |
+| `googie` | upturned enamel slab, chrome edge, neon strip | retro-future lots |
+| `marquee` | flat slab with a deep fascia of lit bulbs | retro-future lots |
+
+A lot is retro-future when the builder swaps in the retro kit for it (probability = the level's
+`neon`).
+
+## 7. Credits
 
 Every third-party asset gets a line in `assets/CREDITS.md`: file(s), author, source URL, licence.
 CC0 preferred; CC-BY allowed with attribution. Nothing with NC/ND or unclear licences.

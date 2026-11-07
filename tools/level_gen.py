@@ -2,7 +2,8 @@
 """Generate first-draft fixed level layouts into levels/*.json.
 
 The game never generates levels at runtime: this script is run by a developer, the output is
-committed, and may then be hand-edited. Re-running overwrites the files (use --only to limit).
+committed, and may then be hand-edited. Re-running overwrites the drafts (use --only to limit); levels
+marked "authored": true are skipped unless --force.
 
     python3 tools/level_gen.py              # all levels
     python3 tools/level_gen.py --only main_street
@@ -275,13 +276,18 @@ def gen_level(lid, cfg):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--force", action="store_true", help="also overwrite hand-authored levels")
     args = ap.parse_args()
     OUT.mkdir(exist_ok=True)
     for lid, cfg in LEVELS.items():
         if args.only and lid not in args.only:
             continue
+        path = OUT / f"{lid}.json"
+        if path.exists() and json.loads(path.read_text()).get("authored") and not args.force:
+            print(f"{lid}: hand-authored, skipped (--force to overwrite)")
+            continue
         lvl = gen_level(lid, cfg)
-        (OUT / f"{lid}.json").write_text(json.dumps(lvl, indent=1))
+        path.write_text(json.dumps(lvl, indent=1))
         gaps = [l for l in lvl["lots"] if l["cover"] == "none"]
         print(f"{lid}: length {lvl['length']} m, {len(lvl['lots'])} lots, {len(gaps)} open lots, "
               f"{len(lvl['crossings'])} crossings, {len(lvl['features'])} features")
