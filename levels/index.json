@@ -70,7 +70,7 @@
    "neighbors": [
     "arcade_lane"
    ],
-   "blurb": "Chrome, neon and gale-force gusts between the towers. Nearly the city centre.",
+   "blurb": "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns in your face.",
    "difficulty": 5,
    "file": "res://levels/neon_junction.json"
   }
