@@ -24,11 +24,11 @@
   "stop_threshold": 0.25,
   "exhausted_recover": 0.15,
 
-  "wet_max": 100.0,
+  "wet_max": 50.0,
   "wet_rain_rate": 9.0,
   "wet_gutter_rate": 26.0,
-  "wet_puddle_walk": 1.5,
-  "wet_puddle_run": 5.0,
+  "wet_puddle_walk": 0.75,
+  "wet_puddle_run": 2.5,
   "wet_car_splash": 28.0,
   "dry_sun_rate": 3.0,
   "dry_vent_rate": 4.5,
@@ -40,7 +40,7 @@
   "camera_lead": 1.9,
   "player_z": 1.6,
 
-  "par_speed": 1.12,
+  "par_speed": 1.3,
   "score_dry_weight": 700,
   "score_time_weight": 300,
   "upgrade_costs": [4, 8, 12],

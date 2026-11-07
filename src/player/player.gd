@@ -265,14 +265,25 @@ func _sample_world(local: Vector3) -> Vector3:
 
 
 ## Fraction (weighted 0..1) of body samples that rain can reach.
+## How much rain still gets past the umbrella while it is opening/closing: ~100% at the start of
+## the animation, falling to 0% only once it is fully open (the canopy isn't taut until then).
+func umbrella_leak() -> float:
+	return pow(clampf(1.0 - open, 0.0, 1.0), 0.7)
+
+
 func _rain_exposure() -> float:
 	var up := -rain_dir() * 30.0
+	var leak := umbrella_leak()
 	var total := 0.0
 	var hit := 0.0
 	for s in SAMPLES:
 		var p := _sample_world(s[0])
 		total += s[1]
-		if not _cast(p, p + up, COVER_MASK | UMBRELLA_MASK):
+		if _cast(p, p + up, COVER_MASK):
+			continue                      # sheltered by an awning/balcony
+		if _cast(p, p + up, UMBRELLA_MASK):
+			hit += s[1] * leak            # under the umbrella: only leaks while it moves
+		else:
 			hit += s[1]
 	return hit / total
 
@@ -291,8 +302,7 @@ func _gutter_exposure() -> float:
 					continue
 				total += s[1]
 				var at := Vector3(g, p.y, p.z)
-				if not _cast(at, Vector3(g, 2.9, p.z), UMBRELLA_MASK):
-					hit += s[1]
+				hit += s[1] * (umbrella_leak() if _cast(at, Vector3(g, 2.9, p.z), UMBRELLA_MASK) else 1.0)
 			return hit / total if total > 0.0 else 0.0
 	return 0.0
 
@@ -320,8 +330,9 @@ func receive_splash(source: Vector3, amount: float) -> void:
 	for s in SAMPLES:
 		var p := _sample_world(s[0])
 		total += s[1]
-		if not _cast(p, source, UMBRELLA_MASK | COVER_MASK):
-			hit += s[1]
+		if _cast(p, source, COVER_MASK):
+			continue
+		hit += s[1] * (umbrella_leak() if _cast(p, source, UMBRELLA_MASK) else 1.0)
 	var got := amount * hit / total
 	wet = minf(wet + got, Tun.f("wet_max"))
 	stats["splashes"] += 1

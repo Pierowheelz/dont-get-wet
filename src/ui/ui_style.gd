@@ -26,7 +26,7 @@ const F_ITALIC := preload("res://assets/fonts/Barlow-Italic.ttf")
 const F_COND := preload("res://assets/fonts/BarlowCondensed-SemiBold.ttf")
 const F_SIGN := preload("res://assets/fonts/sign.ttf")
 
-const GRADE_COLORS := {"S": GOLD, "A": GOOD, "B": RAIN, "C": Color(0.8, 0.72, 0.62)}
+const GRADE_COLORS := {"S": GOLD, "A": GOOD, "B": RAIN, "C": Color(0.8, 0.72, 0.62), "D": Color(0.75, 0.45, 0.4)}
 
 
 static func grade_color(g: String) -> Color:

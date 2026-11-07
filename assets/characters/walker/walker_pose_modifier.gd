@@ -11,6 +11,7 @@ var tilt := 0.0
 var droop := 0.0
 var sad := 0.0
 var breath := 0.0      # 0..1 weight of the "catching breath" overlay
+var run := 0.0         # 0 walk .. 1 run (allows a little more forward lean)
 var time := 0.0
 var char_from_skel := Transform3D.IDENTITY
 
@@ -28,6 +29,7 @@ var _curl_axes := {}     # bone idx -> local curl axis
 var _len_upper := 0.26
 var _len_lower := 0.26
 var _chest_rest := Vector3.ZERO
+var _head_up_local := Vector3.UP
 var _ok := false
 
 const BONES := ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
@@ -54,6 +56,9 @@ func setup(skel: Skeleton3D, idle_anim: Animation) -> void:
 	_len_upper = ua.distance_to(la)
 	_len_lower = la.distance_to(ha)
 	_chest_rest = skel.get_bone_global_rest(_b["UpperChest"]).origin
+	# The head bone's local axis that points world-up in the rest pose.
+	var hr := skel.get_bone_global_rest(_b["Head"]).basis.orthonormalized()
+	_head_up_local = (hr.inverse() * Vector3.UP).normalized()
 	# Profile rest is a T-pose with palms facing down (-Y).
 	var palm_n := Vector3.DOWN
 	for side in ["Left", "Right"]:
@@ -142,16 +147,16 @@ func _process_modification_with_delta(_delta: float) -> void:
 
 	# --- Torso: slump (sad) and bent-over heavy breathing (stopped) ---------------------------
 	var heave := 0.5 + 0.5 * sin(time * TAU * 0.8)
-	# Constant posture fix: the MPFB head/neck sit further forward than the UAL mannequin's,
-	# so the retargeted clips read as hunched. Straighten a little (negative = lean back).
-	var upright := 1.0 - 0.6 * sad
-	var pitch_spine := -0.04 * upright + sad * 0.11 + breath * (0.13 + 0.03 * heave)
+	# Posture: the retargeted UAL clips lean the MPFB torso and head well forward. Instead of fixed
+	# offsets, measure the actual pose each frame and straighten the chain so the chest stacks over
+	# the hips and the head over the chest (slight natural lean, more when running), keeping the
+	# face level. Sad / breathing overlays are added on top afterwards.
+	_align_posture(skel, right_axis)
+	var pitch_spine := sad * 0.11 + breath * (0.13 + 0.03 * heave)
 	var pitch_chest := sad * 0.10 + breath * (0.10 - 0.05 * heave)
-	var pitch_upper := -0.08 * upright + sad * 0.08 + breath * (0.05 - 0.04 * heave)
-	# Pull the neck back hard, then pitch the head forward again so the face stays level:
-	# moves the head back over the shoulders instead of jutting forward.
-	var pitch_neck := -0.30 * upright + sad * 0.14 + breath * 0.04
-	var pitch_head := 0.16 * upright + sad * 0.30 + breath * (0.10 + 0.04 * heave)
+	var pitch_upper := sad * 0.08 + breath * (0.05 - 0.04 * heave)
+	var pitch_neck := sad * 0.14 + breath * 0.04
+	var pitch_head := sad * 0.30 + breath * (0.10 + 0.04 * heave)
 	# Forward pitch = rotate +Y toward +X = negative rotation about the character's +Z axis.
 	_rot_global(skel, _b["Spine"], right_axis, -pitch_spine)
 	_rot_global(skel, _b["Chest"], right_axis, -pitch_chest)
@@ -265,6 +270,30 @@ func _slerp_to(skel: Skeleton3D, i: int, target: Quaternion, k: float) -> void:
 	if k <= 0.0:
 		return
 	skel.set_bone_pose_rotation(i, skel.get_bone_pose_rotation(i).slerp(target, k))
+
+
+## Forward lean (radians, + = toward +X) of the segment a→b, in the character frame.
+func _lean(skel: Skeleton3D, a: int, b: int) -> float:
+	var v := char_from_skel.basis * (skel.get_bone_global_pose(b).origin - skel.get_bone_global_pose(a).origin)
+	return atan2(v.x, v.y)
+
+
+func _align_posture(skel: Skeleton3D, right_axis: Vector3) -> void:
+	var w := 1.0 - 0.7 * sad        # sad slump is authored separately; mostly leave it alone
+	# Torso: hips → upper chest should lean only slightly forward.
+	var torso_target := lerpf(0.07, 0.16, run)
+	var d := (_lean(skel, _b["Hips"], _b["UpperChest"]) - torso_target) * w
+	_rot_global(skel, _b["Spine"], right_axis, d * 0.4)
+	_rot_global(skel, _b["Chest"], right_axis, d * 0.3)
+	_rot_global(skel, _b["UpperChest"], right_axis, d * 0.3)
+	# Neck: upper chest → head should be close to vertical (ears over shoulders).
+	var nd := (_lean(skel, _b["UpperChest"], _b["Head"]) - lerpf(0.06, 0.12, run)) * w
+	_rot_global(skel, _b["Neck"], right_axis, nd)
+	# Head: keep the face level — the head bone's up axis near vertical.
+	var hb := char_from_skel.basis * skel.get_bone_global_pose(_b["Head"]).basis.orthonormalized()
+	var up := hb * _head_up_local
+	var hd := (atan2(up.x, up.y) - 0.12) * w     # eyes level / very slightly down, not chin-up
+	_rot_global(skel, _b["Head"], right_axis, hd)
 
 
 func _rot_global(skel: Skeleton3D, i: int, axis_s: Vector3, ang: float) -> void:

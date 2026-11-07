@@ -15,6 +15,16 @@ var _zones_set := false
 var _debris_mat: ParticleProcessMaterial
 
 
+## Detach the splash sub-emitter before anything is freed: tearing down a GPUParticles3D whose
+## sub-emitter has already gone is a known engine crash on scene change.
+func _exit_tree() -> void:
+	for p in [_rain, _near, _debris]:
+		if is_instance_valid(p):
+			p.emitting = false
+	if is_instance_valid(_rain):
+		_rain.sub_emitter = NodePath()
+
+
 func _ready() -> void:
 	var shader: Shader = load("res://src/fx/rain.gdshader")
 	_splash = _make_splash()

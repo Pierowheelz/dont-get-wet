@@ -138,7 +138,7 @@ moving toward the country thins out buildings.
 - After a level: score screen → **city map**. Nodes adjacent to the current node are selectable; hover/
   focus shows a short preview popup (name, blurb, best score, difficulty).
 - **Score** (0–1000): `dryness_score = 700 × (1 − wetness/100)`, `time_score = 300 × clamp(par / time)`
-  where par = length / base walk speed. Grades: C < 500 ≤ B < 750 ≤ A < 900 ≤ S.
+  where par = length / base walk speed. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
 - **Tokens** = `floor(score / 100)`, awarded only for improvement over your best on that level (so
   replays can earn more, never farm).
 - Best scores shown on the map and in the main menu's level replay list.

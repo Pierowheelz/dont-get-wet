@@ -19,6 +19,7 @@ var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
 var debug_lazy := false             # --lazy: autopilot never opens the umbrella (testing defeat)
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
+var debug_auto_continue := false    # --auto-continue: result screen presses Continue (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
 var last_result: Dictionary = {}
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false}
@@ -31,6 +32,7 @@ func _ready() -> void:
 	autopilot = args.has("--autopilot")
 	debug_lazy = args.has("--lazy")
 	debug_human = args.has("--human")
+	debug_auto_continue = args.has("--auto-continue")
 	if args.has("--low"):
 		settings["low_quality"] = true
 	for a in args:
@@ -38,6 +40,9 @@ func _ready() -> void:
 			current_level = a.substr(8)
 		if a.begins_with("--start-x="):
 			debug_start_x = float(a.substr(10))
+		if a.begins_with("--upgrades="):   # testing: set every upgrade tier
+			for k in UPGRADES:
+				upgrades[k] = clampi(int(a.substr(11)), 0, 3)
 		if a.begins_with("--wet="):
 			debug_start_wet = float(a.substr(6))
 		if a.begins_with("--shots="):
@@ -163,15 +168,17 @@ func umbrella_open_time() -> float:
 # --- scoring ------------------------------------------------------------------
 
 static func grade_for(score: int) -> String:
-	if score >= 900: return "S"
-	if score >= 750: return "A"
-	if score >= 500: return "B"
-	return "C"
+	if score >= 950: return "S"
+	if score >= 880: return "A"
+	if score >= 780: return "B"
+	if score >= 650: return "C"
+	return "D"
 
 
 ## Returns the result dictionary, updates bests and tokens.
 func finish_level(id: String, wetness: float, time: float, par: float) -> Dictionary:
-	var dry := clampf(1.0 - wetness / Tun.f("wet_max"), 0.0, 1.0)
+	var wet_pct := clampf(wetness / Tun.f("wet_max") * 100.0, 0.0, 100.0)   # stored/displayed as %
+	var dry := 1.0 - wet_pct / 100.0
 	var time_ratio := clampf(par / maxf(time, 0.01), 0.0, 1.0)
 	var score := int(round(Tun.f("score_dry_weight") * dry + Tun.f("score_time_weight") * time_ratio))
 	var prev: Dictionary = best.get(id, {})
@@ -180,11 +187,11 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	tokens += earned
 	var is_best := score > prev_score
 	if is_best:
-		best[id] = {"score": score, "wet": wetness, "time": time, "grade": grade_for(score)}
+		best[id] = {"score": score, "wet": wet_pct, "time": time, "grade": grade_for(score)}
 	if not completed.has(id):
 		completed.append(id)
 	current_node = id
-	last_result = {"id": id, "score": score, "wet": wetness, "time": time, "par": par,
+	last_result = {"id": id, "score": score, "wet": wet_pct, "time": time, "par": par,
 		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score}
 	save_game()
 	tokens_changed.emit(tokens)
@@ -261,7 +268,43 @@ func reset_progress() -> void:
 func play_level(id: String) -> void:
 	current_level = id
 	get_tree().paused = false
+	_show_loading(String(nodes.get(id, {}).get("name", "")))
+	# Let the loading card draw before the (blocking) level build starts.
+	await get_tree().process_frame
+	await get_tree().process_frame
 	get_tree().change_scene_to_file("res://src/level/level.tscn")
+
+
+var _loading: CanvasLayer
+
+
+## A black card with the street name, shown while a level builds; the level's HUD fades in over it.
+func _show_loading(street: String) -> void:
+	if _loading == null:
+		_loading = CanvasLayer.new()
+		_loading.layer = 100
+		var bg := ColorRect.new()
+		bg.name = "ColorRect"
+		bg.color = Color(0.02, 0.022, 0.03)
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_loading.add_child(bg)
+		var lbl := Label.new()
+		lbl.name = "Label"
+		lbl.set_anchors_preset(Control.PRESET_CENTER)
+		lbl.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		lbl.grow_vertical = Control.GROW_DIRECTION_BOTH
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 40)
+		lbl.add_theme_color_override("font_color", Color(0.9, 0.88, 0.82, 0.85))
+		bg.add_child(lbl)
+		add_child(_loading)
+	(_loading.get_node("ColorRect/Label") as Label).text = ("Walking to %s…" % street) if street != "" else "Loading…"
+	_loading.visible = true
+
+
+func hide_loading() -> void:
+	if _loading:
+		_loading.visible = false
 
 
 func goto_map() -> void:

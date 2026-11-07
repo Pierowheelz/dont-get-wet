@@ -45,7 +45,7 @@ LEVELS = {
                       d=(0.1, 0.85), lit=0.15, crossing_every=(60, 85), sun=1, aesthetic="industrial",
                       vacant=0.18),
     "arcade_lane": dict(seed=1963, length=330, neon=0.35, wind=(0.0, 0.12), cars=True, rain=(0.8, 1.12),
-                        d=(0.1, 0.85), lit=0.45, crossing_every=(45, 60), sun=1, aesthetic="rundown_neon"),
+                        d=(0.1, 0.78), lit=0.45, crossing_every=(45, 60), sun=1, aesthetic="rundown_neon"),
     "neon_junction": dict(seed=1964, length=420, neon=0.85, wind=(0.1, 0.38), cars=True, rain=(0.85, 1.15),
                           d=(0.2, 0.9), lit=0.7, crossing_every=(45, 60), sun=0, aesthetic="neon", gusts=True),
     "mill_road": dict(seed=1965, length=420, neon=0.0, wind=(-0.1, -0.42), cars=True, rain=(0.8, 1.2),

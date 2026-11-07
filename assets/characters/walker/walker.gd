@@ -238,6 +238,7 @@ func _apply_params(delta: float) -> void:
 	_tree.set(&"parameters/ts/scale", cps)
 	_tree.set(&"parameters/stop/blend_amount", _stop_s)
 
+	_mod.run = _run
 	_mod.raise = _raise
 	_mod.tilt = _tilt
 	_mod.droop = _droop

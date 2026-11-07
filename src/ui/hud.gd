@@ -479,6 +479,8 @@ func _buttons(holder: Container, buttons: Array, size: Vector2) -> Button:
 
 
 func show_result(r: Dictionary) -> void:
+	if Game.debug_auto_continue:
+		get_tree().create_timer(2.0).timeout.connect(Game.goto_map)
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.03, 0.05, 0.0)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -514,7 +516,7 @@ func show_result(r: Dictionary) -> void:
 	v.add_child(HSeparator.new())
 
 	# Score breakdown.
-	var dry := clampf(1.0 - float(r["wet"]) / Tun.f("wet_max"), 0.0, 1.0)
+	var dry := clampf(1.0 - float(r["wet"]) / 100.0, 0.0, 1.0)   # r["wet"] is a percentage
 	var dry_pts := int(round(Tun.f("score_dry_weight") * dry))
 	var time_pts := int(r["score"]) - dry_pts
 	var rows := VBoxContainer.new()

@@ -112,6 +112,7 @@ func _ready() -> void:
 	hud = preload("res://src/ui/hud.gd").new()
 	hud.level = self
 	add_child(hud)
+	Game.hide_loading()   # the HUD starts on black and fades in
 	if Game.settings.get("painterly", true):
 		add_child(preload("res://src/fx/post_fx.gd").new())
 	if ResourceLoader.exists("res://src/audio/level_audio.gd"):
