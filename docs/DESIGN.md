@@ -142,7 +142,7 @@ moving toward the country thins out buildings.
 - **Tokens** = `floor(score × 0.0065)` (≈ S 6, A 5–6, B 5, C 4), paid only for improving on your best
   score for that street (so replays can earn more, never farm).
 - Best scores shown on the map and in the main menu's level replay list.
-- **Upgrades** (3 tiers each, costs 6 / 8 / 12 tokens):
+- **Upgrades** (3 tiers each, costs 6 / 12 / 18 tokens):
   - *Sturdy frame* — less stamina drain, less wind load (future: less damage).
   - *Wide canopy* — larger coverage radius.
   - *Featherweight* — faster open/close.
