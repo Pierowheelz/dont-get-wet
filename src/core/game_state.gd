@@ -23,7 +23,7 @@ var debug_auto_continue := false    # --auto-continue: result screen presses Con
 var debug_confirm_upgrade := &""    # --confirm-upgrade=light opens the map with that buy prompt up (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
 var last_result: Dictionary = {}
-var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false}
+var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false, "fullscreen": true}
 
 
 func _ready() -> void:
@@ -55,12 +55,20 @@ func _ready() -> void:
 		if a.begins_with("--shot-dir="):
 			_shot_dir = a.substr(11)
 	load_game()   # after args: the autopilot must never read or write the player's save
+	# project.godot opens exported builds fullscreen; this only undoes that for players who turned it off.
+	# Editor runs (screenshots, bots) stay windowed.
+	if OS.has_feature("template") and not bool(settings["fullscreen"]):
+		apply_fullscreen(false)
 	for a in args:
 		if a.begins_with("--upgrades="):   # testing: set every upgrade tier
 			for k in Run.UPGRADES:
 				run.upgrades[k] = clampi(int(a.substr(11)), 0, 3)
 	if current_level != "":
 		get_tree().process_frame.connect(_jump_to_level, CONNECT_ONE_SHOT)
+
+
+func apply_fullscreen(on: bool) -> void:
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 
 
 ## `--level=ID` launches straight into a level (exported builds can't override the main scene).

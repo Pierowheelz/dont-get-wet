@@ -7,6 +7,13 @@ const PostFX := preload("res://src/fx/post_fx.gd")
 const LEFT := 132.0
 const COL_W := 560.0
 const MAIN_Y := 490.0
+const TITLE_Y := 150.0
+const SUB_Y := 380.0
+const SUB_TITLE_SCALE := 0.6
+const TITLE_GAP := 24.0
+const HINTS_BOTTOM := 84.0   # hints sit this far above the bottom edge
+const HINTS_H := 44.0
+const FOOTER_GAP := 24.0
 
 var _ui: CanvasLayer
 var _root: Control
@@ -94,6 +101,11 @@ func _ready() -> void:
 
 	UISound.start_menu_music(get_tree())
 	_main_buttons()
+	for a in OS.get_cmdline_user_args():   # testing: --page=settings|replay|credits opens that page
+		if a.begins_with("--page="):
+			var open := {"settings": _settings, "replay": _replay_list, "credits": _credits}
+			if open.has(a.substr(7)):
+				open[a.substr(7)].call()
 
 
 # --- layout -----------------------------------------------------------------------------------
@@ -189,15 +201,8 @@ func _set_painterly(on: bool) -> void:
 # --- pages ------------------------------------------------------------------------------------
 
 func _clear(page_name: String) -> void:
-	var was_main := _page_name == "main" or _page_name == ""
 	_page_name = page_name
-	var compact := page_name != "main"
-	if compact == was_main:
-		# Sub-pages shrink the title out of the way so long lists fit on screen.
-		var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_title_box, "scale", Vector2.ONE * (0.6 if compact else 1.0), 0.35)
-		tw.tween_property(_page, "position:y", 380.0 if compact else MAIN_Y, 0.35)
-	_feedback.visible = not compact
+	_feedback.visible = page_name == "main"
 	_sound.hush()
 	for c in _page.get_children():
 		_page.remove_child(c)
@@ -224,7 +229,26 @@ func _btn(text: String, cb: Callable, variation: StringName = &"", sound: String
 	return b
 
 
+## Places the page from its measured height. The main page sits at MAIN_Y under the full title. A
+## sub-page goes as low as it can under a shrunken title while keeping clear of the key hints; if it is
+## still too tall the title shrinks further.
+func _fit_page() -> void:
+	var title_h := _title_box.get_combined_minimum_size().y
+	var y := MAIN_Y
+	var title_scale := 1.0
+	if _page_name != "main":
+		var limit := _root.size.y - HINTS_BOTTOM - HINTS_H - FOOTER_GAP
+		y = minf(SUB_Y, limit - _page.get_combined_minimum_size().y)
+		title_scale = clampf((y - TITLE_GAP - TITLE_Y) / title_h, 0.0, SUB_TITLE_SCALE)
+	var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_title_box, "scale", Vector2.ONE * title_scale, 0.35)
+	tw.tween_property(_page, "position:y", y, 0.35)
+	# The tagline is unreadable once the title shrinks this far.
+	tw.tween_property(_title_box.get_child(1), "modulate:a", 1.0 if title_scale > 0.45 else 0.0, 0.35)
+
+
 func _animate_page() -> void:
+	_fit_page()
 	var i := 0
 	for c in _page.get_children():
 		if c is Control:
@@ -408,6 +432,7 @@ func _settings() -> void:
 	_clear("settings")
 	_page.add_child(UIStyle.label("SETTINGS", &"HeaderSmall", 0, UIStyle.AMBER))
 	var p := _toggle_row("Painterly filter", "painterly", func(on: bool) -> void: _set_painterly(on))
+	_toggle_row("Fullscreen", "fullscreen", Game.apply_fullscreen)
 	_toggle_row("Touch controls", "touch_controls", Callable())
 	_toggle_row("Low graphics (Steam Deck / laptops)", "low_quality", Callable())
 	_slider_row("Music", "music")
