@@ -29,6 +29,11 @@ var _shop: VBoxContainer
 var _tokens_lbl: Label
 var _shop_buttons: Array[Button] = []
 var _menu_btn: Button
+var _shop_panel: PanelContainer
+var _legends: Control
+var _last_map: Button          # focus returns here on LB
+var _last_shop: Button         # and here on RB
+var _active := &""             # &"map" / &"shop": the panel holding focus; the other dims
 var _umb_stats: HBoxContainer
 var _sound: UISound
 var _fade: ColorRect
@@ -80,6 +85,7 @@ func _ready() -> void:
 	_map.add_child(edges)
 	# Captions under the map (outside it, since the map clips its strip).
 	var legends := Control.new()
+	_legends = legends
 	legends.set_anchors_preset(Control.PRESET_FULL_RECT)
 	legends.offset_left = _map.offset_left
 	legends.offset_right = _map.offset_right
@@ -105,7 +111,7 @@ func _ready() -> void:
 	_build_nodes()
 	_build_card()
 
-	var hints := KeyHints.new([["A", "Enter", "Walk / buy"], ["B", "Esc", "Main menu"]])
+	var hints := KeyHints.new([["A", "Enter", "Walk / buy"], ["LB / RB", "", "Map / upgrades"], ["B", "Esc", "Main menu"]])
 	hints.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	hints.position = Vector2(MARGIN, -62)
 	add_child(hints)
@@ -150,25 +156,35 @@ func _build_nodes() -> void:
 		_world.add_child(b)
 		b.setup(id, n, Game.run.best.get(id, {}))
 		b.pressed.connect(func() -> void: _pick(id))
-		b.focus_entered.connect(func() -> void: _show_card(id))
+		b.focus_entered.connect(func() -> void:
+			_last_map = b
+			_set_active(&"map")
+			_show_card(id))
 		b.mouse_entered.connect(func() -> void: b.grab_focus())
 		_buttons[id] = b
 		if Game.can_select(id) and (focus_btn == null or (id != Game.run.current_node and not Game.run.completed.has(id))):
 			focus_btn = b
-	# Left/right walks the map along the road, and steps across into the shop from the city end.
+	# Left/right walks the map along the road and stops at its ends; the map and the upgrade panel
+	# never hand focus to each other (LB / RB or the mouse switch between them).
 	var ids: Array = Game.map_order().filter(func(id: String) -> bool: return _buttons.has(id))
 	for i in ids.size():
 		var b: Button = _buttons[ids[i]]
-		if i > 0:
-			b.focus_neighbor_left = (_buttons[ids[i - 1]] as Button).get_path()
-		if i < ids.size() - 1:
-			b.focus_neighbor_right = (_buttons[ids[i + 1]] as Button).get_path()
-		elif not _shop_buttons.is_empty():
-			b.focus_neighbor_right = _shop_buttons[0].get_path()
-	var back_to_map: Button = _buttons.get(Game.run.current_node, _buttons[ids[-1]])
-	for sb: Button in _shop_buttons:
-		sb.focus_neighbor_left = back_to_map.get_path()
-	_menu_btn.focus_neighbor_left = back_to_map.get_path()
+		b.focus_neighbor_left = (_buttons[ids[maxi(i - 1, 0)]] as Button).get_path()
+		b.focus_neighbor_right = (_buttons[ids[mini(i + 1, ids.size() - 1)]] as Button).get_path()
+		b.focus_neighbor_top = b.get_path()
+		b.focus_neighbor_bottom = b.get_path()
+	var shop: Array[Button] = _shop_buttons.duplicate()
+	shop.append(_menu_btn)
+	for i in shop.size():
+		var sb := shop[i]
+		sb.focus_neighbor_left = sb.get_path()
+		sb.focus_neighbor_right = sb.get_path()
+		sb.focus_neighbor_top = shop[maxi(i - 1, 0)].get_path()
+		sb.focus_neighbor_bottom = shop[mini(i + 1, shop.size() - 1)].get_path()
+		sb.focus_entered.connect(func() -> void:
+			_last_shop = sb
+			_set_active(&"shop"))
+	_last_map = focus_btn
 	if focus_btn:
 		focus_btn.grab_focus.call_deferred()
 
@@ -424,6 +440,7 @@ func _hide_card() -> void:
 
 func _build_shop() -> void:
 	var panel := PanelContainer.new()
+	_shop_panel = panel
 	panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 	panel.offset_left = -(SHOP_W + MARGIN)
 	panel.offset_right = -MARGIN
@@ -474,8 +491,6 @@ func _build_shop() -> void:
 	_menu_btn.mouse_entered.connect(_menu_btn.grab_focus)
 	_menu_btn.focus_entered.connect(_hide_card)
 	_shop.add_child(_menu_btn)
-	_shop_buttons[-1].focus_neighbor_bottom = _menu_btn.get_path()
-	_menu_btn.focus_neighbor_top = _shop_buttons[-1].get_path()
 
 
 func _upgrade_button(u: StringName) -> Button:
@@ -597,6 +612,33 @@ func _back_to_menu() -> void:
 	var tw := create_tween()
 	tw.tween_property(_fade, "color:a", 1.0, 0.35)
 	tw.tween_callback(Game.goto_menu)
+
+
+## Dims whichever of the map and the upgrade panel doesn't hold focus.
+func _set_active(which: StringName) -> void:
+	if which == _active:
+		return
+	_active = which
+	var tw := create_tween().set_parallel()
+	var map_a := 1.0 if which == &"map" else 0.55
+	tw.tween_property(_map, "modulate:a", map_a, 0.2)
+	tw.tween_property(_legends, "modulate:a", map_a, 0.2)
+	tw.tween_property(_shop_panel, "modulate:a", 1.0 if which == &"shop" else 0.6, 0.2)
+
+
+func _input(event: InputEvent) -> void:
+	if _busy:
+		return
+	var target: Button = null
+	if event.is_action_pressed(&"panel_map"):
+		target = _last_map if _last_map else _buttons.get(Game.run.current_node)
+	elif event.is_action_pressed(&"panel_shop"):
+		target = _last_shop if _last_shop else _shop_buttons[0]
+	if target:
+		get_viewport().set_input_as_handled()
+		if not target.has_focus():
+			_sound.play(&"ui_move")
+			target.grab_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:
