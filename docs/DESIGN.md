@@ -137,16 +137,23 @@ moving toward the country thins out buildings.
 
 - After a level: score screen → **city map**. Nodes adjacent to the current node are selectable; hover/
   focus shows a short preview popup (name, blurb, best score, difficulty).
+- **Runs.** The start street sits in the middle of the map, with streets leading left and right. Each
+  direction is its own run with its own map position, best scores, tokens and upgrades, saved in its own
+  slot. A new player's first run picks its direction with the first street they walk off the start;
+  after that the run can't select streets on the other side. The main menu shows "← Continue" and
+  "Continue →" (or "← Start" / "Start →" for a direction with no run yet), and each run can be
+  restarted on its own.
 - **Score** (0–1000): `dryness_score = 700 × (1 − wetness/100)`, `time_score = 300 × clamp(par / time)`
   where par = length / base walk speed. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
 - **Tokens** = `floor(score × 0.0065)` (≈ S 6, A 5–6, B 5, C 4), paid only for improving on your best
   score for that street (so replays can earn more, never farm).
-- Best scores shown on the map and in the main menu's level replay list.
+- Best scores shown on the map and in the main menu's level replay list (the active run's streets).
 - **Upgrades** (3 tiers each, costs 6 / 12 / 18 tokens):
   - *Sturdy frame* — less stamina drain, less wind load (future: less damage).
   - *Wide canopy* — larger coverage radius.
   - *Featherweight* — faster open/close.
-- No monetisation. Save file: `user://save.json`.
+- No monetisation. Save file: `user://save.json` (version 2: settings, the active run, and a list of
+  runs). A version 1 save (one run at the top level) loads as the run for the side it was played on.
 
 ## 9. Camera & presentation
 
