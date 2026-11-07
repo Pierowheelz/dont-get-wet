@@ -44,7 +44,8 @@ vents and fire barrels dry the walker.
 Score is `700 x (1 - wet/50) + 300 x min(1, par/time)`, with par = `end_x / 1.3`. S needs 950,
 which allows about 2 to 4% wet at a typical time ratio of 0.88 to 0.92.
 
-**Lots** (`x`, `w`, `style`, `cover`, `floors`, optional `sign`, `awning_color`, `tears`):
+**Lots** (`x`, `w`, `style`, `cover`, `floors`, optional `sign`, `awning_color`, `awning_style`, `tears`,
+`neon`):
 
 | `cover` | Shelter | Notes |
 |---|---|---|
@@ -60,12 +61,14 @@ which allows about 2 to 4% wet at a typical time ratio of 0.88 to 0.92.
 `gas_station`, `warehouse` and `loading_dock`. Kit widths are 3, 4, 5, 6 and 8 m. Other widths get
 padded with filler strips, so a 1 to 1.5 m `wall` lot makes a narrow seam between buildings.
 Building height is 4 m + 3.2 m per floor. Signs are lit only on `shop_lit` and `inn`. The font
-shrinks to fit the lot width.
+shrinks to fit the lot width. `neon=True` gives a signed lot tube lettering on either kit era. On a
+street with `neon` above 0 the builder swaps some lots to the retro kit, and a signless retro lot gets
+a random filler name; pass `sign=" "` on narrow seams to keep it blank.
 
 The level ends at the inn door. The builder sets `end_x` from the kit door: an 8 m `inn` lot puts the
 door at `x + 4`. Keep the JSON `end_x` in step with it, because the preview uses the JSON value.
 
-**Crossings** (`x`, `w`, optional `car`) are open road. The ground drops 0.16 m, props inside are
+**Crossings** (`x`, `w`, optional `car`; `s.xing(tag, w, car=True)`) are open road. The ground drops 0.16 m, props inside are
 skipped, and `"car": true` adds a car whose splash costs up to 20. A forward-tilted open umbrella blocks most
 of it.
 
@@ -134,6 +137,18 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
 - **`tests/run_tests.gd` uses the first untorn awning of 4 m or more and the first `none` lot of 4 m
   or more** on Main Street. It expects full exposure at the centre of that open lot, so it must not
   be a sun break.
+- **Cover the car approach.** Headlights appear about 10.5 m before a car crossing and the right
+  response is to tilt fully forward, which bares his back to the rain. Open sky in that approach
+  costs 7 to 19 wet (measured on Arcade Lane and Neon Junction). Gentle streets keep 11 m of cover
+  before each car crossing; an open verge there is a deliberate, hard test (Mill Road's County Line).
+- **The bots never tilt under a gutter**, so gutters cost them nothing. The gutter test only bites a
+  real player who keeps the umbrella tilted into the wind.
+- **Exhaustion is a cliff.** Once stamina hits 0 the umbrella droops and wetness climbs 15 to 35 in a
+  few metres. Keep the human bot's minimum stamina above about 10.
+- **span-crossable treats a rain/sun/rain field as one span**, so such a field is capped at about
+  26 m even though the sun lets a player recover.
+- **`--start-x` for screenshots:** start under cover. Cars whose crossing is behind the start never
+  drive.
 - **The title screen shows Main Street from 4 to 60 m.** Keep that stretch good-looking.
 - **Colonnade columns hide sign letters.** Use short signs on `arcade` lots, or accept the
   partial word.
