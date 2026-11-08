@@ -149,7 +149,7 @@ func _physics_process(delta: float) -> void:
 	var open_rate := 1.0 / maxf(Game.umbrella_open_time(), 0.05)
 	open = move_toward(open, u, open_rate * delta)
 	if open <= 0.0:
-		Inputs.wheel_tilt = 0.0
+		Inputs.mouse_tilt = 0.0
 	var max_tilt := Tun.f("umbrella_max_tilt")
 	tilt = move_toward(tilt, tl * max_tilt if open > 0.0 else 0.0, Tun.f("umbrella_tilt_speed") * delta)
 

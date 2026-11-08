@@ -68,7 +68,7 @@ A gamepad is recommended, but keyboard and mouse work too.
 | Open umbrella (hold — press lightly to half-open) | RT | Right mouse button or Space |
 | Hurry (press fully to run) | LT | Shift (W for a brisk walk) |
 | Hold to stand still (catch your breath, or wait for the coast to clear) | LB | S |
-| Tilt the umbrella | Either stick | Q / E or mouse wheel |
+| Tilt the umbrella | Either stick | Move the mouse left / right, or Q / E |
 | Pause | Start | Esc |
 | Restart the street | Back | R |
 

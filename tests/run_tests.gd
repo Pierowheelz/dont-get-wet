@@ -238,6 +238,46 @@ func _run_tests() -> void:
 	Game.run.current_node = start
 	check(Game.can_select(lnb) and not Game.can_select(rnb), "a reloaded left run, back on the start, still locks out the right branch")
 
+	# Upgrades and tokens stay with their direction through the real flow, reloading from disk between
+	# steps: an undecided first run buys on the start street and commits right, then a left run starts,
+	# buys and finishes a street, and play switches back and forth.
+	var reload := func() -> void:
+		Game.save_game()
+		Game.runs = {}
+		Game.load_game()
+	var upg := func(r: Run) -> Array:
+		return Run.UPGRADES.map(func(k: StringName) -> int: return int(r.upgrades[k]))
+	Game.reset_progress()
+	Game.new_run("")
+	Game.finish_level(start, 0.0, 10.0, 10.0)
+	Game.run.tokens = 20
+	Game.buy_upgrade(&"wide")
+	Game.choose(rnb)
+	reload.call()
+	var right_upg: Array = upg.call(Game.runs["right"])
+	var right_tokens: int = Game.runs["right"].tokens
+	check(right_upg == [0, 1, 0], "undecided run's upgrade commits with it to the right: %s" % [right_upg])
+	Game.new_run("left")
+	check(upg.call(Game.run) == [0, 0, 0] and Game.run.tokens == 0, "a new left run starts with no upgrades or tokens")
+	Game.run.tokens = 20
+	Game.buy_upgrade(&"sturdy")
+	Game.buy_upgrade(&"light")
+	Game.finish_level(start, 0.0, 10.0, 10.0)
+	Game.choose(lnb)
+	reload.call()
+	check(Game.run.direction == "left" and upg.call(Game.run) == [1, 0, 1], "left run keeps its own upgrades: %s" % [upg.call(Game.run)])
+	check(upg.call(Game.runs["right"]) == right_upg and Game.runs["right"].tokens == right_tokens,
+		"buying and scoring on the left leaves the right run untouched: %s" % [upg.call(Game.runs["right"])])
+	Game.resume_run("right")
+	Game.run.tokens += 20
+	Game.buy_upgrade(&"wide")
+	reload.call()
+	check(Game.run.direction == "right" and upg.call(Game.run) == [0, 2, 0], "right run upgrades on top of its own: %s" % [upg.call(Game.run)])
+	check(upg.call(Game.runs["left"]) == [1, 0, 1], "and the left run still has only its own: %s" % [upg.call(Game.runs["left"])])
+	Game.resume_run("left")
+	check(Game.umbrella_radius() == Game.umbrella_radius(0) and Game.umbrella_drain_mult() == Game.umbrella_drain_mult(1),
+		"the walker uses the active run's upgrades after switching")
+
 	# Coming-soon streets: on the map in road order, never selectable, not counted as reachable.
 	var order := Game.map_order()
 	check(order.size() == Game.nodes.size() and order.has(start), "map order lists every street once: %s" % [order])
