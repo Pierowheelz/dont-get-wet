@@ -11,6 +11,9 @@ uniform float streak_length = 0.45;
 uniform float intensity = 1.0;          // 0..1.5, fraction of particles alive
 uniform vec4 sun_zones[8];              // x0, x1 world; zw unused
 uniform int sun_zone_count = 0;
+uniform vec3 cam_pos = vec3(0.0, 0.0, 10.0);
+uniform float player_plane_z = 1.6;
+uniform float sky_y = 3.6;              // Player.RAIN_SKY_Y
 uniform float splash_fraction = 0.25;
 uniform sampler2D cover_map : filter_nearest, repeat_disable;
 uniform vec4 cover_rect = vec4(0.0, -2.0, 100.0, 16.0);   // x0, z0, size_x, size_z (metres)
@@ -50,8 +53,16 @@ void process() {
 		if (dot(d, d) < umbrella.w * umbrella.w && pos.y < umbrella.y + 0.12 && pos.y > umbrella.y - 0.35) hit = true;
 	}
 	bool dead = hit;
+	// Sun test, matching Player._rain_exposure: a drop reads as falling on whatever it covers on
+	// screen, so move it along its camera ray into the player's plane, then follow its fall line to
+	// sky_y, where gameplay decides whether that spot is rained on. Testing raw world x instead
+	// cut the rain metres early in strong wind and offset it by the camera's lead.
+	vec3 p = pos;
+	float dz = cam_pos.z - pos.z;
+	if (dz > 0.05) p = cam_pos + (pos - cam_pos) * (cam_pos.z - player_plane_z) / dz;
+	float sun_x = p.x + fall_dir.x / min(fall_dir.y, -0.01) * (sky_y - p.y);
 	for (int i = 0; i < sun_zone_count; i++) {
-		if (pos.x > sun_zones[i].x && pos.x < sun_zones[i].y) dead = true;
+		if (sun_x > sun_zones[i].x && sun_x < sun_zones[i].y) dead = true;
 	}
 	if (pos.y < -1.0) dead = true;
 	if (hit && CUSTOM.x < splash_fraction * clamp(intensity / 1.5, 0.0, 1.0)) {
