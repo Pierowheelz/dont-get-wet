@@ -111,6 +111,7 @@ func _apply_off(lvl: Node) -> void:
 			"scale85": vp.scaling_3d_scale = 0.85
 			"scale75": vp.scaling_3d_scale = 0.75
 			"scale67": vp.scaling_3d_scale = 0.67
+			"scale60": vp.scaling_3d_scale = 0.6
 			"vfog64": RenderingServer.environment_set_volumetric_fog_volume_size(64, 64)
 			"shadowq1":
 				RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW)

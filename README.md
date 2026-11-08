@@ -47,7 +47,8 @@ then double-click it. On Steam Deck, do this in Desktop Mode; you can also add i
 A gamepad is recommended, but keyboard and mouse work too.
 
 On first launch the game times your graphics card on the title screen, and turns on **Low graphics**
-if it would struggle. You can switch it back in **Settings**.
+if it would struggle. You can switch it back in **Settings**. If a street still runs below 60 fps, the
+game draws it at a lower resolution until it catches up.
 
 ## How to play
 
