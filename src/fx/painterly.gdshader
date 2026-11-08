@@ -2,7 +2,7 @@ shader_type canvas_item;
 // Painterly post filter: 4-sector Kuwahara (oil-paint brush clumping) + canvas grain,
 // gentle edge ink, warm/cool split toning and a vignette.
 
-uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 uniform int radius = 3;
 uniform float strength = 1.0;
 uniform float grain = 0.035;

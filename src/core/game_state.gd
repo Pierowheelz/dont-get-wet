@@ -62,6 +62,8 @@ func _ready() -> void:
 				_shots.append(float(t))
 		if a.begins_with("--shot-dir="):
 			_shot_dir = a.substr(11)
+		if a.begins_with("--profile="):
+			add_child(preload("res://src/core/perf_probe.gd").new())
 	load_game()   # after args: the autopilot must never read or write the player's save
 	# Exported builds follow the setting; editor runs (screenshots, bots) stay windowed.
 	if OS.has_feature("template"):

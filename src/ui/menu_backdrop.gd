@@ -155,9 +155,6 @@ func _environment() -> void:
 	env.ssr_max_steps = 48
 	env.ssr_fade_in = 0.1
 	env.ssr_fade_out = 2.0
-	env.ssao_enabled = true
-	env.ssao_radius = 1.2
-	env.ssao_intensity = 1.6
 	env.glow_enabled = true
 	env.glow_intensity = 0.8
 	env.glow_bloom = 0.1

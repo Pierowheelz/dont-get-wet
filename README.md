@@ -108,13 +108,17 @@ tools/shots.sh OUT_DIR "3.5" res://src/ui/main_menu.tscn --save=/tmp/dgw/save.js
 python3 tools/grid.py sheet.png OUT_DIR/shot_*.png      # contact sheet of screenshots
 tools/checkpoint_check.sh [level ...]        # each checkpoint in game, umbrella shut: fails if he gets wet in the next 4 m
 tools/posture_sheet.sh OUT.png               # walker posture contact sheet
+GPU_PROFILE=1 RES=3440x1440 tools/profile.sh OUT_DIR main_street "base ssr msaa,fxaa"   # GPU/CPU frame time per config (--perf-off)
+python3 tools/gpu_passes.py OUT_DIR main_street base ssr msaa,fxaa   # per-pass GPU ms table from those runs (needs GPU_PROFILE=1)
+tools/ab_shot.sh OUT_DIR main_street "ssr msaa" -- --start-x=70     # paused frame with/without each config: image diff vs noise floor
 ```
 
 Debug game args (after `--`): `--level=ID`, `--autopilot`, `--human`, `--lazy` (never opens the
 umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`, `--save=ABS_PATH`
 (read and write this save file instead of the player's own), `--auto-continue` (the score screen
 presses Continue), `--trace=PATH` (autopilot writes a JSON-lines run trace), `--resume-checkpoint=N` (start the
-street resumed from its checkpoint N).
+street resumed from its checkpoint N), `--profile=OUT.json [--perf-off=a,b] [--perf-secs=N] [--perf-ab=DIR]`
+(frame-time probe, `src/core/perf_probe.gd`).
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 
