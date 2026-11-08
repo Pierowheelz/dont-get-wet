@@ -458,9 +458,6 @@ func _setup_environment() -> void:
 	env.ssr_max_steps = 48
 	env.ssr_fade_in = 0.1
 	env.ssr_fade_out = 2.0
-	env.ssao_enabled = true
-	env.ssao_radius = 1.2
-	env.ssao_intensity = 1.6
 	env.glow_enabled = true
 	env.glow_intensity = 0.7
 	env.glow_bloom = 0.08
@@ -481,7 +478,6 @@ func _setup_environment() -> void:
 	env.adjustment_contrast = 1.05
 	if Game.settings.get("low_quality", false):
 		env.ssr_enabled = false
-		env.ssao_enabled = false
 		env.volumetric_fog_enabled = false
 		env.fog_density = 0.02
 		env.glow_intensity = 0.5
