@@ -12,6 +12,8 @@ var end_x := 90.0
 var par_time := 60.0
 var elapsed := 0.0
 var finished := false
+var resumed := false           # this Level started from a checkpoint
+var checkpoints: Array = []    # x of each checkpoint, ascending
 
 var gutters: Array = []        # x positions, as LevelBuilder resolved them
 var gutter_visuals: Array = [] # [x, column MeshInstance3D, splash GPUParticles3D, source height]
@@ -49,6 +51,7 @@ func _ready() -> void:
 	_gusts = data.get("gusts", false)
 	for c in data.get("crossings", []):
 		crossings.append([float(c["x"]), float(c["x"]) + float(c["w"])])
+	checkpoints = data.get("checkpoints", [])
 
 	var pre: Dictionary = Game.prebuilt
 	Game.prebuilt = {}
@@ -77,9 +80,23 @@ func _ready() -> void:
 	player = Player.new()
 	player.name = "Player"
 	player.level = self
-	player.position = Vector3(Game.debug_start_x if Game.debug_start_x > 0.0 else 1.5, 0.0, Tun.f("player_z"))
+	var debug_cp := Game.debug_resume_cp >= 0 and Game.debug_resume_cp < checkpoints.size()
+	var resume: bool = debug_cp or (Game.resuming and Game.checkpoint.get("id", "") == level_id)
+	var spawn_x := Game.debug_start_x if Game.debug_start_x > 0.0 else 1.5
+	if debug_cp:
+		spawn_x = float(checkpoints[Game.debug_resume_cp])
+	elif resume:
+		spawn_x = float(Game.checkpoint["x"])
+	# Placed before entering the tree: the player's first step runs from where _ready saw him, and a
+	# later move would sweep him through every puddle between the start and the checkpoint.
+	player.position = Vector3(spawn_x, ground_y(spawn_x), Tun.f("player_z"))
 	add_child(player)
 	player.wet = Game.debug_start_wet
+	if debug_cp:
+		_take_checkpoint(Game.debug_resume_cp)
+	if resume:
+		_restore_checkpoint()
+	Game.resuming = false
 	player.defeated.connect(_on_defeated)
 	player.arrived.connect(_on_arrived)
 
@@ -245,6 +262,7 @@ func _process(delta: float) -> void:
 	if player:
 		_first_encounters()
 		_update_gutter_streams()
+		_check_checkpoints()
 	if Game.autopilot and Game.trace_path != "" and player:
 		_write_trace()
 	if Game.autopilot and player and int(_t / 10.0) != int((_t - delta) / 10.0):
@@ -298,6 +316,36 @@ func _update_gutter_streams() -> void:
 
 
 var _seen := {}
+var _next_cp := 0
+
+
+func _check_checkpoints() -> void:
+	if finished or (player.state != Player.State.WALK and player.state != Player.State.STOPPED):
+		return
+	while _next_cp < checkpoints.size() and player.position.x >= float(checkpoints[_next_cp]):
+		_take_checkpoint(_next_cp)
+
+
+## Remembers the walker's state at checkpoint `i` so a failed run can resume from it.
+func _take_checkpoint(i: int) -> void:
+	Game.checkpoint = {"id": level_id, "index": i, "x": float(checkpoints[i]), "wet": player.wet,
+		"stamina": player.stamina, "exhausted": player.exhausted, "elapsed": elapsed, "stats": player.stats.duplicate(),
+		"seen": _seen.duplicate(), "car_hints": _car_hints}
+	_next_cp = i + 1
+
+
+## Restores the walker's state from `Game.checkpoint`; _ready already spawned him at its x.
+func _restore_checkpoint() -> void:
+	var cp := Game.checkpoint
+	player.wet = cp["wet"]
+	player.stamina = cp["stamina"]
+	player.exhausted = cp["exhausted"]
+	player.stats = cp["stats"].duplicate()
+	elapsed = cp["elapsed"]
+	_seen = cp["seen"].duplicate()
+	_car_hints = cp["car_hints"]
+	_next_cp = int(cp["index"]) + 1
+	resumed = true
 
 
 ## One-off contextual hints the first time each mechanic shows up in a level.

@@ -23,7 +23,10 @@ var debug_auto_continue := false    # --auto-continue: result screen presses Con
 var debug_confirm_upgrade := &""    # --confirm-upgrade=light opens the map with that buy prompt up (testing)
 var debug_tilt := NAN              # --tilt=-1..1 holds the umbrella open at that tilt (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
+var debug_resume_cp := -1          # --resume-checkpoint=N starts the level resumed from its checkpoint N (testing; --wet= sets the wetness)
 var last_result: Dictionary = {}
+var checkpoint: Dictionary = {}     # latest checkpoint of the level being played (Level._take_checkpoint); memory only, never saved
+var resuming := false               # play_level(id, true) asked the next Level to restore `checkpoint`
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false, "fullscreen": true}
 
 
@@ -50,6 +53,8 @@ func _ready() -> void:
 			debug_confirm_upgrade = StringName(a.substr(18))
 		if a.begins_with("--tilt="):
 			debug_tilt = float(a.substr(7))
+		if a.begins_with("--resume-checkpoint="):
+			debug_resume_cp = int(a.substr(20))
 		if a.begins_with("--wet="):
 			debug_start_wet = float(a.substr(6))
 		if a.begins_with("--shots="):
@@ -320,6 +325,7 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	if not run.completed.has(id):
 		run.completed.append(id)
 	run.current_node = id
+	checkpoint = {}
 	last_result = {"id": id, "score": score, "wet": wet_pct, "time": time, "par": par,
 		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score}
 	save_game()
@@ -406,9 +412,14 @@ func reset_progress() -> void:
 
 # --- scene flow ---------------------------------------------------------------
 
-func play_level(id: String) -> void:
+## Loads a level. With `from_checkpoint` it keeps `checkpoint` for the new Level to restore; any other
+## way in (restart, the map, the menu) starts the street over and forgets it.
+func play_level(id: String, from_checkpoint := false) -> void:
 	if _building:
 		return
+	resuming = from_checkpoint and checkpoint.get("id", "") == id
+	if not resuming:
+		checkpoint = {}
 	_building = true
 	# Closing the window mid-build must wait: shutting the engine down under the build / loader
 	# threads crashes or deadlocks it. _notification defers the quit until they finish.
@@ -516,6 +527,7 @@ func _level_scenes() -> PackedStringArray:
 
 
 func goto_map() -> void:
+	checkpoint = {}
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://src/ui/map_screen.tscn")
 
@@ -534,5 +546,6 @@ func open_feedback() -> String:
 
 
 func goto_menu() -> void:
+	checkpoint = {}
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://src/ui/main_menu.tscn")

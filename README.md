@@ -49,6 +49,8 @@ A gamepad is recommended, but keyboard and mouse work too.
 ## How to play
 
 - **Rain soaks you wherever the sky is open.** Fill the wetness meter and it's game over.
+- **Checkpoints.** The marks on the progress bar are checkpoints, each under cover. Get soaked after
+  passing one and you can carry on from it, as wet and as tired as you were when you got there.
 - **The umbrella takes a moment to open**, and holding it up tires you out.
 - **Close it under cover** (awnings, balconies) — stamina only comes back while it's closed.
 - **Watch for gutters, wind and cars.** Keep the umbrella upright under overflowing gutters, tilt it
@@ -104,13 +106,15 @@ godot --headless --path . res://tests/run_tests.tscn -- --save=/tmp/dgw/save.jso
 tools/shots.sh OUT_DIR "1,3,5" res://src/level/level.tscn --autopilot --level=main_street --start-x=40
 tools/shots.sh OUT_DIR "3.5" res://src/ui/main_menu.tscn --save=/tmp/dgw/save.json   # menu against a test save
 python3 tools/grid.py sheet.png OUT_DIR/shot_*.png      # contact sheet of screenshots
+tools/checkpoint_check.sh [level ...]        # each checkpoint in game, umbrella shut: fails if he gets wet in the next 4 m
 tools/posture_sheet.sh OUT.png               # walker posture contact sheet
 ```
 
 Debug game args (after `--`): `--level=ID`, `--autopilot`, `--human`, `--lazy` (never opens the
 umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`, `--save=ABS_PATH`
 (read and write this save file instead of the player's own), `--auto-continue` (the score screen
-presses Continue), `--trace=PATH` (autopilot writes a JSON-lines run trace).
+presses Continue), `--trace=PATH` (autopilot writes a JSON-lines run trace), `--resume-checkpoint=N` (start the
+street resumed from its checkpoint N).
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 

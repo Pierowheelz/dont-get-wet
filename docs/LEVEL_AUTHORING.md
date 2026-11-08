@@ -110,6 +110,13 @@ puddles and crossings. The checks are:
 - **hold-after-midpoint.** Deciles 6 to 10 stay within 30% of their mean, and the first half
   averages lower than the second.
 - **span-crossable.** No open span is longer than one bar of stamina (33 m with no wind).
+- **checkpoints-safe.** `"checkpoints"` holds three x values, one near 25%, 50% and 75% of `end_x`
+  (within 10% of `end_x`). Each sits 0.5 m into a stretch of cover and has `CLEAR_M` (4 m) of dry cover
+  ahead before the next gap, gutter, puddle or car crossing's headlight zone. Cover ends are pulled in
+  by the wind slant plus half a body. `Street.write()` picks them with `solve_checkpoints`, so the plan
+  never lists them. To place them by hand, set `s.checkpoints = [x1, x2, x3]` before `s.write()`; the
+  check still applies. `tools/checkpoint_check.sh` replays each one in the game with the umbrella shut
+  and fails if the walker gets wet inside those 4 m.
 
 A decile is short, so a breather has to sit inside the same decile as its test. A decile that is all
 cover right after a hard one fails the ramp check. Sun breaks count as zero rain, so a sun decile
