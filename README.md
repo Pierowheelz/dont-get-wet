@@ -14,7 +14,7 @@ tilt into the wind, and watch out for passing cars.
 > Use **Send feedback** on the title screen, or [fill in the feedback form](../../issues/new?template=feedback.yml)
 > (which streets you played, how you played, what felt good and what didn't).
 
-![Neon Junction](docs/screenshots/neon_junction.jpg)
+![Main Street](docs/screenshots/main_street.jpg)
 
 <table>
   <tr>
@@ -23,7 +23,7 @@ tilt into the wind, and watch out for passing cars.
   </tr>
   <tr>
     <td><img src="docs/screenshots/mill_road.jpg" alt="Mill Road"></td>
-    <td><img src="docs/screenshots/main_street.jpg" alt="Main Street"></td>
+    <td><img src="docs/screenshots/neon_junction.jpg" alt="Neon Junction"></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/title.jpg" alt="Title screen"></td>
