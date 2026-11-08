@@ -14,8 +14,8 @@ const TIMELINE := [
 	[2.0, 1.3, 0.0, 0.0, 0.0, 0.0, false, &"normal", "walk"],
 	[3.5, 1.15, 0.0, -1.0, 0.0, 0.0, false, &"normal", "raise"],
 	[4.5, 1.15, 0.0, 1.0, 0.0, 0.0, false, &"normal", "hold"],
-	[5.5, 1.15, 0.0, 1.0, 0.85, 0.0, false, &"normal", "tilt fwd"],
-	[6.5, 1.15, 0.0, 1.0, -0.85, 0.0, false, &"normal", "tilt back"],
+	[5.5, 1.15, 0.0, 1.0, 1.3963, 0.0, false, &"normal", "tilt fwd"],
+	[6.5, 1.15, 0.0, 1.0, -1.3963, 0.0, false, &"normal", "tilt back"],
 	[8.0, 1.0, 0.0, 1.0, 0.0, 1.0, false, &"normal", "droop"],
 	[9.5, 3.2, 1.0, 0.0, 0.0, 0.0, false, &"normal", "run"],
 	[10.5, 0.0, 0.0, 0.0, 0.0, 0.0, true, &"normal", "stopped"],
@@ -161,6 +161,7 @@ func _step(dt: float) -> void:
 	walker.set_stopped(seg[6])
 	walker.set_mood(seg[7])
 	walker.set_umbrella_pose(raise, seg[4], seg[5])
+	walker.set_umbrella_open(1.0 if raise >= 1.0 else 0.0)   # fully open once raised (no forward open-tip)
 	walker.set_wetness(clampf((t - 7.0) / 3.0, 0.0, 1.0))
 	if _open_umb: _open_umb.visible = raise > 0.02
 	if dt > 0.0 and walker.has_method("_apply_params") and not is_processing():

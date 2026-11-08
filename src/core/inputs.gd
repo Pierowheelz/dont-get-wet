@@ -10,8 +10,11 @@ var touch_hurry := 0.0
 var touch_tilt := 0.0
 var touch_stop := false
 
-## Mouse-wheel tilt is sticky: each notch nudges it, it resets when the umbrella closes.
-var wheel_tilt := 0.0
+## Mouse tilt is sticky: sideways mouse motion moves it (left = back, right = forward) and it
+## resets when the umbrella closes. Only counts while gameplay has the mouse captured.
+var mouse_tilt := 0.0
+## Fraction of the screen height of mouse travel that takes the umbrella from upright to full tilt.
+const MOUSE_TILT_TRAVEL := 0.25
 ## Device the player is actually using; prompts/hints follow it. Starts as gamepad when one is
 ## plugged in, then switches on the first real press (key/mouse button/pad button/stick push).
 var last_device := &"keyboard"   # &"keyboard", &"gamepad", &"touch"
@@ -140,8 +143,8 @@ func prompt(action: String) -> String:
 	match action:
 		"umbrella": return "Hold RT" if pad else "Hold Right Mouse / Space"
 		"hurry": return "LT" if pad else "Shift (W for a brisk walk)"
-		"tilt": return "Either stick" if pad else "Q / E or mouse wheel"
-		"tilt_forward": return "stick →" if pad else "E / scroll up"
+		"tilt": return "Either stick" if pad else "Move the mouse or Q / E"
+		"tilt_forward": return "stick →" if pad else "mouse right / E"
 		"stop": return "LB" if pad else "S"
 	return action
 
@@ -154,11 +157,29 @@ func format_prompts(text: String) -> String:
 
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			wheel_tilt = clampf(wheel_tilt + 0.25, -1.0, 1.0)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			wheel_tilt = clampf(wheel_tilt - 0.25, -1.0, 1.0)
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		var dx: float = event.screen_relative.x
+		var travel := maxf(DisplayServer.screen_get_size().y * MOUSE_TILT_TRAVEL, 1.0)
+		mouse_tilt = clampf(mouse_tilt + dx / travel, -1.0, 1.0)
+		if absf(dx) > 4.0:
+			_set_device(&"keyboard")
+
+
+## The cursor is hidden and captured only while the walker is actually out walking; pause,
+## end screens, menus, touch play and bot runs get the normal cursor.
+func _process(_delta: float) -> void:
+	var want := Input.MOUSE_MODE_CAPTURED if _in_gameplay() else Input.MOUSE_MODE_VISIBLE
+	if Input.mouse_mode != want:
+		Input.mouse_mode = want
+
+
+func _in_gameplay() -> bool:
+	if Game.autopilot or last_device == &"touch" or get_tree().paused:
+		return false
+	var lvl := get_tree().current_scene as Level
+	if lvl == null or lvl.player == null or lvl.finished:
+		return false
+	return lvl.player.state == Player.State.WALK or lvl.player.state == Player.State.STOPPED
 
 
 ## 0..1 how far the umbrella trigger is held.
@@ -186,8 +207,8 @@ func tilt() -> float:
 		v = keys
 	if absf(touch_tilt) > absf(v):
 		v = touch_tilt
-	if absf(wheel_tilt) > absf(v):
-		v = wheel_tilt
+	if absf(mouse_tilt) > absf(v):
+		v = mouse_tilt
 	return clampf(v, -1.0, 1.0)
 
 
