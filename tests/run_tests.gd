@@ -146,9 +146,50 @@ func _run() -> void:
 	_test_sun_drying()
 	_test_feedback_url()
 	await _test_checkpoints()
+	_test_dynamic_resolution()
 	_run_tests()
 	print("\n%s (%d failures)" % ["PASSED" if failures == 0 else "FAILED", failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## Each observe() is one second of play: median frame and GPU time in ms.
+func _test_dynamic_resolution() -> void:
+	var dr := DynamicResolution.new()
+	add_child(dr)
+	dr.set_process(false)
+	var last := DynamicResolution.STEPS.size() - 1
+	var feed := func(frame: float, gpu: float, secs: int) -> void:
+		for i in secs:
+			dr.clock += 1.0
+			dr.observe(frame, gpu)
+	feed.call(16.7, 3.0, 10)
+	check(dr.step == 0, "a GPU with headroom keeps full resolution")
+	feed.call(33.3, 6.0, 5)
+	check(dr.step == 0, "missing 60 fps with the GPU under budget (CPU-bound) keeps full resolution")
+	feed.call(33.3, 22.0, 1)
+	check(dr.step == 1 and is_equal_approx(get_viewport().scaling_3d_scale, DynamicResolution.STEPS[1]),
+		"missing 60 fps with the GPU over budget lowers the resolution a step")
+	feed.call(33.3, 22.0, 10)
+	check(dr.step == last, "sustained misses go down to the floor and stop there")
+	feed.call(16.7, 5.0, 3)
+	check(dr.step == last, "three seconds of headroom isn't enough to step up")
+	feed.call(16.7, 5.0, 1)
+	check(dr.step == last - 1, "four seconds of headroom steps up")
+	feed.call(33.3, 22.0, 1)
+	check(dr.step == last, "a step up that misses again is undone")
+	feed.call(16.7, 5.0, 30)
+	check(dr.step == last, "... and stepping up stays locked for a while")
+	feed.call(16.7, 5.0, 40)
+	check(dr.step < last, "... then unlocks")
+	var carried := dr.step
+	remove_child(dr)
+	check(is_equal_approx(get_viewport().scaling_3d_scale, 1.0), "leaving the street restores full resolution")
+	dr.free()
+	var dr2 := DynamicResolution.new()
+	add_child(dr2)
+	check(dr2.step == carried, "the next street starts at the step the last one ended on")
+	dr2.free()
+	get_viewport().scaling_3d_scale = 1.0
 
 
 # --- runs: one per direction out of the start street ------------------------------------------

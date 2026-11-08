@@ -28,6 +28,7 @@ var _sound: UISound
 var _hints: KeyHints
 var _busy := false
 var _feedback: Button
+var _backdrop: Node3D
 
 
 func _ready() -> void:
@@ -35,9 +36,9 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sound = UISound.new()
 	add_child(_sound)
-	var bd := Backdrop.new()
-	add_child(bd)
-	bd.loop_soon.connect(_dip_to_black)
+	_backdrop = Backdrop.new()
+	add_child(_backdrop)
+	_backdrop.loop_soon.connect(_dip_to_black)
 	_set_painterly(bool(Game.settings.get("painterly", true)))
 
 	_ui = CanvasLayer.new()
@@ -101,6 +102,10 @@ func _ready() -> void:
 
 	UISound.start_menu_music(get_tree())
 	_main_buttons()
+	if GraphicsCheck.should_run():
+		var check := GraphicsCheck.new()
+		check.decided.connect(_on_graphics_checked)
+		add_child(check)
 	for a in OS.get_cmdline_user_args():   # testing: --page=settings|replay|credits opens that page
 		if a.begins_with("--page="):
 			var open := {"settings": _settings, "replay": _replay_list, "credits": _credits}
@@ -187,6 +192,38 @@ func _dip_to_black() -> void:
 	tw.tween_property(_bg_fade, "color:a", 1.0, 1.4)
 	tw.tween_interval(0.9)
 	tw.tween_property(_bg_fade, "color:a", 0.0, 1.6)
+
+
+func _on_graphics_checked(low: bool, _gpu_ms: float) -> void:
+	if not low:
+		return
+	_apply_quality()
+	if _page_name == "settings":
+		_settings()
+	var note := UIStyle.label("Low graphics is on for smoother play on this computer. Change it in Settings.", &"CaptionLabel", 22, UIStyle.CREAM)
+	note.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	note.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	note.offset_left = -60.0
+	note.offset_right = -60.0
+	note.offset_top = 48.0
+	note.add_theme_constant_override("outline_size", 8)
+	note.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.75))
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	note.modulate.a = 0.0
+	_root.add_child(note)
+	var tw := note.create_tween()
+	tw.tween_property(note, "modulate:a", 1.0, 0.8)
+	tw.tween_interval(7.0)
+	tw.tween_property(note, "modulate:a", 0.0, 1.2)
+	tw.tween_callback(note.queue_free)
+
+
+## Low graphics changed: rebuild the backdrop's environment and the painterly filter (its radius).
+func _apply_quality() -> void:
+	_backdrop.refresh_quality()
+	if _post != null:
+		_set_painterly(false)
+		_set_painterly(true)
 
 
 func _set_painterly(on: bool) -> void:
@@ -434,7 +471,10 @@ func _settings() -> void:
 	var p := _toggle_row("Painterly filter", "painterly", func(on: bool) -> void: _set_painterly(on))
 	_toggle_row("Fullscreen", "fullscreen", Game.apply_fullscreen)
 	_toggle_row("Touch controls", "touch_controls", Callable())
-	_toggle_row("Low graphics (Steam Deck / laptops)", "low_quality", Callable())
+	_toggle_row("Low graphics (Steam Deck / laptops)", "low_quality", func(_on: bool) -> void:
+		Game.settings["graphics_checked"] = true
+		Game.save_game()
+		_apply_quality())
 	_slider_row("Music", "music")
 	_slider_row("Sound effects", "sfx")
 	var reset := _btn("Reset progress…", _confirm_reset, &"RowButton")
