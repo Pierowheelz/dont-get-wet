@@ -1,5 +1,6 @@
 extends Node
 ## Headless gameplay tests:  godot --headless --path . res://tests/run_tests.tscn
+## Loaded and judged by tests/test_main.gd, which also fails the run on any logged error.
 
 var failures := 0
 var level: Node
@@ -148,8 +149,7 @@ func _run() -> void:
 	await _test_checkpoints()
 	_test_dynamic_resolution()
 	_run_tests()
-	print("\n%s (%d failures)" % ["PASSED" if failures == 0 else "FAILED", failures])
-	get_tree().quit(1 if failures > 0 else 0)
+	get_parent().finish(failures)
 
 
 ## Each observe() is one second of play: median frame and GPU time in ms.
