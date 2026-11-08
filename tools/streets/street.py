@@ -6,7 +6,11 @@ features, props and set pieces off named lots, so moving one lot shifts everythi
     python3 tools/streets/main_street.py      # rewrites levels/main_street.json, prints the plan
 """
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import level_preview
 
 LEVELS = Path(__file__).resolve().parent.parent.parent / "levels"
 
@@ -20,6 +24,7 @@ class Street:
         self.lots, self.crossings, self.features, self.props, self.set_pieces = [], [], [], [], []
         self.figures = []
         self.end_x = None
+        self.checkpoints = None   # set by hand to override the solver
 
     def lot(self, tag, w, style, cover, sign=None, color=None, floors=2, tears=None, awning_style=None,
             neon=False):
@@ -79,8 +84,9 @@ class Street:
         if self.figures:
             rest["figures"] = self.figures
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},
-                 "length": self.x, "end_x": self.end_x,
+                 "length": self.x, "end_x": self.end_x, "checkpoints": [],
                  **{k: level[k] for k in ["rain", "wind", "gusts"]}, **rest}
+        level["checkpoints"] = self.checkpoints or level_preview.solve_checkpoints(level_preview.Street(level))
         path = LEVELS / f"{level['id']}.json"
         path.write_text(_dump(level))
         tags = list(self.at.items())

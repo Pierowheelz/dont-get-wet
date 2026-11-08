@@ -126,6 +126,99 @@ class Street:
 
 
 # ---------------------------------------------------------------------------------------------
+# checkpoints: where a failed player can resume. Shared by tools/streets/street.py (which writes
+# them into the level JSON) and the checkpoints-safe design check.
+
+CHECKPOINT_TARGETS = (0.25, 0.5, 0.75)   # fractions of end_x
+CHECKPOINT_TOL = 0.10                    # a checkpoint may sit this fraction of end_x from its target
+CLEAR_M = 4.0                            # dry metres required ahead of a checkpoint
+PREFER_CLEAR_M = 5.0                     # ... and the pick favours this much
+PREFER_PENALTY_M = 2.0                   # how much farther from the target a < PREFER_CLEAR_M candidate counts
+ENTRY_M = 0.5                            # checkpoint sits this far into a safe run, so the whole body is sheltered
+SLANT_H = 3.1                            # awning height the wind slants rain across
+WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind
+GUST_MAX = 1.4                           # Level.wind: gusts scale wind by up to 1 + 0.4
+BODY_HALF_M = 0.3
+GUTTER_HALF_M = 0.6
+CAR_THREAT_M = 10.5                      # headlights start this far before a car crossing
+
+
+def _subtract(runs, zones):
+    for z0, z1 in zones:
+        out = []
+        for a, b in runs:
+            if z1 <= a or z0 >= b:
+                out.append((a, b))
+                continue
+            if z0 > a:
+                out.append((a, z0))
+            if z1 < b:
+                out.append((z1, b))
+        runs = out
+    return runs
+
+
+def safe_runs(st):
+    """[(start, end)] of cover that is dry for a walker: awnings merged where lots touch, shrunk at each
+    end by the wind slant plus half a body, with gutters, puddles and car-threat zones cut out."""
+    spans = sorted((a, b) for a, b, _ in st.covers)
+    merged = []
+    for a, b in spans:
+        if merged and a <= merged[-1][1] + 1e-6:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b])
+
+    def margin(x):
+        w = abs(st.wind(x)) * (GUST_MAX if st.gusts else 1.0)
+        return SLANT_H * WIND_SLANT * w + BODY_HALF_M
+
+    runs = [(a if a <= 0.0 else a + margin(a), b - margin(b)) for a, b in merged]
+    zones = []
+    for f in st.features:
+        x = float(f["x"])
+        w = float(f.get("w", 1.0))
+        if f["type"] == "gutter":
+            zones.append((x - GUTTER_HALF_M, x + GUTTER_HALF_M))
+        elif f["type"] == "puddle":
+            zones.append((x - w / 2, x + w / 2))
+    for c in st.d.get("crossings", []):
+        if c.get("car"):
+            zones.append((float(c["x"]) - CAR_THREAT_M, float(c["x"]) + float(c["w"])))
+    return [(a, b) for a, b in _subtract(runs, zones) if b > a]
+
+
+def clear_ahead(st, x):
+    """Metres from x to the first hazard (cover edge, gutter, puddle, car threat); 0 when x is not safe."""
+    for a, b in safe_runs(st):
+        if a <= x <= b:
+            return b - x
+    return 0.0
+
+
+def solve_checkpoints(st):
+    """One checkpoint per CHECKPOINT_TARGETS: a safe run's start, nearest the target, ascending."""
+    cands = []
+    for a, b in safe_runs(st):
+        c = round(a + ENTRY_M, 2)
+        if clear_ahead(st, c) >= CLEAR_M:
+            cands.append(c)
+    out = []
+    for f in CHECKPOINT_TARGETS:
+        t = f * st.end_x
+
+        def cost(c):
+            return abs(c - t) + (0.0 if clear_ahead(st, c) >= PREFER_CLEAR_M else PREFER_PENALTY_M)
+
+        pool = [c for c in cands if abs(c - t) <= CHECKPOINT_TOL * st.end_x and (not out or c > out[-1])]
+        if not pool:
+            raise ValueError(f"{st.d['id']}: no safe checkpoint within {CHECKPOINT_TOL:.0%} of end_x around "
+                             f"{t:.1f} m (target {f:.0%}); add {CLEAR_M:.0f} m of dry cover or set s.checkpoints")
+        out.append(min(pool, key=cost))
+    return out
+
+
+# ---------------------------------------------------------------------------------------------
 # report
 
 START_COVER_M = 20.0
@@ -227,6 +320,25 @@ def run_checks(st, tun, rows):
         msg = (f"{detail}. The walker is exhausted {over:.1f} m short and the umbrella droops "
                f"(DESIGN §6 / tunables stamina_*), so shorten the span or put cover inside it")
     checks.append(("span-crossable", ok, msg))
+
+    cps = [float(c) for c in st.d.get("checkpoints", [])]
+    rows_cp = [(c, f * st.end_x, clear_ahead(st, c)) for c, f in zip(cps, CHECKPOINT_TARGETS)]
+    problems = []
+    if len(cps) != len(CHECKPOINT_TARGETS):
+        problems.append(f"{len(cps)} checkpoints, expected {len(CHECKPOINT_TARGETS)}")
+    if cps != sorted(set(cps)):
+        problems.append("checkpoints are not strictly ascending")
+    for i, (c, t, clear) in enumerate(rows_cp, 1):
+        if abs(c - t) > CHECKPOINT_TOL * st.end_x:
+            problems.append(f"#{i} at {c:.1f} m is {abs(c - t):.1f} m from its target {t:.1f} m (tolerance "
+                            f"{CHECKPOINT_TOL * st.end_x:.1f} m)")
+        if clear < CLEAR_M:
+            problems.append(f"#{i} at {c:.1f} m has {clear:.1f} m of dry cover ahead (need {CLEAR_M:.0f} m)")
+    detail = "; ".join(f"#{i} x={c:.2f} target={t:.1f} clear-ahead={clear:.1f} m" for i, (c, t, clear) in enumerate(rows_cp, 1))
+    ok = not problems
+    msg = detail if ok else ("; ".join(problems) + f". A failed player resumes at a checkpoint, so it must sit "
+                             f"under cover with {CLEAR_M:.0f} m of dry stretch ahead: " + detail)
+    checks.append(("checkpoints-safe", ok, msg))
     return checks
 
 
@@ -405,6 +517,10 @@ def render(st, tun, traces, out, title):
             if s1 > x0m and s0 < x1m and s1 - s0 >= 5.0:
                 xa, xb = X(max(s0, x0m)), X(min(s1, x1m))
                 d.text(((xa + xb) / 2, y + 12), f"{s1 - s0:.0f} m open", fill=(40, 70, 120), font=font(11), anchor="mm")
+        for i, c in enumerate(st.d.get("checkpoints", []), 1):
+            if x0m <= c <= x1m:
+                d.line([(X(c), y - 2), (X(c), y + H_COVER)], fill=(20, 140, 70), width=3)
+                d.text((X(c) + 3, y + 7), f"cp{i}", fill=(20, 140, 70), font=font(10, True), anchor="lm")
         y += H_COVER
 
         # crossings
