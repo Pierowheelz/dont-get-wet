@@ -108,6 +108,8 @@ func _ready() -> void:
 	_update_camera(1.0)
 	camera.make_current()
 
+	add_child(DynamicResolution.new())
+
 	var t1 := Time.get_ticks_msec()
 	rain_fx = RainFX.new()
 	rain_fx.level = self
