@@ -27,7 +27,8 @@ var debug_resume_cp := -1          # --resume-checkpoint=N starts the level resu
 var last_result: Dictionary = {}
 var checkpoint: Dictionary = {}     # latest checkpoint of the level being played (Level._take_checkpoint); memory only, never saved
 var resuming := false               # play_level(id, true) asked the next Level to restore `checkpoint`
-var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false, "fullscreen": true}
+var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false, "fullscreen": true,
+		"graphics_checked": false}   # graphics_checked: GraphicsCheck has run, or the player set Low graphics
 
 
 func _ready() -> void:
