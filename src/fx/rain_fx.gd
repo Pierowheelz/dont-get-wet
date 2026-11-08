@@ -50,6 +50,8 @@ func _ready() -> void:
 	for m in [_mat, _near_mat]:
 		m.set_shader_parameter("cover_map", cover[0])
 		m.set_shader_parameter("cover_rect", cover[1])
+		m.set_shader_parameter("player_plane_z", Tun.f("player_z"))
+		m.set_shader_parameter("sky_y", Player.RAIN_SKY_Y)
 
 
 func _make_layer(mat: ShaderMaterial, amount: int, extents: Vector3, length: float, width: float, alpha: float) -> GPUParticles3D:
@@ -170,6 +172,7 @@ func _process(_delta: float) -> void:
 	for m in [_mat, _near_mat]:
 		m.set_shader_parameter("fall_dir", dir)
 		m.set_shader_parameter("intensity", inten)
+		m.set_shader_parameter("cam_pos", camera.global_position)
 	var w: float = level.wind(cx)
 	_debris.amount_ratio = clampf((absf(w) - 0.12) * 1.6, 0.0, 1.0)
 	_debris.emitting = absf(w) > 0.12
