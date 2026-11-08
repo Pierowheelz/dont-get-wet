@@ -5,7 +5,7 @@ config_version=5
 
 config/name="Don't Get Wet"
 config/description="Keep dry in a city where it never stops raining. A game by Peter Wells."
-config/version="0.2.0"
+config/version="0.2.5"
 run/main_scene="res://src/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://assets/icon.svg"
@@ -20,6 +20,7 @@ Game="*res://src/core/game_state.gd"
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/size/mode.template=3
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

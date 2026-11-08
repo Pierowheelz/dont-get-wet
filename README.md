@@ -22,7 +22,7 @@ tilt into the wind, and watch out for passing cars.
     <td><img src="docs/screenshots/canal_row.jpg" alt="Canal Row"></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/mill_road.jpg" alt="Mill Road: an overflowing gutter ahead"></td>
+    <td><img src="docs/screenshots/mill_road.jpg" alt="Mill Road"></td>
     <td><img src="docs/screenshots/main_street.jpg" alt="Main Street"></td>
   </tr>
   <tr>

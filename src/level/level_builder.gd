@@ -976,7 +976,9 @@ func _build_slab(x: float, w: float, y: float, depth: float, columns: bool) -> v
 	var conc := _mat("slab_paint", Color(0.62, 0.58, 0.52), 0.7)
 	conc.uv1_triplanar = true
 	var fascia := _mat("slab_fascia", Color(0.72, 0.68, 0.6), 0.6)
-	_box(Vector3(w, 0.22, depth), Vector3(x + w * 0.5, y, depth * 0.5), conc)
+	# Stop the slab where the fascia begins. Coplanar front faces z-fight as the camera moves.
+	var slab_d := depth - 0.14
+	_box(Vector3(w, 0.22, slab_d), Vector3(x + w * 0.5, y, slab_d * 0.5), conc)
 	_box(Vector3(w, 0.34, 0.14), Vector3(x + w * 0.5, y - 0.02, depth - 0.07), fascia)
 	_box(Vector3(w, 0.06, 0.06), Vector3(x + w * 0.5, y + 0.95, depth - 0.1), _mat("rail", Color(0.12, 0.12, 0.12), 0.5, 0.7))
 	var px := x + 0.15

@@ -20,9 +20,11 @@ var debug_lazy := false             # --lazy: autopilot never opens the umbrella
 var trace_path := ""                # --trace=PATH: autopilot writes a JSON-lines run trace
 var debug_human := false            # --human: autopilot with reaction delay & sloppier timing
 var debug_auto_continue := false    # --auto-continue: result screen presses Continue (testing)
+var debug_confirm_upgrade := &""    # --confirm-upgrade=light opens the map with that buy prompt up (testing)
+var debug_tilt := NAN              # --tilt=-1..1 holds the umbrella open at that tilt (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
 var last_result: Dictionary = {}
-var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false}
+var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false, "fullscreen": true}
 
 
 func _ready() -> void:
@@ -44,6 +46,10 @@ func _ready() -> void:
 			debug_start_x = float(a.substr(10))
 		if a.begins_with("--save="):
 			save_path = a.substr(7)
+		if a.begins_with("--confirm-upgrade="):
+			debug_confirm_upgrade = StringName(a.substr(18))
+		if a.begins_with("--tilt="):
+			debug_tilt = float(a.substr(7))
 		if a.begins_with("--wet="):
 			debug_start_wet = float(a.substr(6))
 		if a.begins_with("--shots="):
@@ -52,12 +58,31 @@ func _ready() -> void:
 		if a.begins_with("--shot-dir="):
 			_shot_dir = a.substr(11)
 	load_game()   # after args: the autopilot must never read or write the player's save
+	# Exported builds follow the setting; editor runs (screenshots, bots) stay windowed.
+	if OS.has_feature("template"):
+		apply_fullscreen(bool(settings["fullscreen"]))
 	for a in args:
 		if a.begins_with("--upgrades="):   # testing: set every upgrade tier
 			for k in Run.UPGRADES:
 				run.upgrades[k] = clampi(int(a.substr(11)), 0, 3)
 	if current_level != "":
 		get_tree().process_frame.connect(_jump_to_level, CONNECT_ONE_SHOT)
+
+
+func apply_fullscreen(on: bool) -> void:
+	if on:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		# KDE keeps its panel above a fullscreen window that isn't focused (e.g. after focus-stealing
+		# prevention on launch).
+		DisplayServer.window_move_to_foreground()
+		return
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	# Leaving fullscreen, the window manager keeps it screen-sized (KDE reports it maximized), so
+	# give it a real window.
+	var screen := DisplayServer.screen_get_usable_rect()
+	var size := Vector2i(Vector2(screen.size) * 0.75)
+	DisplayServer.window_set_size(size)
+	DisplayServer.window_set_position(screen.position + (screen.size - size) / 2)
 
 
 ## `--level=ID` launches straight into a level (exported builds can't override the main scene).
@@ -250,16 +275,21 @@ func buy_upgrade(u: StringName) -> bool:
 	return true
 
 
-func umbrella_drain_mult() -> float:
-	return float(Tun.arr("upgrade_sturdy_drain_mult")[upgrade_level(&"sturdy")])
+## Each takes an upgrade level (default: the current one) so the shop can preview the next tier.
+func umbrella_drain_mult(level := -1) -> float:
+	return float(Tun.arr("upgrade_sturdy_drain_mult")[_lvl(&"sturdy", level)])
 
 
-func umbrella_radius() -> float:
-	return Tun.f("umbrella_radius") + float(Tun.arr("upgrade_wide_radius_add")[upgrade_level(&"wide")])
+func umbrella_radius(level := -1) -> float:
+	return Tun.f("umbrella_radius") + float(Tun.arr("upgrade_wide_radius_add")[_lvl(&"wide", level)])
 
 
-func umbrella_open_time() -> float:
-	return Tun.f("umbrella_open_time") * float(Tun.arr("upgrade_light_time_mult")[upgrade_level(&"light")])
+func umbrella_open_time(level := -1) -> float:
+	return Tun.f("umbrella_open_time") * float(Tun.arr("upgrade_light_time_mult")[_lvl(&"light", level)])
+
+
+func _lvl(u: StringName, level: int) -> int:
+	return upgrade_level(u) if level < 0 else level
 
 
 # --- scoring ------------------------------------------------------------------

@@ -141,6 +141,9 @@ func _physics_process(delta: float) -> void:
 		tl = Inputs.tilt()
 		stop_req = Inputs.stop_held()
 
+	if not is_nan(Game.debug_tilt):
+		u = 1.0; tl = Game.debug_tilt
+
 	var smax := Tun.f("stamina_max")
 	# --- umbrella open/close: same speed both ways, reverses from wherever it is ---------------
 	var open_rate := 1.0 / maxf(Game.umbrella_open_time(), 0.05)

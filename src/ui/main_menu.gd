@@ -7,6 +7,13 @@ const PostFX := preload("res://src/fx/post_fx.gd")
 const LEFT := 132.0
 const COL_W := 560.0
 const MAIN_Y := 490.0
+const TITLE_Y := 150.0
+const SUB_Y := 380.0
+const SUB_TITLE_SCALE := 0.6
+const TITLE_GAP := 24.0
+const HINTS_BOTTOM := 84.0   # hints sit this far above the bottom edge
+const HINTS_H := 44.0
+const FOOTER_GAP := 24.0
 
 var _ui: CanvasLayer
 var _root: Control
@@ -15,7 +22,7 @@ var _page_name := ""
 var _title_box: VBoxContainer
 var _fade: ColorRect
 var _bg_fade: ColorRect
-var _dialog: Control
+var _dialog: ConfirmDialog
 var _post: CanvasLayer
 var _sound: UISound
 var _hints: KeyHints
@@ -94,6 +101,11 @@ func _ready() -> void:
 
 	UISound.start_menu_music(get_tree())
 	_main_buttons()
+	for a in OS.get_cmdline_user_args():   # testing: --page=settings|replay|credits opens that page
+		if a.begins_with("--page="):
+			var open := {"settings": _settings, "replay": _replay_list, "credits": _credits}
+			if open.has(a.substr(7)):
+				open[a.substr(7)].call()
 
 
 # --- layout -----------------------------------------------------------------------------------
@@ -189,15 +201,8 @@ func _set_painterly(on: bool) -> void:
 # --- pages ------------------------------------------------------------------------------------
 
 func _clear(page_name: String) -> void:
-	var was_main := _page_name == "main" or _page_name == ""
 	_page_name = page_name
-	var compact := page_name != "main"
-	if compact == was_main:
-		# Sub-pages shrink the title out of the way so long lists fit on screen.
-		var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_title_box, "scale", Vector2.ONE * (0.6 if compact else 1.0), 0.35)
-		tw.tween_property(_page, "position:y", 380.0 if compact else MAIN_Y, 0.35)
-	_feedback.visible = not compact
+	_feedback.visible = page_name == "main"
 	_sound.hush()
 	for c in _page.get_children():
 		_page.remove_child(c)
@@ -224,7 +229,26 @@ func _btn(text: String, cb: Callable, variation: StringName = &"", sound: String
 	return b
 
 
+## Places the page from its measured height. The main page sits at MAIN_Y under the full title. A
+## sub-page goes as low as it can under a shrunken title while keeping clear of the key hints; if it is
+## still too tall the title shrinks further.
+func _fit_page() -> void:
+	var title_h := _title_box.get_combined_minimum_size().y
+	var y := MAIN_Y
+	var title_scale := 1.0
+	if _page_name != "main":
+		var limit := _root.size.y - HINTS_BOTTOM - HINTS_H - FOOTER_GAP
+		y = minf(SUB_Y, limit - _page.get_combined_minimum_size().y)
+		title_scale = clampf((y - TITLE_GAP - TITLE_Y) / title_h, 0.0, SUB_TITLE_SCALE)
+	var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_title_box, "scale", Vector2.ONE * title_scale, 0.35)
+	tw.tween_property(_page, "position:y", y, 0.35)
+	# The tagline is unreadable once the title shrinks this far.
+	tw.tween_property(_title_box.get_child(1), "modulate:a", 1.0 if title_scale > 0.45 else 0.0, 0.35)
+
+
 func _animate_page() -> void:
+	_fit_page()
 	var i := 0
 	for c in _page.get_children():
 		if c is Control:
@@ -408,6 +432,7 @@ func _settings() -> void:
 	_clear("settings")
 	_page.add_child(UIStyle.label("SETTINGS", &"HeaderSmall", 0, UIStyle.AMBER))
 	var p := _toggle_row("Painterly filter", "painterly", func(on: bool) -> void: _set_painterly(on))
+	_toggle_row("Fullscreen", "fullscreen", Game.apply_fullscreen)
 	_toggle_row("Touch controls", "touch_controls", Callable())
 	_toggle_row("Low graphics (Steam Deck / laptops)", "low_quality", Callable())
 	_slider_row("Music", "music")
@@ -498,8 +523,13 @@ func _slider_row(text: String, key: String) -> HSlider:
 
 # --- confirmations ----------------------------------------------------------------------------
 
+func _open_dialog(title: String, text: String, ok_text: String, on_ok: Callable) -> void:
+	_dialog = ConfirmDialog.open(_root, title, text, ok_text, on_ok)
+	_dialog.closed.connect(func() -> void: _dialog = null)
+
+
 func _confirm_reset() -> void:
-	_confirm("RESET PROGRESS?", "Every run, best score, token and umbrella upgrade will be lost, and he'll start again on Main Street. Settings are kept.",
+	_open_dialog("RESET PROGRESS?", "Every run, best score, token and umbrella upgrade will be lost, and he'll start again on Main Street. Settings are kept.",
 		"Reset", func() -> void:
 			Game.reset_progress()
 			_main_buttons())
@@ -510,85 +540,14 @@ func _confirm_new_run(side: String) -> void:
 	var text := "This run's best scores, tokens and umbrella upgrades will be lost, and he'll start again on Main Street."
 	if Game.runs.size() > 1:
 		text += " Your other run is kept."
-	_confirm(title, text, "New run", _start_run.bind(side))
-
-
-func _confirm(title: String, text: String, ok_text: String, on_ok: Callable) -> void:
-	var prev := get_viewport().gui_get_focus_owner()
-	_dialog = ColorRect.new()
-	(_dialog as ColorRect).color = Color(0, 0, 0, 0.0)
-	_dialog.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dialog.mouse_filter = Control.MOUSE_FILTER_STOP
-	_root.add_child(_dialog)
-	create_tween().tween_property(_dialog, "color:a", 0.7, 0.25)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dialog.add_child(center)
-	var card := PanelContainer.new()
-	card.theme_type_variation = &"CardPanel"
-	card.custom_minimum_size = Vector2(700, 0)
-	center.add_child(card)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 16)
-	card.add_child(v)
-	var hdr := UIStyle.label(title, &"HeaderLabel", 0, UIStyle.DANGER)
-	v.add_child(hdr)
-	var body := UIStyle.label(text, &"BodyLabel")
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size = Vector2(640, 0)
-	v.add_child(body)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	row.alignment = BoxContainer.ALIGNMENT_END
-	v.add_child(row)
-	var close := func() -> void:
-		_dialog.queue_free()
-		_dialog = null
-		if is_instance_valid(prev):
-			prev.grab_focus()
-	var cancel := Button.new()
-	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(220, 64)
-	cancel.pressed.connect(func() -> void:
-		_sound.play(&"ui_back")
-		close.call())
-	row.add_child(cancel)
-	var ok := Button.new()
-	ok.text = ok_text
-	ok.custom_minimum_size = Vector2(220, 64)
-	ok.add_theme_color_override("font_color", UIStyle.DANGER)
-	ok.add_theme_color_override("font_focus_color", UIStyle.DANGER)
-	ok.add_theme_color_override("font_hover_color", UIStyle.DANGER)
-	ok.pressed.connect(func() -> void:
-		_sound.play(&"ui_confirm")
-		_dialog.queue_free()
-		_dialog = null
-		on_ok.call())
-	row.add_child(ok)
-	# Trap focus inside the dialog.
-	for b: Button in [cancel, ok]:
-		var other: Button = ok if b == cancel else cancel
-		b.focus_neighbor_top = b.get_path()
-		b.focus_neighbor_bottom = b.get_path()
-		b.focus_neighbor_left = other.get_path()
-		b.focus_neighbor_right = other.get_path()
-		b.focus_next = other.get_path()
-		b.focus_previous = other.get_path()
-		b.mouse_entered.connect(b.grab_focus)
-	_dialog.set_meta(&"close", close)
-	cancel.grab_focus.call_deferred()
-	card.modulate.a = 0.0
-	create_tween().tween_property(card, "modulate:a", 1.0, 0.2)
+	_open_dialog(title, text, "New run", _start_run.bind(side))
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed(&"ui_cancel") and not event.is_action_pressed(&"pause"):
 		return
 	get_viewport().set_input_as_handled()
-	if _dialog != null:
-		_sound.play(&"ui_back")
-		(_dialog.get_meta(&"close") as Callable).call()
-	elif _page_name != "main":
+	if _page_name != "main":
 		_sound.play(&"ui_back")
 		if _page_name == "settings":
 			Game.save_game()
