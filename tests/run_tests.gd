@@ -57,6 +57,55 @@ func _test_feedback_url() -> void:
 		"feedback link opens the form with the version filled in")
 
 
+func _test_checkpoints() -> void:
+	var cps: Array = level.checkpoints
+	check(cps.size() == 3 and cps[0] < cps[1] and cps[1] < cps[2], "main_street has three ascending checkpoints: %s" % [cps])
+	var p: Player = level.player
+	Game.checkpoint = {}
+	p.wet = 12.5
+	p.stamina = 61.0
+	level.elapsed = 33.0
+	p.stats["puddles"] = 3
+	var x1: float = cps[0]
+	p.position = Vector3(x1 + 0.2, level.ground_y(x1), Tun.f("player_z"))
+	level._check_checkpoints()
+	var cp: Dictionary = Game.checkpoint
+	check(cp.get("id", "") == "main_street" and cp.get("index", -1) == 0 and is_equal_approx(cp.get("x", 0.0), x1),
+		"walking past checkpoint 1 stores it on Game: %s" % [cp.get("x")])
+	check(is_equal_approx(cp.get("wet", -1.0), 12.5) and is_equal_approx(cp.get("stamina", -1.0), 61.0)
+		and is_equal_approx(cp.get("elapsed", -1.0), 33.0), "the snapshot holds the wetness, stamina and time of that moment")
+	p.wet = 40.0
+	p.stamina = 5.0
+	p.position.x = cps[1] - 1.0
+	level._check_checkpoints()
+	check(Game.checkpoint.get("index", -1) == 0 and is_equal_approx(Game.checkpoint.get("wet", -1.0), 12.5),
+		"later wetness doesn't overwrite a checkpoint not yet reached")
+	p.position.x = cps[1] + 0.2
+	level._check_checkpoints()
+	check(Game.checkpoint.get("index", -1) == 1 and is_equal_approx(Game.checkpoint.get("wet", -1.0), 40.0),
+		"reaching checkpoint 2 replaces the snapshot")
+
+	var x2: float = cps[1]   # a puddle lies before it, so a resume must not "step" from the start into it
+	Game.checkpoint = {"id": "main_street", "index": 1, "x": x2, "wet": 12.5, "stamina": 61.0, "exhausted": false,
+		"elapsed": 33.0, "stats": p.stats.duplicate(), "seen": {"gutter": true}, "car_hints": 1}
+	Game.resuming = true
+	level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	p = level.player
+	check(is_equal_approx(p.position.x, x2) and level.resumed, "a resumed level puts the walker on the checkpoint (x=%.2f)" % p.position.x)
+	check(is_equal_approx(p.wet, 12.5) and is_equal_approx(p.stamina, 61.0), "... with the wetness and stamina he had")
+	check(is_equal_approx(level.elapsed, 33.0) and level._seen.has("gutter") and level._car_hints == 1 and p.stats["puddles"] == 3,
+		"... and the clock, hint memory and stats")
+	check(absf(level._cam_x - (p.position.x + Tun.f("camera_lead"))) < 0.5, "... with the camera already there (no pan)")
+	check(level._next_cp == 2, "... and the next checkpoint is the third one")
+	await _frames(10)
+	check(is_equal_approx(p.wet, 12.5) and p.stats["puddles"] == 3, "the first steps after a resume stay dry (wet %.2f, puddles %d)" % [p.wet, p.stats["puddles"]])
+	check(not Game.resuming, "the resume request is spent")
+	Game.checkpoint = {}
+
+
 func _run() -> void:
 	Game.current_level = "main_street"
 	Game.autopilot = true
@@ -96,6 +145,7 @@ func _run() -> void:
 	print("umbrella center ", p.umbrella.canopy_center(), " player ", p.global_position, " radius ", p.umbrella.current_radius())
 	_test_sun_drying()
 	_test_feedback_url()
+	await _test_checkpoints()
 	_run_tests()
 	print("\n%s (%d failures)" % ["PASSED" if failures == 0 else "FAILED", failures])
 	get_tree().quit(1 if failures > 0 else 0)

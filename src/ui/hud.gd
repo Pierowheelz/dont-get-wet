@@ -139,7 +139,7 @@ func _ready() -> void:
 		_root.add_child(_touch)
 
 	Inputs.device_changed.connect(_on_device_changed)
-	if level.level_id == Game.start_node and not Game.run.completed.has(level.level_id):
+	if level.level_id == Game.start_node and not Game.run.completed.has(level.level_id) and not level.resumed:
 		_show_tutorial()
 
 
@@ -312,7 +312,8 @@ func _draw_progress(ci: Control) -> void:
 	var px := lerpf(x0, x1, prog)
 	ci.draw_line(Vector2(x0, y), Vector2(px, y), Color(C_TEXT, 0.75), 4.0, true)
 	for i in range(1, 4):
-		var tx := lerpf(x0, x1, i / 4.0)
+		var cp: float = float(level.checkpoints[i - 1]) / level.end_x if level.checkpoints.size() >= 3 else i / 4.0
+		var tx := lerpf(x0, x1, cp)
 		ci.draw_line(Vector2(tx, y - 5), Vector2(tx, y + 5), Color(1, 1, 1, 0.22 if tx > px else 0.5), 2.0)
 	# The inn at the end of the street, its window lit.
 	UIStyle.draw_inn(ci, Vector2(x1 + 22, y + 9), 34.0, Color(C_TEXT, 0.85), Color(UIStyle.AMBER, 0.75 + 0.25 * sin(_t * 2.0)))
@@ -358,11 +359,14 @@ func _toggle_pause() -> void:
 func show_fail() -> void:
 	var line: String = FAIL_LINES[randi() % FAIL_LINES.size()]
 	var stats := "Made it %d%% of the way, in %s." % [int(level.progress() * 100.0), UIStyle.fmt_time(level.elapsed)]
-	_overlay = _panel("YOU GOT WET", line, stats, [
+	var buttons := [
 		["Restart", func() -> void: Game.play_level(level.level_id)],
 		["City map", Game.goto_map],
 		["Main menu", Game.goto_menu],
-	], false, true)
+	]
+	if Game.checkpoint.get("id", "") == level.level_id:
+		buttons.push_front(["Checkpoint", func() -> void: Game.play_level(level.level_id, true)])
+	_overlay = _panel("YOU GOT WET", line, stats, buttons, false, true)
 
 
 func _panel(title: String, kicker: String, body: String, buttons: Array, vertical: bool, fail := false) -> Control:
