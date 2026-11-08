@@ -29,15 +29,19 @@ func _ready() -> void:
 		if a.begins_with("--perf-ab="):
 			ab_dir = a.substr(10)
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	Engine.max_fps = 0
+	if not OS.get_cmdline_user_args().has("--perf-vsync"):
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+		Engine.max_fps = 0
 	OS.low_processor_usage_mode = false
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 
 
+## The scene to measure: a level once its player exists, or the title screen when no --level is given.
 func _level() -> Node:
 	var cs := get_tree().current_scene
-	return cs if cs is Level and cs.player != null else null
+	if cs is Level:
+		return cs if cs.player != null else null
+	return cs if cs != null and Game.current_level == "" else null
 
 
 func _process(delta: float) -> void:
@@ -158,7 +162,7 @@ func _write(lvl: Node) -> void:
 		if p.visible:
 			particles += p.amount
 	var res := {
-		"level": Game.current_level, "off": off, "frames": _frames.size(),
+		"level": Game.current_level if Game.current_level != "" else "menu", "off": off, "frames": _frames.size(),
 		"size": get_viewport().get_visible_rect().size,
 		"adapter": RenderingServer.get_video_adapter_name(),
 		"frame_ms": _stats(0), "cpu_ms": _stats(1), "gpu_ms": _stats(2),
