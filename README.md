@@ -46,6 +46,10 @@ then double-click it. On Steam Deck, do this in Desktop Mode; you can also add i
 
 A gamepad is recommended, but keyboard and mouse work too.
 
+On first launch the game times your graphics card on the title screen, and turns on **Low graphics**
+if it would struggle. You can switch it back in **Settings**. If a street still runs below 60 fps, the
+game draws it at a lower resolution until it catches up.
+
 ## How to play
 
 - **Rain soaks you wherever the sky is open.** Fill the wetness meter and it's game over.
@@ -118,7 +122,8 @@ umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`
 (read and write this save file instead of the player's own), `--auto-continue` (the score screen
 presses Continue), `--trace=PATH` (autopilot writes a JSON-lines run trace), `--resume-checkpoint=N` (start the
 street resumed from its checkpoint N), `--profile=OUT.json [--perf-off=a,b] [--perf-secs=N] [--perf-ab=DIR]`
-(frame-time probe, `src/core/perf_probe.gd`).
+(frame-time probe, `src/core/perf_probe.gd`; with no `--level` it times the title screen), `--fake-gpu-ms=N`
+(the first-launch graphics check uses N instead of its measurement; pair with a fresh `--save=`).
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 

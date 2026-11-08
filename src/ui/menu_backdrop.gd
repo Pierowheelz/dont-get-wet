@@ -19,6 +19,7 @@ var _adapter: RainAdapter
 var _t := 0.0
 var _x := LOOP_START + 6.0
 var _loop_warned := false
+var _env_nodes: Array[Node] = []
 
 
 class RainAdapter extends Node:
@@ -184,6 +185,16 @@ func _environment() -> void:
 	moon.directional_shadow_max_distance = 40.0
 	moon.light_volumetric_fog_energy = 0.3
 	add_child(moon)
+	if Game.settings["low_quality"]:
+		GraphicsCheck.apply_low(env, moon)
+	_env_nodes = [we, moon]
+
+
+## Rebuilds the environment after the Low graphics setting changes.
+func refresh_quality() -> void:
+	for n in _env_nodes:
+		n.free()
+	_environment()
 
 
 func _shop_lights(world: Node3D, lit: Array) -> void:
