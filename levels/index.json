@@ -77,7 +77,7 @@
     "canal_row"
    ],
    "blurb": "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through. Out here you'd see anyone coming.",
-   "difficulty": 4,
+   "difficulty": 3,
    "file": "res://levels/mill_road.json",
    "outro": "He signs the register with a name that isn't his."
   },
@@ -124,7 +124,7 @@
     "neon_junction"
    ],
    "blurb": "The first neon signs creep in. Watch the side streets: drivers here don't slow for puddles.",
-   "difficulty": 3,
+   "difficulty": 2,
    "file": "res://levels/arcade_lane.json"
   },
   {
@@ -139,7 +139,7 @@
     "telstar_parade"
    ],
    "blurb": "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns in your face.",
-   "difficulty": 5,
+   "difficulty": 4,
    "file": "res://levels/neon_junction.json",
    "outro": "The night porter says a man was asking for you. He didn't leave a name."
   },

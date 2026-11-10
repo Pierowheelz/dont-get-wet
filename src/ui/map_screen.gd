@@ -363,15 +363,15 @@ func _show_card(id: String) -> void:
 	right.add_theme_constant_override("separation", 10)
 	right.custom_minimum_size = Vector2(290, 0)
 	row.add_child(right)
-	var diff := int(n.get("difficulty", 1))
+	var diff := int(n.get("difficulty", 1))   # out of 10, shown as five drops in half steps
 	var dr := HBoxContainer.new()
 	dr.add_theme_constant_override("separation", 12)
 	dr.add_child(UIStyle.label("DIFFICULTY", &"CaptionLabel", 18))
 	var drops := func(ci: Control) -> void:
 		for i in 5:
-			var on := i < diff
+			var amt := clampf(diff - i * 2, 0.0, 2.0) / 2.0   # 0, 0.5 or 1 of this drop
 			UIStyle.draw_drop(ci, Vector2(10.0 + i * 20.0, 13.0), 21.0,
-				Color(UIStyle.RAIN, 0.95 if on else 0.3), UIStyle.RAIN_DEEP.lerp(UIStyle.RAIN, 0.45), 1.0 if on else 0.0)
+				Color(UIStyle.RAIN, 0.95 if amt > 0.0 else 0.3), UIStyle.RAIN_DEEP.lerp(UIStyle.RAIN, 0.45), 1.0, amt)
 	dr.add_child(DrawBox.new(drops, Vector2(104, 26)))
 	right.add_child(dr)
 	if best.is_empty():

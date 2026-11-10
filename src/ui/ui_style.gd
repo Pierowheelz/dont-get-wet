@@ -75,12 +75,14 @@ static func draw_umbrella(ci: CanvasItem, c: Vector2, w: float, col: Color, open
 
 
 ## Draws a water drop centred at `c` with height `h`, filled to `fill` (0..1) with `fill_col`.
-static func draw_drop(ci: CanvasItem, c: Vector2, h: float, outline: Color, fill_col: Color, fill := 1.0) -> void:
+## `fill` fills from the bottom up; `across` fills from the left (0.5 = a half drop).
+static func draw_drop(ci: CanvasItem, c: Vector2, h: float, outline: Color, fill_col: Color, fill := 1.0, across := 1.0) -> void:
 	var pts := drop_points(c, h)
 	ci.draw_colored_polygon(pts, Color(0, 0, 0, 0.35))
-	if fill > 0.01:
+	if fill > 0.01 and across > 0.01:
 		var cut := c.y + h * 0.5 - h * clampf(fill, 0.0, 1.0)
-		var below := PackedVector2Array([Vector2(c.x - h, cut), Vector2(c.x + h, cut), Vector2(c.x + h, c.y + h), Vector2(c.x - h, c.y + h)])
+		var right := c.x + h * 0.32 * (2.0 * clampf(across, 0.0, 1.0) - 1.0)
+		var below := PackedVector2Array([Vector2(c.x - h, cut), Vector2(right, cut), Vector2(right, c.y + h), Vector2(c.x - h, c.y + h)])
 		for fp in Geometry2D.intersect_polygons(pts, below):
 			# Skip degenerate slivers (triangulation fails on near-zero-area polygons).
 			if fp.size() >= 3 and absf(_area(fp)) > 2.0:
