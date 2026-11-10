@@ -152,5 +152,6 @@
   {"id": "bollard", "x": 321.5},
   {"id": "lamp_post", "x": 330.3},
   {"id": "newspaper_box", "x": 332.2}
- ]
+ ],
+ "par_speed": 1.4
 }

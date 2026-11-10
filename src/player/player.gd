@@ -161,7 +161,7 @@ func _physics_process(delta: float) -> void:
 	var wind := _wind()
 	hurry = h if (not exhausted and stamina > 0.0 and state == State.WALK) else 0.0
 	var drain := 0.0
-	if open > 0.0:
+	if open > 0.0 and state != State.STOPPED:   # holding it up while standing still is free
 		drain += Tun.f("stamina_drain_umbrella") * open * Game.umbrella_drain_mult()
 		drain += Tun.f("stamina_drain_wind") * wind * wind * open * Game.umbrella_drain_mult()
 	if hurry > 0.0:

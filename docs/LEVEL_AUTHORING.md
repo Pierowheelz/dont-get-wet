@@ -30,7 +30,7 @@ automatic mix.
 
 ## What each element does in play
 
-Speeds: walk 1.3 m/s, 1.0 m/s with the umbrella open, hurry 2.0, run 3.2. The umbrella takes 1.3 s to
+Speeds: walk 1.3 m/s, 1.2 m/s with the umbrella open, hurry 2.0, run 3.2. The umbrella takes 1.3 s to
 open or close, so a player has to start opening about 1.7 m before a gap.
 
 Stamina is 100. The open umbrella drains 3/s, which is about 33 m of open sky on a full bar.
@@ -46,7 +46,7 @@ rescues a near-soaked run; it never pays back the time spent standing in it. On 
 every sun break, vent and fire barrel ends before two thirds of `end_x`, so drying can save a bad
 start but never the finish.
 
-Score is `250 x (1 - wet/50) + 750 x min(1, par/time)`, with par = `end_x / 1.2`. Time dominates:
+Score is `250 x (1 - wet/50) + 750 x min(1, par/time)`, with par = `end_x / 1.3` (`Street(..., par_speed=)` overrides it for one street; Arcade Lane uses 1.4 because the bots take no rain there and read its cars perfectly). Time dominates:
 S needs 950, which a run at par reaches with up to 20% wet.
 
 **Lots** (`x`, `w`, `style`, `cover`, `floors`, optional `sign`, `awning_color`, `awning_style`, `tears`,

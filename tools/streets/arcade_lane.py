@@ -5,7 +5,10 @@ from street import Street
 s = Street("arcade_lane", "Arcade Lane",
            "The first neon signs creep in. Watch the side streets: drivers here don't slow for puddles.",
            aesthetic="rundown_neon", neon=0.35, rain=[[0.0, 0.8], [0.5, 1.05], [1.0, 1.1]],
-           wind=[[0.0, 0.0], [0.5, 0.1], [1.0, 0.1]])
+           wind=[[0.0, 0.0], [0.5, 0.1], [1.0, 0.1]],
+           # The bots read its cars perfectly and take no rain here, so a tighter par stands in
+           # for the traffic a player has to judge.
+           par_speed=1.4)
 
 # 1. The Penny Arcade: a lit colonnade of games, continuous cover
 s.lot("soda", 5, "shop_lit", "awning", sign="SODA", color="red", awning_style="classic", floors=2)

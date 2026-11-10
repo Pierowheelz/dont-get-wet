@@ -16,9 +16,10 @@ LEVELS = Path(__file__).resolve().parent.parent.parent / "levels"
 
 
 class Street:
-    def __init__(self, id, name, blurb, aesthetic, neon, rain, wind, gusts=False):
+    def __init__(self, id, name, blurb, aesthetic, neon, rain, wind, gusts=False, par_speed=None):
         self.head = {"authored": True, "id": id, "name": name, "blurb": blurb, "aesthetic": aesthetic,
                      "neon": neon, "rain": rain, "wind": wind, "gusts": gusts}
+        self.par_speed = par_speed   # None: the global tunable
         self.x = 0.0
         self.at = {}
         self.lots, self.crossings, self.features, self.props, self.set_pieces = [], [], [], [], []
@@ -86,6 +87,8 @@ class Street:
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},
                  "length": self.x, "end_x": self.end_x, "checkpoints": [],
                  **{k: level[k] for k in ["rain", "wind", "gusts"]}, **rest}
+        if self.par_speed is not None:
+            level["par_speed"] = self.par_speed
         level["checkpoints"] = self.checkpoints or level_preview.solve_checkpoints(level_preview.Street(level))
         path = LEVELS / f"{level['id']}.json"
         path.write_text(_dump(level))

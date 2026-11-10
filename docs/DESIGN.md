@@ -58,7 +58,8 @@ Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger
 
 ### Stamina (0–100)
 
-- Drains while the umbrella is open (× open fraction; × wind load), and while hurrying.
+- Drains while walking with the umbrella open (× open fraction; × wind load), and while hurrying.
+  Standing still (Stop) with it open costs nothing.
 - Regenerates whenever the umbrella is fully closed — even in the rain.
 - **Stop** (LB, hold) stands him still for as long as it is held and he walks on when it is released.
   It works at any stamina, beats hurry, and the umbrella may stay open (for waiting under a gutter
@@ -150,7 +151,7 @@ moving toward the country thins out buildings.
   "Continue →" (or "← Start" / "Start →" for a direction with no run yet), and each run can be
   restarted on its own.
 - **Score** (0–1000): `dryness_score = 250 × (1 − wetness/100)`, `time_score = 750 × clamp(par / time)`
-  where par = length / 1.2 m/s. Time matters three times as much as dryness. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
+  where par = length / 1.3 m/s (a street may set a stricter `par_speed`). Time matters three times as much as dryness. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
 - **Tokens** = `floor(score × 0.0065)` (≈ S 6, A 5–6, B 5, C 4), paid only for improving on your best
   score for that street (so replays can earn more, never farm).
 - Best scores shown on the map and in the main menu's level replay list (the active run's streets).
