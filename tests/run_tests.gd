@@ -161,10 +161,17 @@ func _walk(lv: Level, secs: float, walk_speed: float) -> float:
 	return closest
 
 
+## His back is in shot, but a metre behind him isn't.
+func _hugs_left_edge(lv: Level, fol: Node3D) -> bool:
+	var back := lv.camera.unproject_position(fol.global_position + Vector3(-0.3, 1.0, 0)).x
+	var behind := lv.camera.unproject_position(fol.global_position + Vector3(-1.0, 1.0, 0)).x
+	return back > 0.0 and behind < 0.0
+
+
 func _test_follower() -> void:
 	var window_was := get_window().size
 	get_window().size = Vector2i(1920, 1080)   # headless defaults to a square window
-	var lv := await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 8.0}], "model": "old_man"},
+	var lv := await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 12.0}], "model": "old_man"},
 		"figures": [{"x": 5.0}, {"x": 9.0, "facing": "away"}]})
 	var p: Player = lv.player
 	var fol: Node3D = lv.get_node("Follower")
@@ -175,9 +182,12 @@ func _test_follower() -> void:
 	p.position.x = 19.0
 	var closest := await _walk(lv, 5.0, 1.3)
 	check(fol.visible, "he walks in once the walker passes the appearance x")
-	var vp := get_viewport().get_visible_rect().size
-	var sx := lv.camera.unproject_position(fol.global_position + Vector3(0, 1.0, 0)).x / vp.x
-	check(sx > 0.03 and sx < 0.2, "he holds just inside the left edge of the frame (%.0f%% across)" % (sx * 100.0))
+	check(_hugs_left_edge(lv, fol), "he holds just inside the left edge of a 16:9 frame (%.1f m behind the walker)" % (p.position.x - fol.position.x))
+	get_window().size = Vector2i(2520, 1080)
+	closest = minf(closest, await _walk(lv, 4.0, 1.3))
+	check(_hugs_left_edge(lv, fol), "... and of a 21:9 frame (%.1f m behind the walker)" % (p.position.x - fol.position.x))
+	get_window().size = Vector2i(1920, 1080)
+	closest = minf(closest, await _walk(lv, 2.0, 1.3))
 	closest = minf(closest, await _walk(lv, 0.35, 0.0))
 	check(fol.get("speed") > 0.5, "when the walker stops, he keeps walking a moment (%.2f m/s)" % fol.get("speed"))
 	closest = minf(closest, await _walk(lv, 1.0, 0.0))
@@ -195,6 +205,26 @@ func _test_follower() -> void:
 	await _walk(lv, 1.0, 1.3)
 	check(not lv.get_node("Follower").visible, "resuming past an appearance doesn't replay it")
 	await _drop_street(lv)
+
+	# Main Street: an open lot at 63.5-68.5, then awnings to 80.5.
+	var wide_was: int = Game.run.upgrades[&"wide"]
+	Game.run.upgrades[&"wide"] = 3
+	lv = await _street_with({"follower": {"appear": [{"x": 64.0, "hold": 30.0}], "model": "old_man"}})
+	p = lv.player
+	fol = lv.get_node("Follower")
+	p.position.x = 63.5
+	await _walk(lv, 6.2, 1.3)
+	var umb: Umbrella = fol.get("_umbrella")
+	var skel := fol.find_child("GeneralSkeleton", true, false) as Skeleton3D
+	var hand := func(bone: String) -> Vector3: return skel.to_global(skel.get_bone_global_pose(skel.find_bone(bone)).origin)
+	check(umb.current_radius() > Tun.f("umbrella_radius") - 0.05 and umb.current_radius() < Game.umbrella_radius() - 0.1,
+		"in the rain (x %.1f) he opens a starter-size umbrella, whatever the walker bought (rim %.2f m)" % [fol.position.x, umb.current_radius()])
+	check(umb.global_position.distance_to(hand.call("LeftHand")) < umb.global_position.distance_to(hand.call("RightHand")),
+		"... held in his left hand")
+	await _walk(lv, 7.0, 1.3)
+	check(umb.current_radius() < 0.2, "under the awnings (x %.1f) he furls it again (rim %.2f m)" % [fol.position.x, umb.current_radius()])
+	await _drop_street(lv)
+	Game.run.upgrades[&"wide"] = wide_was
 	get_window().size = window_was
 
 

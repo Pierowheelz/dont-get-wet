@@ -116,8 +116,9 @@ same moment replaces it, so keep `x` clear of the first gutter and sun break.
 **`follower`** (`{"appear": [{"x", "hold"}], "model"}`; `s.follower(x, hold)` once per appearance) is
 a scripted NPC in a long coat and hat, built from the `peds.json` model named by `model`
 (`old_man`). When the walker passes an `appear` x, he walks in from the left edge of the frame on
-the back lane, holds about 10% of the screen width inside it for `hold` seconds, then slows and
-drops back out of frame. He copies the walker 0.6 s late: he stops when the walker stops (or
+the back lane, holds 0.55 m inside it for `hold` seconds (the same on 16:9 and 21:9), then slows and
+drops back out of frame. He opens a starter-size umbrella (never the walker's upgrades) in his left
+hand when the rain reaches him, and furls it after 2 s under cover. He copies the walker 0.6 s late: he stops when the walker stops (or
 stands, defeated or at the door) and matches his walking or hurrying speed. He never comes within
 3 m. Within 6 m of the walker his footsteps play quietly, panned with his position. Scenery only:
 the bots and the rain model ignore him, and a checkpoint resume skips appearances behind it. Put
