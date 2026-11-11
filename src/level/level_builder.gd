@@ -89,6 +89,7 @@ var _awning_style_at := {}          # lot x -> AWNING_STYLES key, resolved while
 var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
 var _awning_used := {}              # style -> lots given it so far
 var gutters: Array = []             # resolved gutter streams, see _resolve_gutters
+var viaducts: Array[Viaduct] = []   # parsed once here; Level takes them from the builder
 
 
 func build(p_root: Node3D, p_data: Dictionary) -> void:
@@ -99,12 +100,16 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	assert(_check_awning_styles())
 	_load_kits()
 	_resolve_gutters()
+	for v in data.get("viaducts", []):
+		viaducts.append(Viaduct.parse(v))
 	if ResourceLoader.exists("res://assets/fonts/sign.ttf"):
 		sign_font = load("res://assets/fonts/sign.ttf")
 	_build_ground()
 	for lot in data.get("lots", []):
 		_build_lot(lot)
 	kit = _kits.get("60s", {})
+	for v in viaducts:
+		ViaductBuilder.new().build(self, v)
 	for c in data.get("crossings", []):
 		_build_crossing(c)
 	_build_backdrop()
@@ -157,6 +162,8 @@ func cover_map() -> Array:
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, func(_z): return ARCADE_Y)
 			"canopy":
 				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, func(_z): return 3.55)
+	for v in viaducts:
+		_cover_fill(img, x0, v.x0, v.x1, Viaduct.DECK_Z0, Viaduct.DECK_Z1, func(_z): return Viaduct.DECK_TOP)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
 
@@ -1316,6 +1323,8 @@ func _build_prop(p: Dictionary) -> void:
 			_box(Vector3(0.5, 1.1, 0.5), Vector3(x, 0.55, 2.9), _mat("mail", Color(0.12, 0.18, 0.38), 0.5, 0.3))
 		"parking_meter":
 			_box(Vector3(0.1, 1.2, 0.1), Vector3(x, 0.6, 3.2), _mat("pole", Color(0.12, 0.13, 0.12), 0.5, 0.8))
+		"station_stairs":
+			ViaductBuilder.new().station_stairs(self, x)
 
 
 func _lamp_light(x: float) -> void:

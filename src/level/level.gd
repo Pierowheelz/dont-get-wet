@@ -22,6 +22,8 @@ var sun_zones: Array = []      # [x0, x1] rain-free span (the break, widened to 
 var dry_zones: Array = []      # [x0, x1, rate, needs_closed_umbrella]
 var crossings: Array = []      # [x0, x1]
 var cars: Array = []           # CarHazard nodes
+var viaducts: Array[Viaduct] = []
+var phones: Array = []         # {x, keep, line} of every ringing payphone, in prop order
 
 var player: Player
 var camera: Camera3D
@@ -130,6 +132,11 @@ func _ready() -> void:
 			cars.append(car)
 			car.approaching.connect(_on_car_approaching)
 
+	if not viaducts.is_empty():
+		var trains := preload("res://src/level/viaduct_trains.gd").new()
+		trains.level = self
+		add_child(trains)
+
 	var peds := preload("res://src/level/pedestrians.gd").new()
 	peds.level = self
 	add_child(peds)
@@ -173,6 +180,10 @@ func _parse_features() -> void:
 				dry_zones.append([x - w2 * 0.5, x + w2 * 0.5, Tun.f("dry_vent_rate") * 1.2, false])
 	for g in builder.gutters:
 		gutters.append(g["x"])
+	viaducts = builder.viaducts
+	for pr in data.get("props", []):
+		if pr.get("id", "") == "phone_booth" and pr.get("ring", false):
+			phones.append({"x": float(pr["x"]), "keep": bool(pr.get("keep", false)), "line": String(pr.get("line", ""))})
 	_join_sun_to_cover()
 
 
@@ -256,6 +267,42 @@ func car_threat(x: float) -> bool:
 	return false
 
 
+## Whether a train's sheet of water is falling at x at level-clock time t. Callers pass `elapsed`,
+## which a checkpoint restores, so trains stay in sync after a resume.
+func wash_at(x: float, t: float) -> bool:
+	for v in viaducts:
+		if v.wash_at(x, t):
+			return true
+	return false
+
+
+## Seconds until a train's sheet next falls at x (0 while it is falling there, INF off every span).
+func wash_eta(x: float, t: float) -> float:
+	var eta := INF
+	for v in viaducts:
+		eta = minf(eta, v.wash_eta(x, t))
+	return eta
+
+
+func under_viaduct(x: float) -> bool:
+	for v in viaducts:
+		if v.covers(x):
+			return true
+	return false
+
+
+## A payphone rings from PHONE_HEAR before the walker reaches it until he passes it, or, with `keep`,
+## until he answers it (holds stop beside it).
+const PHONE_HEAR := 18.0
+
+
+func phone_ringing(i: int, px: float) -> bool:
+	var ph: Dictionary = phones[i]
+	if _seen.has("phone@%d" % i) or ph["x"] - px > PHONE_HEAR:
+		return false
+	return px <= ph["x"] or ph["keep"]
+
+
 func progress() -> float:
 	return clampf(player.position.x / end_x, 0.0, 1.0) if player else 0.0
 
@@ -270,6 +317,7 @@ func _process(delta: float) -> void:
 	if player:
 		_first_encounters()
 		_street_hints()
+		_viaduct_and_phone_hints(delta)
 		_update_gutter_streams()
 		_check_checkpoints()
 	if Game.autopilot and Game.trace_path != "" and player:
@@ -400,6 +448,32 @@ func _first_encounters() -> void:
 	if not _seen.has("stop") and player.stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") and player.sheltered:
 		_seen["stop"] = true
 		hud.hint("Puffed out? Hold {stop} to stand still under cover and catch your breath.", 3.5)
+
+
+const PHONE_ANSWER_M := 1.5
+const PHONE_ANSWER_S := 0.6
+var _phone_hold := 0.0
+
+
+## The first train's warning while he's under a viaduct, and a phone's `line` once he holds stop
+## beside it while it rings (which answers it).
+func _viaduct_and_phone_hints(delta: float) -> void:
+	if hud == null or not hud.has_method("hint"):
+		return
+	var x := player.position.x
+	if not _seen.has("train") and under_viaduct(x) and player.state == Player.State.WALK \
+			and wash_eta(x, elapsed) <= Viaduct.WARN_S:
+		_seen["train"] = true
+		hud.hint("Train coming. The viaduct sheds water when it passes. Wait it out ({stop}) or hurry ({hurry}).", 4.5)
+	var near := -1
+	for i in phones.size():
+		if phones[i]["line"] != "" and absf(phones[i]["x"] - x) < PHONE_ANSWER_M and phone_ringing(i, x):
+			near = i
+	_phone_hold = _phone_hold + delta if near >= 0 and player.state == Player.State.STOPPED else 0.0
+	if _phone_hold >= PHONE_ANSWER_S:
+		_seen["phone@%d" % near] = true
+		_phone_hold = 0.0
+		hud.hint(phones[near]["line"], 5.0)
 
 
 func _update_camera(delta: float) -> void:

@@ -405,6 +405,50 @@ def phone_ring(seed=2201):
     return lreverb_mono(x, street_ir_mono(0.9), wet=0.3)
 
 
+
+# --------------------------------------------------------------------------- monorail
+
+def train_pass(seed=2301, dur=6.0, tc=2.4):
+    """A monorail crossing the viaduct overhead, nose passing at `tc`: the deck's low rumble
+    builds for two seconds, the motors whine past with a Doppler drop, rubber tyres roar on the
+    concrete beam, the bogies thump over the beam joints, and the sheet of water shaken off the
+    deck crashes down onto the pavement as the nose goes over. The game starts it so `tc` lands
+    as the train meets the walker."""
+    r = rng(seed)
+    n = nsamp(dur)
+    t = tax(n)
+    v, d = 12.0, 4.0
+    xp = v * (t - tc)
+    rr = np.sqrt(d * d + xp * xp)
+    near = d / rr
+    build = np.clip(t / tc, 0.0, 1.0) ** 2.2
+    after = np.exp(-np.maximum(t - tc - 0.8, 0.0) / 0.9)
+    env = np.where(t < tc, build, after) * (0.35 + 0.65 * near)
+    rumble = lp(r.standard_normal(n), 90, 2)
+    rumble = resonator(rumble, 46.0, 0.25) + 0.6 * resonator(rumble, 71.0, 0.2) + 0.5 * rumble
+    roar = tv_lowpass(bp(r.standard_normal(n), 150, 6000, 2), 600 + 5000 * near ** 1.6)
+    vr = v * xp / rr
+    dop = 343.0 / (343.0 + vr)
+    ph = 2 * np.pi * np.cumsum(410.0 * dop) / SR
+    whine = sum(np.sin(h * ph + r.uniform(0, 6.28)) / h ** 1.2 for h in (1, 2, 3, 5))
+    whine *= near ** 2.0
+    out = pk(rumble) * env + 0.45 * pk(roar) * env * near + 0.12 * pk(whine)
+    thump = lp(r.standard_normal(nsamp(0.12)), 140, 2) * env_ad(nsamp(0.12), 0.004, 0.05)
+    for k in range(-3, 6):
+        for dt in (0.0, 0.13):
+            tm = tc + k * 0.85 + dt
+            if 0 < tm < dur - 0.2:
+                g = (np.clip(tm / tc, 0, 1) ** 2 if tm < tc else np.exp(-(tm - tc) / 1.2)) * 0.5
+                add_at(out, g * pk(thump), nsamp(tm), circular=False)
+    m = nsamp(1.4)
+    sheet = bp(r.standard_normal(m), 300, 7000, 2) * env_ad(m, 0.05, 0.45)
+    sheet *= np.exp(0.5 * lp(r.standard_normal(m), 40, 2) / 0.08)
+    add_at(out, 0.7 * pk(sheet), nsamp(tc + 0.05), circular=False)
+    out += droplets(r, n, tc + 0.3, 220, 0.4, 0.25, 900, 3800)
+    out *= np.minimum(1, (dur - t) / 0.6).clip(0)
+    return lreverb_mono(out, street_ir_mono(0.9), 0.2)
+
+
 SFX = {
     **{f"footstep_wet_{i + 1}": (lambda i=i: footstep(1000 + i, run=False)) for i in range(4)},
     **{f"footstep_run_{i + 1}": (lambda i=i: footstep(1100 + i, run=True)) for i in range(4)},
@@ -423,4 +467,5 @@ SFX = {
     "token": token,
     "door_open": door_open,
     "phone_ring": phone_ring,
+    "train_pass": train_pass,
 }

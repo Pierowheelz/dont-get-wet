@@ -85,7 +85,8 @@ Required: `sidewalk.tres`, `asphalt_wet.tres`, `curb.tres`, `brick_red.tres`, `b
 `wind_loop`, `traffic_distant_loop`, `footstep_wet_1..4`, `footstep_run_1..4`, `puddle_splash`,
 `car_pass`, `car_splash`, `umbrella_open`, `umbrella_close`, `umbrella_drop`, `ui_move`,
 `ui_confirm`, `ui_back`, `ui_denied`, `fail_sting`, `win_sting`, `token`, `door_open`,
-`music_menu_loop`, `music_level_loop`.
+`music_menu_loop`, `music_level_loop`, `phone_ring`, `train_pass` (a train crossing a viaduct
+overhead, its nose passing 2.4 s in).
 
 ## 6. Awning lots — `levels/*.json`
 

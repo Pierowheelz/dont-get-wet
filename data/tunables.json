@@ -27,6 +27,7 @@
   "wet_max": 50.0,
   "wet_rain_rate": 8.0,
   "wet_gutter_rate": 38.0,
+  "wet_wash_rate": 36.0,
   "wet_puddle_walk": 0.75,
   "wet_puddle_run": 2.5,
   "wet_car_splash": 20.0,

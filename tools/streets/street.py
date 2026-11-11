@@ -26,6 +26,7 @@ class Street:
         self.figures = []
         self.hints = []
         self.follower_appear = []
+        self.viaducts = []
         self.end_x = None
         self.checkpoints = None   # set by hand to override the solver
 
@@ -83,6 +84,12 @@ class Street:
         """The follower walks in from the left edge when the walker passes x and holds there for hold s."""
         self.follower_appear.append({"x": round(x, 2), "hold": hold})
 
+    def viaduct(self, from_tag, to_tag, period, phase=0.0, style="monorail"):
+        """An elevated deck from the start of from_tag to the end of to_tag. A train crosses it right to
+        left every `period` s (offset `phase` on the level clock) and washes water off the deck."""
+        self.viaducts.append({"x0": self.start(from_tag), "x1": self.end(to_tag), "style": style,
+                              "period": float(period), "phase": float(phase)})
+
     def set_piece(self, name, x0, x1, teaches):
         self.set_pieces.append({"name": name, "x0": x0, "x1": x1, "teaches": teaches})
 
@@ -102,6 +109,8 @@ class Street:
             rest["hints"] = sorted(self.hints, key=lambda h: h["x"])
         if self.follower_appear:
             rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"]), "model": "old_man"}
+        if self.viaducts:
+            rest["viaducts"] = self.viaducts
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},
                  "length": self.x, "end_x": self.end_x, "checkpoints": [],
                  **{k: level[k] for k in ["rain", "wind", "gusts"]}, **rest}

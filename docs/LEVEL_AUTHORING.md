@@ -91,7 +91,16 @@ of it.
 `mailbox`, `parking_meter`, `street_sign`, `downpipe`, `trash_bags`, `crates`, `cardboard_boxes`,
 `bollard`, `phone_booth`, `sandwich_board`, `chainlink_fence_4`, and more in
 `assets/props/props.json`. A `phone_booth` with `"ring": true` (`s.prop("phone_booth", x, ring=True)`)
-rings as the walker approaches and goes quiet once he passes it.
+rings as the walker approaches, with a lamp in the booth flashing on each ring, and goes quiet once he
+passes it. Two optional fields change that:
+
+- `"keep": true` keeps it ringing after he passes, until it is answered.
+- `"line": "..."` is shown as a hint when he holds stop within 1.5 m of the booth for 0.6 s while it
+  rings, once per attempt. That answers it and the ringing stops.
+
+`station_stairs` (`s.prop("station_stairs", x)`) is a stair flight against the shopfronts from the
+pavement at `x + 6` up to a viaduct deck at `x`. It is dressing only and only makes sense under a
+viaduct; the space under its high end (`x` to about `x + 2`) fits a phone booth.
 
 **`figures`** (`x`, optional `facing`; `s.figure(x)`) are people built from the walker's own model,
 standing still in a doorway with the umbrella furled. Scenery only: put them under cover, away from
@@ -118,13 +127,39 @@ each `x` where the walker is under cover, so a player who stops to listen stays 
 line under the street name on the loading card) and `fail` (an array of fail-screen lines that
 replaces the generic pool for that street).
 
+**`viaducts`** (`x0`, `x1`, `style`, `period`, `phase`; `s.viaduct(from_tag, to_tag, period=, phase=)`)
+are elevated monorail decks over the walker's line from the start of `from_tag` to the end of
+`to_tag`. The deck is cover (underside 4.6 m), so no rain falls beneath it. A train crosses each span
+right to left every `period` seconds, offset by `phase` on the level clock, and shakes a sheet of
+water off the deck for 11 m behind its nose (12 m/s, so each point is wet for about 0.9 s). The sheet
+falls straight down:
+
+- An awning (or slab) beneath the deck stops it, so a span reads as stretches of shelter and bare
+  stretches between them. Use awnings only under a deck: balcony and arcade rails reach above 4.6 m,
+  and so do lamp posts.
+- An open umbrella held upright stops it. A tilted one doesn't: rays go straight up from the body
+  samples, and `wet_wash_rate` (36/s, near the gutter rate) applies to the exposed fraction.
+- Two seconds before the sheet reaches him, a rumble builds (`train_pass`) and the train's headlight
+  sweeps in from the right; the camera shakes as it goes over. The first train under a span shows a
+  hint.
+
+Everything follows from `Level.wash_at(x, t)` and `wash_eta(x, t)` on the level clock (`elapsed`),
+which a checkpoint restores, so trains stay in sync after a resume. The bots open the umbrella upright
+when a sheet will land on bare pavement on their path within the opening time plus 0.5 s, and never
+rest on a bare stretch under a deck. They read every train perfectly and never get washed, so a
+viaduct street costs them only stamina and time; Telstar Parade sets `par_speed` 1.4 for that reason.
+`style` is `"monorail"`; other styles are accepted but not built yet. Pillars stand at the kerb about
+every 14 m, never in a side street.
+
 **`set_pieces`** (`name`, `x0`, `x1`, `teaches`) is a top-level list the game ignores. Fill it in so
 the next person can see the intent without replaying the street.
 
 ## The design checks
 
 `level_preview.py` scores each tenth of `end_x` (about 26 m) for open sky x rain, plus gutters,
-puddles and crossings. The checks are:
+puddles and crossings. A viaduct deck counts as cover; its bare stretches (no lot cover beneath) score
+`WASH_W` (0.4) of a metre of open sky at rain 1, because the wash is periodic and dodgeable. The
+`wash` column shows that share, and the strip draws it in the hazards lane. The checks are:
 
 - **start-covered.** The first 20 m has no open sky.
 - **ramp-to-midpoint.** Through decile 5, no decile falls more than 20% of the peak below the one
@@ -134,7 +169,8 @@ puddles and crossings. The checks are:
 - **span-crossable.** No open span is longer than one bar of stamina (33 m with no wind).
 - **checkpoints-safe.** `"checkpoints"` holds three x values, one near 25%, 50% and 75% of `end_x`
   (within 10% of `end_x`). Each sits 0.5 m into a stretch of cover and has `CLEAR_M` (4 m) of dry cover
-  ahead before the next gap, gutter, puddle or car crossing's headlight zone. Cover ends are pulled in
+  ahead before the next gap, gutter, puddle, car crossing's headlight zone or bare stretch under a
+  viaduct deck (the wash can land there whatever the clock says). Cover ends are pulled in
   by the wind slant plus half a body. `Street.write()` picks them with `solve_checkpoints`, so the plan
   never lists them. To place them by hand, set `s.checkpoints = [x1, x2, x3]` before `s.write()`; the
   check still applies. `tools/checkpoint_check.sh` replays each one in the game with the umbrella shut

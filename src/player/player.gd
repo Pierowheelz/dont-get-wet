@@ -47,7 +47,7 @@ var hurry := 0.0
 var drying := 0.0                  # current dry rate (for FX)
 var sheltered := false             # head is under fixed cover (awning/balcony)
 var gutter_on_umbrella := 0.0      # 0..1 how much of a gutter stream the umbrella is catching
-var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "dried": 0.0}
+var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "dried": 0.0}
 
 var visual: Node3D
 var umbrella: Umbrella
@@ -207,6 +207,9 @@ func _physics_process(delta: float) -> void:
 	gutter_hit = _gutter_exposure()
 	gain += gutter_hit * Tun.f("wet_gutter_rate")
 	stats["wet_gutter"] += gutter_hit * Tun.f("wet_gutter_rate") * delta
+	var wash_hit := _wash_exposure()
+	gain += wash_hit * Tun.f("wet_wash_rate")
+	stats["wet_wash"] += wash_hit * Tun.f("wet_wash_rate") * delta
 	_check_puddles()
 	drying = level.dry_rate(position.x, open) * dry_factor(wet / Tun.f("wet_max"))
 	stats["dried"] += minf(drying * delta, wet)
@@ -351,6 +354,49 @@ func _gutter_exposure() -> float:
 					hit += s[1]
 			return hit / total if total > 0.0 else 0.0
 	return 0.0
+
+
+## A train's sheet falls straight down off the viaduct deck: each body sample under it is soaked
+## unless lot cover (an awning beneath the deck) or the canopy is directly above it.
+func _wash_exposure() -> float:
+	if not level.under_viaduct(position.x - 0.5) and not level.under_viaduct(position.x + 0.5):
+		return 0.0
+	var t: float = level.elapsed
+	var total := 0.0
+	var hit := 0.0
+	for s in SAMPLES:
+		var p := _sample_world(s[0])
+		total += s[1]
+		if not level.wash_at(p.x, t):
+			continue
+		var top := Vector3(p.x, Viaduct.DECK_Y - 0.05, p.z)
+		if _cast(p, top, COVER_MASK):
+			continue
+		hit += s[1] * (umbrella_leak() if _cast(p, top, UMBRELLA_MASK) else 1.0)
+	return hit / total
+
+
+## Lot cover (an awning or slab) between this spot and the viaduct deck: the wash can't land here.
+func _under_lot_cover(x: float) -> bool:
+	var p := Vector3(x, level.ground_y(x) + 1.7, position.z)
+	return _cast(p, Vector3(x, Viaduct.DECK_Y - 0.05, position.z), COVER_MASK)
+
+
+## The bots' read of the wash: will a sheet land, on bare pavement, somewhere he'll be over the next
+## `horizon` seconds? Walks his own path forward in time against the same Level.wash_at gameplay uses.
+func _wash_threat(horizon: float) -> bool:
+	if not level.under_viaduct(position.x) and not level.under_viaduct(position.x + 4.0):
+		return false
+	var t: float = level.elapsed
+	var v := maxf(speed, Tun.f("walk_speed")) if state == State.WALK else 0.0
+	var tau := 0.0
+	while tau <= horizon:
+		var x := position.x + v * tau
+		for dx in [-0.35, 0.35]:
+			if level.wash_at(x + dx, t + tau) and not _under_lot_cover(x + dx):
+				return true
+		tau += 0.1
+	return false
 
 
 func _check_puddles() -> void:
@@ -520,6 +566,9 @@ func _autopilot(delta: float) -> Array:
 	var car_ahead: bool = level.car_threat(position.x)
 	if car_ahead:
 		danger = true
+	var wash := _wash_threat(Game.umbrella_open_time() + 0.5)
+	if wash:
+		danger = true
 	_ap_hold = 0.35 if danger else maxf(0.0, _ap_hold - delta)
 	var u := 1.0 if (danger or _ap_hold > 0.0) else 0.0
 	var h := 0.0
@@ -532,6 +581,8 @@ func _autopilot(delta: float) -> Array:
 	for g in level.gutters:
 		if absf(g - position.x) < 0.9:
 			tl = 0.0     # straighten up under a gutter stream
+	if wash:
+		tl = 0.0
 	var stop := false
 	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before:
 		stop = true
@@ -540,6 +591,9 @@ func _autopilot(delta: float) -> Array:
 				stop = false
 		for g in level.gutters:
 			if absf(g - position.x) < 1.2:
+				stop = false
+		for off in [-0.45, 0.45]:
+			if level.under_viaduct(position.x + off) and not _under_lot_cover(position.x + off):
 				stop = false
 	_ap_resting = stop
 	return [u, h, tl, stop]

@@ -27,7 +27,9 @@ COVER_COLORS = {
     "balcony": (140, 98, 62),
     "arcade": (128, 96, 168),
     "canopy": (46, 148, 150),
+    "viaduct": (92, 104, 122),
 }
+WASH_C = (60, 150, 225)
 INK = (30, 34, 42)
 MUTED = (110, 116, 128)
 BG = (247, 247, 244)
@@ -71,7 +73,9 @@ class Street:
         self.crossings = [(float(c["x"]), float(c["x"]) + float(c["w"])) for c in data.get("crossings", [])]
         self.features = data.get("features", [])
         self.sun = [(float(f["x"]), float(f["x"]) + float(f["w"])) for f in self.features if f["type"] == "sun"]
+        self.viaducts = [(float(v["x0"]), float(v["x1"])) for v in data.get("viaducts", [])]
         self.covers = self._cover_spans()
+        self.wash = self._wash_zones()
 
     def _cover_spans(self):
         """[(x0, x1, kind)] of fixed cover. Awning tears are cut out; canopy is inset 0.15 m."""
@@ -94,7 +98,19 @@ class Street:
                 out.append((lx, lx + lw, kind))
             elif kind == "canopy":
                 out.append((lx + 0.15, lx + lw - 0.15, kind))
-        return out
+        return out + [(a, b, "viaduct") for a, b in self.viaducts]
+
+    def _wash_zones(self):
+        """[(x0, x1)] under a viaduct deck with no lot cover beneath it: where a passing train's sheet of
+        water lands on the walker (Level.wash_at). It falls straight down, so awnings and slabs stop it."""
+        lot = [(a, b) for a, b, kind in self.covers if kind != "viaduct"]
+        return [(a, b) for a, b in _subtract(self.viaducts, lot) if b - a > 1e-6]
+
+    def under_viaduct(self, x):
+        return any(a <= x <= b for a, b in self.viaducts)
+
+    def washed(self, x):
+        return any(a <= x <= b for a, b in self.wash)
 
     def rain(self, x):
         if any(a < x < b for a, b in self.sun):
@@ -136,6 +152,7 @@ PREFER_CLEAR_M = 5.0                     # ... and the pick favours this much
 PREFER_PENALTY_M = 2.0                   # how much farther from the target a < PREFER_CLEAR_M candidate counts
 ENTRY_M = 0.5                            # checkpoint sits this far into a safe run, so the whole body is sheltered
 SLANT_H = 3.1                            # awning height the wind slants rain across
+DECK_H = 4.6                             # Viaduct.DECK_Y: a deck's ends let slanted rain further in
 WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind
 GUST_MAX = 1.4                           # Level.wind: gusts scale wind by up to 1 + 0.4
 BODY_HALF_M = 0.3
@@ -160,7 +177,8 @@ def _subtract(runs, zones):
 
 def safe_runs(st):
     """[(start, end)] of cover that is dry for a walker: awnings merged where lots touch, shrunk at each
-    end by the wind slant plus half a body, with gutters, puddles and car-threat zones cut out."""
+    end by the wind slant plus half a body, with gutters, puddles, car-threat zones and viaduct wash cut
+    out (a checkpoint restores the level clock, so a train can be on its way)."""
     spans = sorted((a, b) for a, b, _ in st.covers)
     merged = []
     for a, b in spans:
@@ -171,10 +189,10 @@ def safe_runs(st):
 
     def margin(x):
         w = abs(st.wind(x)) * (GUST_MAX if st.gusts else 1.0)
-        return SLANT_H * WIND_SLANT * w + BODY_HALF_M
+        return (DECK_H if st.under_viaduct(x) else SLANT_H) * WIND_SLANT * w + BODY_HALF_M
 
     runs = [(a if a <= 0.0 else a + margin(a), b - margin(b)) for a, b in merged]
-    zones = []
+    zones = [(a - BODY_HALF_M, b + BODY_HALF_M) for a, b in st.wash]
     for f in st.features:
         x = float(f["x"])
         w = float(f.get("w", 1.0))
@@ -189,7 +207,7 @@ def safe_runs(st):
 
 
 def clear_ahead(st, x):
-    """Metres from x to the first hazard (cover edge, gutter, puddle, car threat); 0 when x is not safe."""
+    """Metres from x to the first hazard (cover edge, gutter, puddle, car threat, wash); 0 when x is not safe."""
     for a, b in safe_runs(st):
         if a <= x <= b:
             return b - x
@@ -223,6 +241,7 @@ def solve_checkpoints(st):
 
 START_COVER_M = 20.0
 RAMP_TOL = 0.20
+WASH_W = 0.4      # a metre the wash can land on scores this fraction of a metre of open sky at rain 1
 HOLD_TOL = 0.30
 
 
@@ -243,16 +262,17 @@ def decile_table(st, tun):
         rain = sum(st.rain(x) for x in xs) / n
         wind = sum(abs(st.wind(x)) for x in xs) / n
         per100 = 100.0 / (b - a)
+        wash = sum(1 for x in xs if st.washed(x)) / n
         diff = 10.0 * sum((not st.covered(x)) * st.rain(x) * (1 + abs(st.wind(x))) for x in xs) / n \
-            + (0.5 * g + 0.15 * p + 0.4 * c) * per100
+            + 10.0 * WASH_W * wash + (0.5 * g + 0.15 * p + 0.4 * c) * per100
         rows.append(dict(a=a, b=b, open=open_frac, longest=longest, longest_full=longest_full,
-                         g=g, p=p, c=c, rain=rain, wind=wind, diff=diff))
+                         g=g, p=p, c=c, rain=rain, wind=wind, wash=wash, diff=diff))
     return rows
 
 
 DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
-                "+ (0.5*gutters + 0.15*puddles + 0.4*crossings) per 100 m, per decile of end_x "
-                "(rain is 0 in sun breaks)")
+                f"+ 10 * {WASH_W} * wash + (0.5*gutters + 0.15*puddles + 0.4*crossings) per 100 m, per decile of "
+                "end_x (rain is 0 in sun breaks; wash = share under a viaduct deck with no lot cover)")
 
 
 def crossable_m(tun, wind):
@@ -346,11 +366,11 @@ def print_report(st, tun, rows, checks, name):
     print(f"== {name}: end_x {st.end_x:.1f} m, {len(st.open_spans())} open spans, "
           f"gusts {'yes' if st.gusts else 'no'} ==")
     print(f"{'decile':>6} {'metres':>11} {'open':>5} {'longest':>8} {'gut':>3} {'pud':>3} {'xing':>4} "
-          f"{'rain':>5} {'|wind|':>6} {'diff':>6}")
+          f"{'rain':>5} {'|wind|':>6} {'wash':>5} {'diff':>6}")
     for k, r in enumerate(rows, 1):
         longest = f"{r['longest_full']:.1f}"
         print(f"{k:>6} {r['a']:>5.0f}-{r['b']:<5.0f} {r['open']:>5.0%} {longest:>8} {r['g']:>3} {r['p']:>3} "
-              f"{r['c']:>4} {r['rain']:>5.2f} {r['wind']:>6.2f} {r['diff']:>6.1f}")
+              f"{r['c']:>4} {r['rain']:>5.2f} {r['wind']:>6.2f} {r['wash']:>5.0%} {r['diff']:>6.1f}")
     print(DIFF_FORMULA)
     print("longest = full length of the longest open span touching the decile (may extend past it)")
     print("checks:")
@@ -510,9 +530,11 @@ def render(st, tun, traces, out, title):
         # cover
         d.text((LEFT - 8, y + 13), "cover", fill=INK, font=font(12, True), anchor="rm")
         d.rectangle([LEFT, y + 2, right_px, y + H_COVER - 4], fill=SKY)
-        for a, b, kind in st.covers:
+        for a, b, kind in sorted(st.covers, key=lambda c: c[2] == "viaduct"):
             if b > x0m and a < x1m:
-                d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y + H_COVER - 4], fill=COVER_COLORS[kind])
+                # A viaduct deck is a band across the top, so the lot cover beneath it still shows.
+                y1 = y + 9 if kind == "viaduct" else y + H_COVER - 4
+                d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y1], fill=COVER_COLORS[kind])
         for s0, s1 in st.open_spans():
             if s1 > x0m and s0 < x1m and s1 - s0 >= 5.0:
                 xa, xb = X(max(s0, x0m)), X(min(s1, x1m))
@@ -538,6 +560,14 @@ def render(st, tun, traces, out, title):
 
         # features
         d.text((LEFT - 8, y + 16), "hazards", fill=INK, font=font(12, True), anchor="rm")
+        for a, b in st.wash:
+            if b > x0m and a < x1m:
+                xa, xb = X(max(a, x0m)), X(min(b, x1m))
+                d.rectangle([xa, y + 2, xb, y + 8], fill=WASH_C)
+                for sx in range(int(xa) + 3, int(xb), 7):
+                    d.line([(sx, y + 8), (sx, y + 14)], fill=WASH_C, width=1)
+                if xb - xa > 50:
+                    d.text(((xa + xb) / 2, y + 5), "train wash", fill=(255, 255, 255), font=font(9, True), anchor="mm")
         for f in st.features:
             fx = float(f["x"])
             fw = float(f.get("w", 1.0))
@@ -584,6 +614,9 @@ def render(st, tun, traces, out, title):
     x += 180
     d.rectangle([x, ly, x + 22, ly + 12], fill=(120, 124, 134))
     d.text((x + 28, ly + 6), "side street (cars)", fill=INK, font=font(12), anchor="lm")
+    x += 170
+    d.rectangle([x, ly + 2, x + 22, ly + 8], fill=WASH_C)
+    d.text((x + 28, ly + 6), "train wash (viaduct, no lot cover)", fill=INK, font=font(12), anchor="lm")
     ly += 26
     x = LEFT
     for kind in ("puddle", "gutter", "sun", "vent", "fire_barrel"):
@@ -612,7 +645,7 @@ def trace_summary(label, rows, tun):
     outcome = "SOAKED" if last["state"] == 2 else "reached the door"
     return (f"{label}: final wet {last['wet']:.1f}/{tun['wet_max']:.0f} at x={last['x']:.0f} t={last['t']:.0f}s; "
             f"rain {s['wet_rain']:.1f} gutter {s['wet_gutter']:.1f} puddle {s['wet_puddle']:.1f} "
-            f"splash {s['wet_splash']:.1f} dried {s['dried']:.1f}; min stamina "
+            f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
             f"{min(r['stamina'] for r in rows):.0f}; {outcome}")
 
 
