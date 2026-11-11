@@ -6,7 +6,7 @@
 set -u
 cd "$(dirname "$0")/.."
 levels=("$@")
-if [ ${#levels[@]} -eq 0 ]; then levels=(main_street arcade_lane neon_junction canal_row mill_road); fi
+if [ ${#levels[@]} -eq 0 ]; then levels=(main_street arcade_lane neon_junction canal_row mill_road kiln_street); fi
 out=$(mktemp -d)
 clear_m=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import level_preview; print(level_preview.CLEAR_M)")
 

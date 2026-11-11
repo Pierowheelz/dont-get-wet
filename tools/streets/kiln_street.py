@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""Kiln Street plan: see docs/LEVEL_AUTHORING.md. Writes levels/kiln_street.json."""
+from street import Street
+
+
+s = Street("kiln_street", "Kiln Street",
+           "The last brick terraces before the fields. Nobody comes out this far.",
+           aesthetic="outskirts", neon=0.0, rain=[[0.0, 0.95], [0.5, 1.2], [1.0, 1.3]],
+           wind=[[0.0, -0.05], [0.3, -0.2], [0.6, -0.27], [1.0, -0.3]],
+           gusts=True)
+
+# 1. Kiln Street terraces: shop fronts and balconies, short gaps, the first sun
+s.lot("corner", 8, "shop_lit", "awning", sign="KILN ST STORES", color="brown", floors=2, awning_style="wide_stripe")
+s.lot("terr1", 6, "shuttered", "balcony", floors=2)
+s.lot("terr2", 5, "doorway", "awning", color="green", floors=2, awning_style="waterfall")
+s.lot("terr3", 6, "shop_dark", "awning", sign="COAL", color="brown", floors=2, awning_style="tin")
+s.lot("gap1", 3, "vacant", "none", floors=0)
+s.lot("terr4", 8, "boarded", "balcony", floors=2)
+s.lot("gap2", 4, "vacant", "none", floors=0)
+s.lot("chapel", 6, "shuttered", "awning", sign="MISSION", color="blue", floors=2, awning_style="pennant")
+s.lot("gap3", 12, "vacant", "none", floors=0)
+s.lot("news", 6, "shop_lit", "awning", sign="NEWS", color="red", floors=2, awning_style="dome")
+# 2. The cleared row: houses pulled down between the ones left standing, the last sun
+s.lot("terr6", 6, "shuttered", "balcony", floors=2)
+s.lot("terr7", 4, "doorway", "awning", color="orange", floors=2, awning_style="tin")
+s.lot("clear1", 9, "vacant", "none", floors=0)
+s.lot("terr8", 6, "boarded", "awning", color="brown", floors=2, awning_style="tin", tears=[[2.0, 3.2]])
+s.lot("pipe1", 1.5, "wall", "none", floors=2)
+s.lot("terr9", 6, "shop_dark", "awning", sign="PLUMBER", color="green", floors=2, awning_style="waterfall")
+s.lot("clear2", 14, "vacant", "none", floors=0)
+s.lot("terr10", 8, "shuttered", "balcony", floors=2)
+s.lot("terr10b", 4, "doorway", "awning", color="red", floors=2, awning_style="pennant")
+# 3. The brickworks: shut sheds under the chimney, the kiln yards
+s.xing("kilnln", 9)
+s.lot("works", 8, "warehouse", "awning", sign="KILN BRICK CO", color="red", floors=2, awning_style="tin")
+s.lot("works2", 8, "warehouse", "awning", color="brown", floors=1, awning_style="tin")
+s.lot("chimney", 1.5, "wall", "none", floors=7)
+s.lot("yard", 15, "vacant", "none", floors=0)
+s.lot("kilns", 8, "warehouse", "awning", sign="KILNS", color="orange", floors=1, awning_style="tin", tears=[[3.0, 4.2]])
+s.lot("office", 5, "shuttered", "awning", sign="OFFICE", color="brown", floors=2, awning_style="waterfall")
+s.lot("yard2", 11, "vacant", "none", floors=0)
+s.lot("lodge", 6, "shop_dark", "balcony", floors=2)
+s.lot("lodge2", 6, "shuttered", "awning", sign="LODGE", color="green", floors=2, awning_style="wide_stripe")
+# 4. Pit Row: a car at the crossing, torn awnings, a long clearing
+s.xing("pitrow", 10, car=True)
+s.lot("terr11", 6, "boarded", "awning", color="brown", floors=2, awning_style="tin", tears=[[1.5, 2.7]])
+s.lot("terr12", 5, "doorway", "awning", color="blue", floors=2, awning_style="waterfall")
+s.lot("gap4", 8, "vacant", "none", floors=0)
+s.lot("terr13", 8, "shuttered", "balcony", floors=2)
+s.lot("pipe2", 1.5, "wall", "none", floors=2)
+s.lot("terr14", 6, "shop_dark", "awning", sign="TAILOR", color="teal", floors=2, awning_style="pennant")
+s.lot("clear3", 14, "vacant", "none", floors=0)
+s.lot("terr15", 6, "boarded", "awning", color="orange", floors=2, awning_style="tin", tears=[[2.5, 3.7]])
+s.lot("terr16", 8, "shuttered", "awning", color="brown", floors=2, awning_style="waterfall")
+# 5. The last houses: long gaps into the wind, gutters at the seams
+s.lot("clear4", 12, "vacant", "none", floors=0)
+s.lot("terr17", 8, "shuttered", "balcony", floors=2)
+s.lot("terr17b", 3, "doorway", "awning", color="green", floors=2, awning_style="pennant")
+s.lot("pipe3", 1.5, "wall", "none", floors=2)
+s.lot("terr18", 6, "boarded", "awning", color="red", floors=2, awning_style="tin", tears=[[1.0, 2.2]])
+s.lot("terr18b", 6, "shuttered", "balcony", floors=2)
+s.lot("clear5", 10, "vacant", "none", floors=0)
+s.lot("terr19", 6, "shop_dark", "awning", sign="CHEMIST", color="green", floors=2, awning_style="wide_stripe")
+s.lot("terr20", 5, "doorway", "awning", color="blue", floors=2, awning_style="pennant")
+s.lot("clear6", 12, "vacant", "none", floors=0)
+s.lot("terr21", 6, "shuttered", "awning", color="brown", floors=2, awning_style="tin")
+# 6. The Kiln Arms: men in grey suits under the last awnings, one more gap, the inn
+s.lot("chandler", 6, "shop_lit", "awning", sign="CHANDLER", color="teal", floors=2, awning_style="waterfall")
+s.lot("bakery", 5, "shop_dark", "awning", sign="BAKERY", color="red", floors=2, awning_style="dome")
+s.lot("gap5", 7, "vacant", "none", floors=0)
+s.lot("post", 6, "shop_lit", "awning", sign="POST OFFICE", color="red", floors=2, awning_style="wide_stripe")
+s.lot("terr22", 6, "shuttered", "balcony", floors=2)
+s.lot("terr23", 5, "doorway", "awning", color="blue", floors=2, awning_style="pennant")
+s.xing("fieldln", 9, car=True)
+s.lot("inn", 8, "inn", "awning", sign="KILN ARMS", color="green", floors=2, awning_style="wide_stripe")
+s.lot("barn", 8, "warehouse", "awning", color="brown", floors=1, awning_style="tin")
+s.door("inn")
+
+# Features
+s.feature("sun", s.start("gap3") + 3.0, w=6.0)
+s.feature("puddle", s.mid("clear1"), w=1.2)
+s.feature("gutter", s.mid("pipe1"))
+s.feature("sun", s.start("clear2") + 4.0, w=6.0)
+s.feature("puddle", s.end("clear2") - 2.0, w=1.2)
+s.feature("puddle", s.end("kilnln") - 1.2, w=1.4, deep=True)
+s.feature("gutter", s.mid("chimney"))
+s.feature("puddle", s.start("yard") + 6.0, w=1.2)
+s.feature("puddle", s.end("yard") - 3.0, w=1.2)
+s.feature("gutter", s.start("kilns") + 3.6)
+s.feature("puddle", s.mid("yard2"), w=1.2)
+s.feature("vent", s.mid("lodge"), w=1.6)
+s.feature("puddle", s.start("pitrow") + 1.2, w=1.4, deep=True)
+s.feature("puddle", s.end("pitrow") - 1.2, w=1.4, deep=True)
+s.feature("puddle", s.mid("gap4"), w=1.2)
+s.feature("gutter", s.mid("pipe2"))
+s.feature("puddle", s.end("clear3") - 4.0, w=1.2, deep=True)
+s.feature("gutter", s.start("terr15") + 3.1)
+s.feature("puddle", s.start("clear4") + 5.0, w=1.2, deep=True)
+s.feature("gutter", s.mid("pipe3"))
+s.feature("puddle", s.mid("clear5"), w=1.2)
+s.feature("puddle", s.mid("clear6"), w=1.2, deep=True)
+s.feature("puddle", s.end("clear6") - 2.0, w=1.0)
+s.feature("puddle", s.mid("gap5"), w=1.2)
+s.feature("puddle", s.start("fieldln") + 1.2, w=1.4, deep=True)
+
+# The follower: first at about a sixth of the way, then spread down the street
+s.follower(s.start("terr6") + 1.0, 9.0)
+s.follower(s.start("works") + 1.5, 12.0)
+s.follower(s.start("terr12") + 1.0, 8.0)
+s.follower(s.start("terr17") + 1.0, 9.0)
+s.follower(s.start("terr19") + 1.0, 8.0)
+s.hint(s.start("terr6") + 4.0, "Someone's behind you.", 4.0)
+s.hint(s.start("works") + 5.0, "Hold {stop}. Listen.", 4.5)
+
+# Men in the walker's suit, dry under the last awnings; one on the inn porch, back to the street
+s.figure(s.mid("chandler"))
+s.figure(s.start("post") + 1.5)
+s.figure(s.start("inn") + 6.4, facing="away")
+
+for t in ["corner", "terr3", "news", "terr9", "terr10b", "works2", "office", "lodge2", "terr12", "terr14",
+          "terr16", "terr19", "terr21", "post", "inn"]:
+    s.prop("lamp_post", s.end(t) - 0.4)
+for t in ["gap3", "clear4"]:
+    s.prop("lamp_post", s.mid(t))
+s.prop("sandwich_board", s.start("corner") + 1.2)
+s.prop("trash_can", s.end("terr1") - 0.8)
+s.prop("trash_bags", s.start("terr4") + 0.8)
+s.prop("cardboard_boxes", s.end("terr4") - 1.0)
+s.prop("bench", s.mid("gap3") + 2.5)
+s.prop("newspaper_box", s.start("news") + 0.8)
+s.prop("trash_bags", s.mid("clear1") - 2.5)
+s.prop("crates", s.start("terr8") + 0.8)
+s.prop("mailbox", s.end("terr9") - 1.6)
+s.prop("chainlink_fence_4", s.start("clear2") + 11.0)
+s.prop("street_sign", s.start("kilnln") - 0.6)
+s.prop("hydrant", s.end("kilnln") + 0.8)
+s.prop("crates", s.start("works") + 1.5)
+s.prop("crates", s.start("works") + 3.0)
+s.prop("crates", s.end("works2") - 1.2)
+s.prop("chainlink_fence_4", s.start("yard") + 9.0)
+s.prop("cardboard_boxes", s.start("kilns") + 1.0)
+s.prop("trash_can", s.end("office") - 0.8)
+s.prop("trash_bags", s.mid("yard2") + 2.5)
+s.prop("phone_booth", s.end("lodge2") - 1.2, ring=True)
+s.prop("street_sign", s.start("pitrow") - 0.6)
+s.prop("hydrant", s.end("pitrow") + 0.8)
+s.prop("trash_bags", s.start("terr11") + 0.8)
+s.prop("bench", s.mid("gap4") - 2.0)
+s.prop("downpipe", s.mid("pipe2") + 0.0)
+s.prop("chainlink_fence_4", s.start("clear3") + 9.0)
+s.prop("cardboard_boxes", s.end("terr16") - 0.8)
+s.prop("chainlink_fence_4", s.start("clear4") + 10.0)
+s.prop("crates", s.start("terr18") + 2.8)
+s.prop("trash_bags", s.mid("clear5") - 3.0)
+s.prop("mailbox", s.end("terr20") - 1.0)
+s.prop("trash_can", s.end("terr21") - 1.2)
+s.prop("sandwich_board", s.start("bakery") + 1.0)
+s.prop("mailbox", s.end("post") - 1.4)
+s.prop("street_sign", s.start("fieldln") - 0.6)
+s.prop("hydrant", s.end("fieldln") + 0.8)
+
+s.set_piece("Kiln Street terraces", 0.0, s.end("news"),
+            "walk the terrace under awnings and balconies, open for two short gaps (3 and 4 m), then close in the one sun break inside a 12 m gap")
+s.set_piece("The cleared row", s.start("terr6"), s.end("terr10b"),
+            "the follower's first appearance under cover; a gap with a puddle, a gutter seam beside a torn tin awning, then the last sun break in a 14 m clearing")
+s.set_piece("The brickworks", s.start("kilnln"), s.end("lodge2"),
+            "Kiln Lane, the follower again (stop and listen under the brickworks tin), the chimney's gutter, then two kiln yards (15 and 11 m) with a warm lodge between")
+s.set_piece("Pit Row", s.start("pitrow"), s.end("terr16"),
+            "a car crossing after 12 m of cover, torn tin, a gutter seam, then the 14 m clearing to a torn awning with a gutter through its tear")
+s.set_piece("The last houses", s.start("clear4"), s.end("terr21"),
+            "a 14 m clearing into the full headwind, a gutter seam, torn tin, then 10 and 12 m gaps with 11 m of cover between to catch a breath")
+s.set_piece("The Kiln Arms", s.start("chandler"), s.start("inn"),
+            "grey suits standing dry under the last awnings, one more gap, Field Lane (car), and a man on the inn porch facing the door")
+
+s.write()

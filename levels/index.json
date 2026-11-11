@@ -63,7 +63,15 @@
     "viaduct_road",
     "mill_road"
    ],
-   "soon": true
+   "blurb": "The last brick terraces before the fields. Nobody comes out this far.",
+   "difficulty": 4,
+   "file": "res://levels/kiln_street.json",
+   "outro": "He asked for a room at the back.",
+   "load": "Quiet street. You'd hear anyone behind you.",
+   "fail": [
+    "He's walking back to the city now.",
+    "He won't make the city limits like this."
+   ]
   },
   {
    "id": "mill_road",
