@@ -7,8 +7,8 @@ extends Node3D
 
 enum Phase { OFF, ENTER, HOLD, LEAVE }
 
-const MANIFEST := "res://assets/characters/pedestrians/peds.json"
-const LONG_COAT := "res://assets/characters/pedestrians/models/long_coat.glb"
+const OUTFIT := "res://assets/characters/walker/raincoat.glb"
+const RAINCOAT_SUIT := "res://assets/characters/walker/raincoat_suit.webp"
 const LAG := 0.6
 const LANE_Z := 0.8          # the back lane: further from the camera, so the frame edge sits further behind the walker
 const HOLD_IN := 0.55        # metres inside the left frame edge where he holds, at any aspect ratio
@@ -18,7 +18,6 @@ const HEAR_GAP := 6.0        # his footsteps carry this far behind the walker
 const CATCH_UP := 0.8        # fastest he closes in on his mark, m/s over the walker's pace
 const FALL_BACK := 0.5       # fastest he drops back
 const ACCEL := 3.0
-const RAINCOAT := Color(0.5, 0.42, 0.3)
 const OPEN_AFTER := 0.3      # s of rain on him before he opens his umbrella
 const CLOSE_AFTER := 2.0     # s under cover before he furls it: a short awning isn't worth it
 
@@ -48,7 +47,7 @@ func _ready() -> void:
 	# A checkpoint resume spawns the walker past some appearances; those stay spent.
 	while _next < _appear.size() and _appear[_next][0] <= level.player.position.x:
 		_next += 1
-	_build_model(String(spec.get("model", "old_man")))
+	_build_model()
 	_steps = AudioStreamPlayer3D.new()
 	_steps.bus = &"SFX"
 	_steps.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
@@ -60,23 +59,11 @@ func _ready() -> void:
 	position = Vector3(-100.0, 0.0, LANE_Z)
 
 
-func _build_model(id: String) -> void:
-	var scene := ""
-	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(MANIFEST))
-	for p in (d if d is Array else []):
-		if p["id"] == id:
-			scene = p["scene"]
-	if scene == "" or not ResourceLoader.exists(scene):
-		push_warning("follower model %s not found" % id)
-		return
-	_model = (load(scene) as PackedScene).instantiate()
-	# He carries his own umbrella (in the far hand), and his coat and hat are always the same.
-	_model.set("umbrella", false)
+func _build_model() -> void:
+	_model = (load(Player.CHARACTER_SCENE) as PackedScene).instantiate()
 	_model.set("umbrella_left", true)
-	_model.set("tint_options", {"fedora": [Color(0.45, 0.4, 0.34)]})
 	add_child(_model)
-	_model.call("setup", 4242)
-	_dress_raincoat()
+	_dress()
 	# He walks the dark back lane at the frame edge; a soft fill keeps the coat and hat readable.
 	var fill := OmniLight3D.new()
 	fill.light_color = Color(0.85, 0.88, 1.0)
@@ -86,30 +73,29 @@ func _build_model(id: String) -> void:
 	fill.position = Vector3(0.3, 1.3, 1.0)
 	fill.light_specular = 0.2
 	add_child(fill)
-	_grip = _model.call("umbrella_grip")
+	_grip = _model.call("get_grip", &"right")
 	_umbrella = Umbrella.new()
 	_umbrella.canopy_color = Color(0.12, 0.16, 0.28)
 	_grip.add_child(_umbrella)
 	_umbrella._body.collision_layer = 0
 
 
-## The pedestrian kit has no long coat: recolour the suit as a raincoat and skin a skirt of the same
-## cloth (built from this model by build_long_coat.py) to his hips and thighs.
-func _dress_raincoat() -> void:
-	var cloth := StandardMaterial3D.new()
-	cloth.albedo_color = RAINCOAT
-	cloth.roughness = 0.7
+## Materials and added meshes only, never a reshaped body: the walker's suit dyed as a tan raincoat
+## over dark trousers, and a coat skirt and a fedora skinned to his skeleton (build_raincoat.py).
+func _dress() -> void:
 	var skel := _model.find_child("GeneralSkeleton", true, false) as Skeleton3D
-	var skirt := (load(LONG_COAT) as PackedScene).instantiate()
-	var mi := skirt.find_child("long_coat", true, false) as MeshInstance3D
-	mi.owner = null
-	mi.reparent(skel, false)
-	mi.material_override = cloth
-	skirt.free()
+	var outfit := (load(OUTFIT) as PackedScene).instantiate()
+	for part in ["long_coat", "fedora"]:
+		var mi := outfit.find_child(part, true, false) as MeshInstance3D
+		mi.owner = null
+		mi.reparent(skel, false)
+	outfit.free()
+	var suit := StandardMaterial3D.new()
+	suit.albedo_texture = load(RAINCOAT_SUIT)
+	suit.roughness = 0.7
 	for m in skel.find_children("*", "MeshInstance3D", true, false):
-		if String(m.name).to_lower().contains("double-breasted"):
-			for s in (m as MeshInstance3D).mesh.get_surface_count():
-				(m as MeshInstance3D).set_surface_override_material(s, cloth)
+		if String(m.name).to_lower().contains("elegantsuit"):
+			(m as MeshInstance3D).set_surface_override_material(0, suit)
 
 
 func _process(delta: float) -> void:
@@ -177,9 +163,8 @@ func _step(delta: float, p: Player) -> void:
 				phase = Phase.OFF
 				visible = false
 				speed = 0.0
-	if _model:
-		_model.call("set_walking", speed)
-		_carry_umbrella(delta)
+	_model.call("set_motion", speed, _run_amount())
+	_carry_umbrella(delta)
 	_footsteps(delta, gap)
 
 
@@ -194,7 +179,7 @@ func _carry_umbrella(delta: float) -> void:
 			_settle = 0.0
 	_open = move_toward(_open, 1.0 if _want_open else 0.0, delta / Game.umbrella_open_time(0))
 	var raise := Umbrella.arm_raise(_open)
-	_model.call("set_umbrella_raise", raise)
+	_model.call("set_umbrella_pose", raise, 0.0, 0.0)
 	# Furled, it hangs from the fist like a cane, tip down and a little ahead.
 	var furled := _grip.global_basis.orthonormalized().inverse() * Basis(Vector3(0, 0, 1), PI + 0.18)
 	_umbrella.basis = Basis(furled.get_rotation_quaternion().slerp(Quaternion.IDENTITY, raise))
@@ -218,11 +203,14 @@ func _frame_edge() -> float:
 	return cam.project_position(Vector2(0.0, vp.y * 0.6), cam.global_position.z - LANE_Z).x
 
 
+func _run_amount() -> float:
+	return clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0)
+
+
 func _footsteps(delta: float, gap: float) -> void:
 	if speed < 0.1:
 		return
-	var run := clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0)
-	_step_phase += speed * delta / lerpf(0.75, 1.1, run)
+	_step_phase += speed * delta / lerpf(0.75, 1.1, _run_amount())
 	if _step_phase < 1.0:
 		return
 	_step_phase -= 1.0

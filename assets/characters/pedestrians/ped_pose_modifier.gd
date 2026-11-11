@@ -1,12 +1,10 @@
 extends SkeletonModifier3D
 ## Procedural pose layer for pedestrians (runs after the locomotion AnimationTree).
-## Behaviours: hold an open umbrella (right or left hand), smoke (right hand to mouth now and then),
+## Behaviours: hold an open umbrella (right hand), smoke (right hand to mouth now and then),
 ## check a wristwatch (left arm), hurry hunched against the rain, look around while standing.
 ## Targets are authored in the *character* frame (+X forward, +Y up, +Z = character's right).
 
-var umbrella := 0.0     # 0..1 the umbrella arm holds the shaft up in front of the chest
-var umbrella_left := false
-var holding := false    # the umbrella hand is closed on a handle, arm raised or not
+var umbrella := 0.0     # 0..1 right arm holds the umbrella shaft in front of the chest
 var smoke := false
 var watch := false
 var watch_right := false  # check the watch with the right (camera-side) arm
@@ -18,7 +16,6 @@ var char_from_skel := Transform3D.IDENTITY
 var hold_pos := Vector3(0.30, 1.42, 0.07)  # umbrella grip (palm centre), scaled per body height
 
 var grip_r_offset := Transform3D.IDENTITY  # umbrella grip in RightHand bone space (+Y = to canopy)
-var grip_l_offset := Transform3D.IDENTITY  # the same in LeftHand bone space
 var hand_r_offset := Transform3D.IDENTITY  # between index & middle finger, for the cigarette
 
 var _b := {}
@@ -66,23 +63,17 @@ func setup(skel: Skeleton3D, idle_anim: Animation, height_scale: float) -> void:
 	_chest_rest = skel.get_bone_global_rest(_b["UpperChest"]).origin
 	hold_pos.y *= height_scale
 	hold_pos.x *= lerpf(1.0, height_scale, 0.5)
-	grip_r_offset = _grip_offset(skel, "Right")
-	grip_l_offset = _grip_offset(skel, "Left")
+	# Umbrella grip: +Y runs pinky -> thumb (shaft through the fist).
 	var h_r := skel.get_bone_global_rest(_b["RightHand"])
+	var mid := h_r.affine_inverse() * skel.get_bone_global_rest(skel.find_bone("RightMiddleProximal")).origin
+	var palm := (h_r.basis.orthonormalized().inverse() * Vector3.DOWN).normalized()
+	var y: Vector3 = _thumb_local["Right"]
+	var x := (Vector3.UP - y * y.dot(Vector3.UP)).normalized()
+	grip_r_offset = Transform3D(Basis(x, y, x.cross(y).normalized()), Vector3.UP * mid.length() * 0.8 + palm * 0.035)
 	var idx := h_r.affine_inverse() * skel.get_bone_global_rest(skel.find_bone("RightIndexIntermediate")).origin
 	var mdi := h_r.affine_inverse() * skel.get_bone_global_rest(skel.find_bone("RightMiddleIntermediate")).origin
 	hand_r_offset = Transform3D(Basis.IDENTITY, (idx + mdi) * 0.5)
 	_ok = true
-
-
-## Umbrella grip in the hand bone's space: +Y runs pinky -> thumb (shaft through the fist).
-func _grip_offset(skel: Skeleton3D, side: String) -> Transform3D:
-	var h := skel.get_bone_global_rest(_b[side + "Hand"])
-	var mid := h.affine_inverse() * skel.get_bone_global_rest(skel.find_bone(side + "MiddleProximal")).origin
-	var palm := (h.basis.orthonormalized().inverse() * Vector3.DOWN).normalized()
-	var y: Vector3 = _thumb_local[side]
-	var x := (Vector3.UP - y * y.dot(Vector3.UP)).normalized()
-	return Transform3D(Basis(x, y, x.cross(y).normalized()), Vector3.UP * mid.length() * 0.8 + palm * 0.035)
 
 
 func _add_curl_axis(skel: Skeleton3D, bone_name: String) -> void:
@@ -158,12 +149,10 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var chest_d := (char_from_skel.basis * (chest_now - _chest_rest)) * Vector3(1.0, 0.8, 0.6)
 
 	if umbrella > 0.001:
-		var m := -1.0 if umbrella_left else 1.0  # mirror across the character's sagittal plane
-		var x_c := Vector3(0.35, 0.0, -m).normalized()
-		var at := Vector3(hold_pos.x, hold_pos.y, hold_pos.z * m) + chest_d
-		var grip_c := Transform3D(Basis(x_c, Vector3.UP, x_c.cross(Vector3.UP).normalized()), at)
-		var hand_s := s_from_c * grip_c * (grip_l_offset if umbrella_left else grip_r_offset).affine_inverse()
-		_solve_arm(skel, "Left" if umbrella_left else "Right", hand_s, Vector3(-0.15, -1.0, 0.75 * m), umbrella)
+		var x_c := Vector3(0.35, 0.0, -1.0).normalized()
+		var grip_c := Transform3D(Basis(x_c, Vector3.UP, x_c.cross(Vector3.UP).normalized()), hold_pos + chest_d)
+		var hand_s := s_from_c * grip_c * grip_r_offset.affine_inverse()
+		_solve_arm(skel, "Right", hand_s, Vector3(-0.15, -1.0, 0.75), umbrella)
 	elif smoke_w > 0.001:
 		var hs: float = hold_pos.y / 1.42
 		var mouth := Vector3(0.13, 1.56 * hs, 0.03) + chest_d
@@ -180,8 +169,8 @@ func _process_modification_with_delta(_delta: float) -> void:
 		var hb_w := _hand_basis(side, s_from_c.basis * Vector3(0.35, 0.1, -1.0 * m).normalized(), s_from_c.basis * Vector3(-1.0, 0.2, 0.0))
 		_solve_arm(skel, side, Transform3D(hb_w, s_from_c * wrist_w), Vector3(-0.2, -1.0, 0.6 * m), watch_w)
 
-	_curl_hand(skel, "Right", 1.0 if holding and not umbrella_left else (0.55 if smoke else 0.3))
-	_curl_hand(skel, "Left", 1.0 if holding and umbrella_left else 0.35)
+	_curl_hand(skel, "Right", 1.0 if umbrella > 0.5 else (0.55 if smoke else 0.3))
+	_curl_hand(skel, "Left", 0.35)
 
 
 ## Hand basis (skeleton space) whose fingers point along `fingers` with the thumb toward `thumb`.

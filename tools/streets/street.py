@@ -114,7 +114,7 @@ class Street:
         if self.hints:
             rest["hints"] = sorted(self.hints, key=lambda h: h["x"])
         if self.follower_appear:
-            rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"]), "model": "old_man"}
+            rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"])}
         assert self.track_rec or not self.viaducts, "deck spans need s.track()"
         if self.track_rec:
             t = dict(self.track_rec)

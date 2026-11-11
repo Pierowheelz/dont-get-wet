@@ -113,9 +113,8 @@ the walker passes `x`, for `dur` seconds. The text takes the same `{stop}`, `{hu
 at or before the checkpoint. A first-encounter hint (gutter, sun, wind, stop) that fires in the
 same moment replaces it, so keep `x` clear of the first gutter and sun break.
 
-**`follower`** (`{"appear": [{"x", "hold"}], "model"}`; `s.follower(x, hold)` once per appearance) is
-a scripted NPC in a long coat and hat, built from the `peds.json` model named by `model`
-(`old_man`). When the walker passes an `appear` x, he walks in from the left edge of the frame on
+**`follower`** (`{"appear": [{"x", "hold"}]}`; `s.follower(x, hold)` once per appearance) is
+a scripted NPC in a long raincoat and fedora, on the walker's own model and gait. When the walker passes an `appear` x, he walks in from the left edge of the frame on
 the back lane, holds 0.55 m inside it for `hold` seconds (the same on 16:9 and 21:9), then slows and
 drops back out of frame. He opens a starter-size umbrella (never the walker's upgrades) in his left
 hand when the rain reaches him, and furls it after 2 s under cover. He copies the walker 0.6 s late: he stops when the walker stops (or

@@ -3,8 +3,6 @@ extends Node3D
 ##   setup(seed)            colour variation + animation phase
 ##   set_walking(speed_mps) 0 = stand (idle behaviour), > 0 = walk (jog blend when hurrying)
 ##   kind                   &"walker" or &"stander"
-##   umbrella_grip()        for an owner that carries its own umbrella: a node at the umbrella hand
-##                          (+Y up the shaft); set_umbrella_raise(0..1) lifts it overhead
 ## Model: MakeHuman/MPFB2 (CC0/CC-BY assets, see assets/CREDITS.md); animations: the walker's
 ## CMU motion-capture locomotion (assets/characters/walker/locomotion.gd).
 ## Faces +X, feet at the origin, no root motion (the owner moves the node).
@@ -15,8 +13,6 @@ const Loco := preload("res://assets/characters/walker/locomotion.gd")
 
 @export var kind: StringName = &"walker"
 @export var umbrella := false
-## Hold the umbrella in the left (far-side when facing +X) hand.
-@export var umbrella_left := false
 @export var smoke := false
 @export var watch := false
 ## Use the right (camera-side when facing +X) arm for the watch check.
@@ -71,15 +67,13 @@ func _build() -> void:
 		n = n.get_parent()
 	_mod.char_from_skel = rel
 	_mod.umbrella = 1.0 if umbrella else 0.0
-	_mod.umbrella_left = umbrella_left
-	_mod.holding = umbrella
 	_mod.smoke = smoke
 	_mod.watch = watch
 	_mod.watch_right = watch_right
 
 	if umbrella:
 		_umbrella = UMBRELLA.instantiate()
-		umbrella_grip().add_child(_umbrella)
+		_attach(&"RightHand", _mod.grip_r_offset).add_child(_umbrella)
 	if smoke:
 		_attach(&"RightHand", _mod.hand_r_offset).add_child(_make_cigarette())
 	_setup_materials()
@@ -249,17 +243,6 @@ func setup(seed: int) -> void:
 
 func set_walking(speed_mps: float) -> void:
 	_speed = maxf(speed_mps, 0.0)
-
-
-func umbrella_grip() -> Node3D:
-	_mod.holding = true
-	if umbrella_left:
-		return _attach(&"LeftHand", _mod.grip_l_offset)
-	return _attach(&"RightHand", _mod.grip_r_offset)
-
-
-func set_umbrella_raise(w: float) -> void:
-	_mod.umbrella = w
 
 
 # ------------------------------------------------------------------------------------------------

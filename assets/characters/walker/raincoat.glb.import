@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://t178fbwcgdb4"
-path="res://.godot/imported/long_coat.glb-0d69443db26b8c0fcf88beae8ee1ccad.scn"
+path="res://.godot/imported/raincoat.glb-d0bbd8e4fd1ee3f4a42be2565efc112b.scn"
 
 [deps]
 
-source_file="res://assets/characters/pedestrians/models/long_coat.glb"
-dest_files=["res://.godot/imported/long_coat.glb-0d69443db26b8c0fcf88beae8ee1ccad.scn"]
+source_file="res://assets/characters/walker/raincoat.glb"
+dest_files=["res://.godot/imported/raincoat.glb-d0bbd8e4fd1ee3f4a42be2565efc112b.scn"]
 
 [params]
 
@@ -41,7 +41,7 @@ materials/extract_format=0
 materials/extract_path=""
 _subresources={
 "nodes": {
-"PATH:ped/Skeleton3D": {
+"PATH:walker/Skeleton3D": {
 "retarget/bone_map": Resource("res://assets/characters/walker/bone_map_mpfb.tres"),
 "retarget/remove_tracks/unmapped_bones": true,
 "retarget/rest_fixer/fix_silhouette/enable": true,

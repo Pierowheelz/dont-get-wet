@@ -172,7 +172,7 @@ func _hugs_left_edge(lv: Level, fol: Node3D) -> bool:
 func _test_follower() -> void:
 	var window_was := get_window().size
 	get_window().size = Vector2i(1920, 1080)   # headless defaults to a square window
-	var lv := await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 12.0}], "model": "old_man"},
+	var lv := await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 12.0}]},
 		"figures": [{"x": 5.0}, {"x": 9.0, "facing": "away"}]})
 	var p: Player = lv.player
 	var fol: Node3D = lv.get_node("Follower")
@@ -201,7 +201,7 @@ func _test_follower() -> void:
 	await _drop_street(lv)
 
 	Game.debug_resume_cp = 0
-	lv = await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 8.0}], "model": "old_man"}})
+	lv = await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 8.0}]}})
 	Game.debug_resume_cp = -1
 	await _walk(lv, 1.0, 1.3)
 	check(not lv.get_node("Follower").visible, "resuming past an appearance doesn't replay it")
@@ -210,7 +210,7 @@ func _test_follower() -> void:
 	# Main Street: an open lot at 63.5-68.5, then awnings to 80.5.
 	var wide_was: int = Game.run.upgrades[&"wide"]
 	Game.run.upgrades[&"wide"] = 3
-	lv = await _street_with({"follower": {"appear": [{"x": 64.0, "hold": 30.0}], "model": "old_man"}})
+	lv = await _street_with({"follower": {"appear": [{"x": 64.0, "hold": 30.0}]}})
 	p = lv.player
 	fol = lv.get_node("Follower")
 	p.position.x = 63.5
