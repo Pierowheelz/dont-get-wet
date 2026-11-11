@@ -86,11 +86,11 @@ class Street:
         """The follower walks in from the left edge when the walker passes x and holds there for hold s."""
         self.follower_appear.append({"x": round(x, 2), "hold": hold})
 
-    def track(self, period, phase=0.0, style="monorail", x0=None, x1=None):
-        """An elevated monorail from x0 to x1 (default: the whole street and TRACK_PAST beyond it). A
-        train sets off from x1 every `period` s (offset `phase` on the level clock), runs right to left
-        and sheds a sheet of water behind it wherever it is."""
-        self.track_rec = {"x0": x0, "x1": x1, "style": style, "period": float(period), "phase": float(phase)}
+    def track(self, gap, style="monorail", x0=None, x1=None):
+        """An elevated monorail from x0 to x1 (default: the whole street and TRACK_PAST beyond it). Trains
+        set off from x1 a random gap = (min, max) s apart, rolled afresh each attempt, run right to left
+        and shed a sheet of water behind them wherever they are."""
+        self.track_rec = {"x0": x0, "x1": x1, "style": style, "gap": [float(gap[0]), float(gap[1])]}
 
     def viaduct(self, from_tag, to_tag, style="monorail"):
         """A deck span under the track from the start of from_tag to the end of to_tag: cover."""

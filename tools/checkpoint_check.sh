@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 # Proves in the real game that every checkpoint is dry: start the walker on each checkpoint with the
 # umbrella never opened (--lazy) and fail if he gets any wetter before CLEAR_M metres further on.
-#   tools/checkpoint_check.sh [level_id ...]      (default: every level with checkpoints)
+# Train departures are random, so the sheet falls along the whole track at once (--wash-always): a
+# checkpoint passes only if lot cover keeps it off, whatever the trains do.
+#   tools/checkpoint_check.sh [level_id ...] [--game-arg ...]   (default: every level with checkpoints)
 # Exits 1 on any failure.
 set -u
 cd "$(dirname "$0")/.."
-levels=("$@")
+levels=()
+extra=()
+for a in "$@"; do if [[ $a == --* ]]; then extra+=("$a"); else levels+=("$a"); fi; done
 if [ ${#levels[@]} -eq 0 ]; then levels=(main_street arcade_lane neon_junction canal_row mill_road kiln_street telstar_parade); fi
 out=$(mktemp -d)
 clear_m=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import level_preview; print(level_preview.CLEAR_M)")
 
 run() { # level index x
   timeout 120 godot --headless --path . --fixed-fps 60 res://src/level/level.tscn -- \
-    --autopilot --lazy --level="$1" --start-x="$3" --trace="$out/$1_$2.jsonl" >/dev/null 2>&1
+    --autopilot --lazy --wash-always --level="$1" --start-x="$3" --trace="$out/$1_$2.jsonl" "${extra[@]}" >/dev/null 2>&1
 }
 
 for l in "${levels[@]}"; do

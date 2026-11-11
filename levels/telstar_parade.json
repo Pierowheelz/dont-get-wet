@@ -12,8 +12,9 @@
  "wind": [[0.0, 0.08], [0.2, 0.14], [0.45, 0.3], [0.55, 0.38], [0.62, 0.0], [0.68, -0.25], [1.0, -0.32]],
  "gusts": true,
  "set_pieces": [
-  {"name": "The Telstar Arcade", "x0": 0.0, "x1": 25.0, "teaches": "walking under continuous awnings past finned kiosks and the first ringing payphone while the first trains pass overhead: the awnings keep their sheet off"},
-  {"name": "The Parade Viaduct", "x0": 78.5, "x1": 107.5, "teaches": "the first deck: cover from the rain, but each train sheds its sheet onto the bare stretches beneath it. Wait under an awning, hurry through, or hold the umbrella upright"},
+  {"name": "The Telstar Arcade", "x0": 0.0, "x1": 41.5, "teaches": "the first viaduct deck, over continuous awnings past finned kiosks and the first ringing payphone: the first trains pass overhead and the awnings keep their sheet off. At the end of the deck two short bare stretches, dry from the rain but not from a train's sheet"},
+  {"name": "First gaps", "x0": 41.5, "x1": 78.5, "teaches": "the first open sky: two short gaps, then Comet Street's car with cover along its approach"},
+  {"name": "The Parade Viaduct", "x0": 78.5, "x1": 107.5, "teaches": "a longer deck with wider bare stretches: cover from the rain, but each train sheds its sheet onto them. Wait under an awning, hurry through, or hold the umbrella upright"},
   {"name": "Orbit Avenue", "x0": 112.5, "x1": 193.0, "teaches": "open lots, a gutter and a car crossing as the tailwind rises, with trains washing the open sky and the side street too: tilting into the wind and straightening up for the train pull against each other"},
   {"name": "The Express Viaduct", "x0": 193.0, "x1": 266.4, "teaches": "a second deck over longer bare stretches, then two gutters in googie seams under the track"},
   {"name": "The Junction Viaduct", "x0": 266.4, "x1": 361.4, "teaches": "the wind turns into a headwind under the deck; then a torn marquee, a gutter and Sputnik Street's car, with the sheet crossing the side street"},
@@ -180,8 +181,9 @@
   {"x": 379.9},
   {"x": 412.1}
  ],
- "track": {"x0": -40.0, "x1": 470.6, "style": "monorail", "period": 12.0, "phase": 9.0},
+ "track": {"x0": -40.0, "x1": 470.6, "style": "monorail", "gap": [10.0, 25.0]},
  "viaducts": [
+  {"x0": 0.0, "x1": 41.5, "style": "monorail"},
   {"x0": 78.5, "x1": 112.5, "style": "monorail"},
   {"x0": 193.0, "x1": 230.0, "style": "monorail"},
   {"x0": 266.4, "x1": 300.4, "style": "monorail"},

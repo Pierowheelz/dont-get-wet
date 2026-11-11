@@ -84,7 +84,7 @@ var sign_font: Font
 var _mats := {}
 var _awning_shader: Shader
 var _scene_cache := {}
-var _drip_mesh: QuadMesh
+var _drip_meshes := {}             # drip density -> QuadMesh
 var _awning_style_at := {}          # lot x -> AWNING_STYLES key, resolved while building
 var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
 var _awning_used := {}              # style -> lots given it so far
@@ -102,7 +102,7 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	_resolve_gutters()
 	assert(data.has("track") or not data.has("viaducts"), "deck spans need a track")
 	if data.has("track"):
-		track = Track.parse(data["track"], data.get("viaducts", []))
+		track = Track.parse(data["track"], data.get("viaducts", []), Game.train_seed())
 	if ResourceLoader.exists("res://assets/fonts/sign.ttf"):
 		sign_font = load("res://assets/fonts/sign.ttf")
 	_build_ground()
@@ -119,13 +119,16 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 
 
 ## Cover height map for the visual rain, over x (whole level) and z (behind facades → camera side):
-## R = height of a thin cover shell (awning/slab), G = 1 where such a shell exists, B = solid
+## R = height of a thin cover shell (awning/slab), G = COVER_SHELL where such a shell exists, B = solid
 ## ground/roof height. Drops only stop on a shell when they cross it from above, so slanted
-## (windy) rain blows in under the edges exactly as the gameplay rays assume.
+## (windy) rain blows in under the edges exactly as the gameplay rays assume. G = COVER_HIDE: drops
+## vanish below R without a splash (the open air under a deck span).
 const COVER_RES := 10.0          # texels per metre along x
 const COVER_RES_Z := 4.0
 const COVER_Z0 := -3.0
 const COVER_Z1 := 13.0
+const COVER_SHELL := 1.0
+const COVER_HIDE := 2.0
 
 
 func cover_map() -> Array:
@@ -166,7 +169,8 @@ func cover_map() -> Array:
 	if track:
 		_cover_fill(img, x0, track.x0, track.x1, Track.BEAM_Z0, Track.BEAM_Z1, func(_z): return Track.BEAM_TOP)
 		for d in track.decks:
-			_cover_fill(img, x0, d[0], d[1], Track.DECK_Z0, Track.DECK_Z1, func(_z): return Track.DECK_TOP)
+			# Visual only: the street under a deck reads dry from the wall out to the camera.
+			_cover_fill(img, x0, d[0], d[1], 0.0, COVER_Z1, func(_z): return Track.DECK_TOP, COVER_HIDE)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
 
@@ -259,7 +263,8 @@ func _collapses_on(x: float, s: Dictionary) -> Array:
 	return out
 
 
-func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, height: Callable) -> void:
+func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, height: Callable,
+		kind := COVER_SHELL) -> void:
 	var ia := int((a - x0) * COVER_RES)
 	var ib := int((b - x0) * COVER_RES)
 	for ix in range(maxi(ia, 0), mini(ib, img.get_width())):
@@ -268,7 +273,7 @@ func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float
 			if z >= z0 and z <= z1:
 				var y: float = height.call(z)
 				var old := img.get_pixel(ix, iz)
-				img.set_pixel(ix, iz, Color(y, 1.0, old.b))
+				img.set_pixel(ix, iz, Color(y, kind, old.b))
 
 
 # --- helpers --------------------------------------------------------------------------------
@@ -712,7 +717,7 @@ func _build_awning(x: float, w: float, tears: Array, color_name: String, s: Dict
 			_cover_box(Vector3(b - a, 0.06, d.length() + 0.02),
 				Transform3D(Basis.from_euler(Vector3(atan2(-d.y, d.x), 0, 0)), Vector3((a + b) * 0.5, mid.y, mid.x)))
 		var span := minf(COLLAPSE_SPAN, b - a)
-		_drips(a + (span if slump and not slump["right"] else 0.0), b - (span if slump and slump["right"] else 0.0),
+		_drips_off_decks(a + (span if slump and not slump["right"] else 0.0), b - (span if slump and slump["right"] else 0.0),
 			_awning_drip_y(s), AWNING_DEPTH + 0.05)
 	# Torn flaps hanging into tears, unless the canvas there has slumped into the tear instead.
 	var fy := _awning_y(s, AWNING_DEPTH)
@@ -944,13 +949,29 @@ func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, uv0:
 	st.set_uv(Vector2(uv0.x, uv1.y)); st.add_vertex(d)
 
 
-## A line of drips falling from a cover edge: telegraphs exactly where shelter ends.
-func _drips(a: float, b: float, y: float, z: float) -> void:
+## Drips along a cover edge from a to b, left out under deck spans, which keep the rain off it.
+func _drips_off_decks(a: float, b: float, y: float, z: float) -> void:
+	var spans := [[a, b]]
+	for d in (track.decks if track else []):
+		var cut := []
+		for sp in spans:
+			if sp[0] < d[0]:
+				cut.append([sp[0], minf(sp[1], d[0])])
+			if sp[1] > d[1]:
+				cut.append([maxf(sp[0], d[1]), sp[1]])
+		spans = cut
+	for sp in spans:
+		_drips(sp[0], sp[1], y, z)
+
+
+## A line of drips falling from a cover edge: telegraphs exactly where shelter ends. `density`
+## scales both how many drips fall and how bright they are.
+func _drips(a: float, b: float, y: float, z: float, density := 1.0) -> void:
 	var w := b - a
 	if w < 0.3:
 		return
 	var p := GPUParticles3D.new()
-	p.amount = maxi(4, int(w * 14.0))
+	p.amount = maxi(4, int(w * 14.0 * density))
 	p.lifetime = 0.75
 	p.randomness = 0.5
 	var pm := ParticleProcessMaterial.new()
@@ -964,17 +985,18 @@ func _drips(a: float, b: float, y: float, z: float) -> void:
 	pm.scale_min = 0.7
 	pm.scale_max = 1.3
 	p.process_material = pm
-	if _drip_mesh == null:
-		_drip_mesh = QuadMesh.new()
-		_drip_mesh.size = Vector2(0.018, 0.16)
+	if not _drip_meshes.has(density):
+		var mesh := QuadMesh.new()
+		mesh.size = Vector2(0.018, 0.16)
 		var dm := StandardMaterial3D.new()
 		dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		dm.albedo_color = Color(0.75, 0.82, 0.95, 0.55)
+		dm.albedo_color = Color(0.75, 0.82, 0.95, 0.55 * density)
 		dm.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-		_drip_mesh.material = dm
-	p.draw_pass_1 = _drip_mesh
+		mesh.material = dm
+		_drip_meshes[density] = mesh
+	p.draw_pass_1 = _drip_meshes[density]
 	p.position = Vector3((a + b) * 0.5, y, z)
 	p.visibility_aabb = AABB(Vector3(-w * 0.5 - 0.5, -4.0, -0.5), Vector3(w + 1.0, 4.5, 1.0))
 	root.add_child(p)
@@ -1026,15 +1048,21 @@ func _build_sign(x: float, w: float, text: String, style: String, neon: bool) ->
 	if sign_font:
 		lbl.font = sign_font
 	lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
-	lbl.position = Vector3(x + w * 0.5, 3.5, SIGN_Z)
+	var low := _sign_under_deck(x, w)
+	lbl.position = Vector3(x + w * 0.5, 3.2 if low else 3.5, SIGN_Z)
 	var lit := style in ["shop_lit", "inn"]
 	lbl.modulate = Color(1.0, 0.85, 0.55) if lit else Color(0.55, 0.5, 0.42)
 	lbl.outline_size = 0
 	lbl.shaded = not lit
 	lbl.double_sided = false
 	var max_w := (w - 0.6) / lbl.pixel_size
-	lbl.font_size = int(clampf(max_w / maxf(1.0, text.length() * 0.62), 40.0, 110.0))
+	lbl.font_size = int(clampf(max_w / maxf(1.0, text.length() * 0.62), 40.0, 60.0 if low else 110.0))
 	root.add_child(lbl)
+
+
+## A deck hides the facade from 3.4 m up, so under one the sign shrinks into the strip above the awning.
+func _sign_under_deck(x: float, w: float) -> bool:
+	return track != null and track.deck_at(x + w * 0.5)
 
 
 ## Retro-future neon: glowing tube lettering on the fascia, a vertical blade sign, coloured spill.
@@ -1047,6 +1075,9 @@ func _build_neon(x: float, w: float, text: String) -> void:
 	tm.depth = 0.03
 	if sign_font:
 		tm.font = sign_font
+	var low := _sign_under_deck(x, w)
+	if low:
+		tm.pixel_size = 0.0034
 	var est_w := text.length() * tm.font_size * 0.62 * tm.pixel_size
 	if est_w > w - 0.6:
 		tm.pixel_size *= (w - 0.6) / est_w
@@ -1054,7 +1085,7 @@ func _build_neon(x: float, w: float, text: String) -> void:
 	mi.mesh = tm
 	# White-hot tube core with a coloured halo (light + bloom) keeps the lettering readable.
 	mi.material_override = _neon_mat(col.lerp(Color(1, 1, 1), 0.55), 2.6)
-	mi.position = Vector3(x + w * 0.5, 3.42, SIGN_Z)
+	mi.position = Vector3(x + w * 0.5, 3.2 if low else 3.42, SIGN_Z)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(mi)
 	var om := OmniLight3D.new()

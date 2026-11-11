@@ -326,14 +326,44 @@ func _run() -> void:
 	get_parent().finish(failures)
 
 
+## Each attempt rolls its own train gaps within the street's range; a seed always rolls the same ones.
+func _test_departures(data: Dictionary) -> void:
+	var a := Track.parse(data["track"], [], 7)
+	var b := Track.parse(data["track"], [], 7)
+	var c := Track.parse(data["track"], [], 8)
+	a.departure(900.0)
+	var gaps := PackedFloat64Array()
+	for i in range(1, a.departures.size()):
+		gaps.append(a.departures[i] - a.departures[i - 1])
+	var lo: float = Array(gaps).min()
+	var hi: float = Array(gaps).max()
+	check(lo >= a.gap_min and hi <= a.gap_max and hi - lo > (a.gap_max - a.gap_min) * 0.5,
+		"%d train gaps all within %.0f-%.0f s and spread across it (%.1f-%.1f)" % [gaps.size(), a.gap_min, a.gap_max, lo, hi])
+	var same := true
+	var differs := false
+	for t in range(0, 900, 7):
+		same = same and a.wash_eta(100.0, t) == b.wash_eta(100.0, t)
+		differs = differs or a.wash_eta(100.0, t) != c.wash_eta(100.0, t)
+	check(same and differs, "a train seed always rolls the same trains, another seed different ones")
+	check(a.noses(0.0).size() > 0, "trains are already on the track when the clock starts")
+
+
+## When the next train's sheet starts falling at x, some way into the run.
+func _next_sheet(x: float) -> float:
+	var t0 := 40.0
+	while level.wash_at(x, t0):
+		t0 += 0.5
+	return t0 + level.wash_eta(x, t0)
+
+
 func _wash(x: float, open: float, tilt: float, t: float) -> float:
 	await _place(x, open, tilt)
 	level.elapsed = t
 	return level.player._wash_exposure()
 
 
-## Telstar Parade: a train's sheet of water is a pure function of the level clock and falls wherever
-## the train is, from a deck where one hangs over him and from the train elsewhere. It falls straight
+## Telstar Parade: a train's sheet of water is a pure function of the level clock and the attempt's
+## rolled departures, and falls wherever the train is, from a deck where one hangs over him and from the train elsewhere. It falls straight
 ## down, so an upright umbrella or an awning stops it and a tilted umbrella doesn't.
 func _test_viaduct() -> void:
 	Game.current_level = "telstar_parade"
@@ -363,13 +393,16 @@ func _test_viaduct() -> void:
 				open_sky = mid
 		if on_deck and lot["cover"] == "awning" and not lot.has("tears") and awning < 0.0:
 			awning = mid
-	var t_front := tr.phase + (tr.x1 - bare) / Track.TRAIN_SPEED
+	var t_front := _next_sheet(bare)
 	var t := t_front + 0.3
 	check(level.wash_at(bare, t) and not level.wash_at(bare, t_front - 0.2) and not level.wash_at(bare, t_front + 1.2),
 		"the sheet falls at x=%.1f for about a second after the train's nose passes" % bare)
 	check(absf(level.wash_eta(bare, t_front - 1.5) - 1.5) < 0.01 and level.wash_eta(bare, t) == 0.0,
 		"wash_eta counts down to the sheet and is 0 under it")
-	check(level.wash_at(bare, t + tr.period) and is_inf(level.wash_eta(tr.x1 + 5.0, t)), "trains repeat every period; off the track there's none")
+	var gap: float = level.wash_eta(bare, t_front + 1.0) + 1.0
+	check(gap >= tr.gap_min - 0.01 and gap <= tr.gap_max + 0.01 and is_inf(level.wash_eta(tr.x1 + 5.0, t)),
+		"the next sheet comes one train gap later (%.1f s); off the track there's none" % gap)
+	_test_departures(level.data)
 	var shut := await _wash(bare, 0.0, 0.0, t)
 	check(shut > 0.95, "under the sheet with the umbrella shut: exposure %.2f ~ 1" % shut)
 	var upright := await _wash(bare, 1.0, 0.0, t)
@@ -377,11 +410,11 @@ func _test_viaduct() -> void:
 	var tilted := await _wash(bare, 1.0, Tun.f("umbrella_max_tilt"), t)
 	check(tilted > 0.3, "umbrella tilted fully forward: exposure %.2f, the sheet reaches him" % tilted)
 	if awning > 0.0:
-		var t_aw := tr.phase + (tr.x1 - awning) / Track.TRAIN_SPEED + 0.3
+		var t_aw := _next_sheet(awning) + 0.3
 		check(level.wash_at(awning, t_aw) and await _wash(awning, 0.0, 0.0, t_aw) == 0.0, "under an awning beneath the deck the sheet never reaches him")
 	check(open_sky > 0.0, "telstar_parade has an open lot off the decks at x=%.1f" % open_sky)
 	if open_sky > 0.0:
-		var t_sky := tr.phase + (tr.x1 - open_sky) / Track.TRAIN_SPEED + 0.3
+		var t_sky := _next_sheet(open_sky) + 0.3
 		var sky_shut := await _wash(open_sky, 0.0, 0.0, t_sky)
 		var sky_upright := await _wash(open_sky, 1.0, 0.0, t_sky)
 		var sky_between := await _wash(open_sky, 0.0, 0.0, t_sky + 2.0)
@@ -390,7 +423,7 @@ func _test_viaduct() -> void:
 	await _place(bare, 0.0, 0.0)
 	level.elapsed = t
 	check(level.player._wash_threat(1.8), "the bots see the sheet coming where he stands")
-	level.elapsed = t_front - 10.0
+	level.elapsed = t_front - 5.0
 	check(not level.player._wash_threat(1.8), "... and not while the next train is far off")
 
 	var keep := -1

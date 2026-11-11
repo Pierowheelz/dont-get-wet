@@ -268,10 +268,9 @@ func car_threat(x: float) -> bool:
 	return false
 
 
-## Whether a train's sheet of water is falling at x at level-clock time t. Callers pass `elapsed`,
-## which a checkpoint restores, so trains stay in sync after a resume.
+## Whether a train's sheet of water is falling at x at level-clock time t. Callers pass `elapsed`.
 func wash_at(x: float, t: float) -> bool:
-	return track != null and track.wash_at(x, t)
+	return track != null and (track.wash_at(x, t) or Game.debug_wash_always and track.on_track(x))
 
 
 ## Seconds until a train's sheet next falls at x (0 while it is falling there, INF off the track).

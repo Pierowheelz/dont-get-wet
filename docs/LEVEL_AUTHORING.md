@@ -128,13 +128,14 @@ each `x` where the walker is under cover, so a player who stops to listen stays 
 line under the street name on the loading card) and `fail` (an array of fail-screen lines that
 replaces the generic pool for that street).
 
-**`track`** (`x0`, `x1`, `style`, `period`, `phase`; `s.track(period=, phase=)`) is an elevated
-monorail beam along the street, just in front of the walker's line. `s.track()` runs it from 40 m
-before the street to 40 m past its end, so neither end shows; pass `x0=`/`x1=` to shorten it, and keep
-the ends off screen, because a train appears at `x1` and vanishes past `x0`. A train sets off from
-`x1` every `period` seconds, offset by `phase` on the level clock, and runs right to left at 12 m/s.
-Wherever it is, it sheds a sheet of water for 11 m behind its nose, so each point is wet for about
-0.9 s. The sheet falls straight down:
+**`track`** (`x0`, `x1`, `style`, `gap`; `s.track(gap=(10, 25))`) is an elevated monorail beam along the
+street, just in front of the walker's line. `s.track()` runs it from 40 m before the street to 40 m past
+its end, so neither end shows; pass `x0=`/`x1=` to shorten it, and keep the ends off screen, because a
+train appears at `x1` and vanishes past `x0`. Trains set off from `x1` a random `gap` apart, uniform
+between its two values in seconds and rolled afresh on every attempt (a checkpoint resume rolls again),
+and run right to left at 12 m/s. Trains are already on the track when the clock starts. Wherever it is,
+it sheds a sheet of water for 11 m behind its nose, so each point is wet for about 0.9 s. The sheet
+falls straight down:
 
 - Lot cover stops it: an awning beneath the track keeps the walker dry.
 - An open umbrella held upright stops it. A tilted one doesn't: rays go straight up from the body
@@ -151,31 +152,38 @@ carries its own lamps, one every other pillar) and for a `balcony` or `arcade` l
 slabs sit at 4.1 m); use awnings. Shop signs (3.1 to 3.9 m on the facade), blade signs and awnings
 clear it. Pillars stand under the beam every 14 m, never in a side street.
 
-**`viaducts`** (`x0`, `x1`, `style`; `s.viaduct(from_tag, to_tag)`) are deck spans hung off the back
-of the beam from the start of `from_tag` to the end of `to_tag`, and need a `track`. A deck is a glass
-canopy over the walker (underside 3.35 m, above the awnings), and it is cover, so no rain falls beneath
-it between trains. When a train crosses it, the sheet falls from the deck's underside instead of the
-train's, so the deck is shelter from the rain but not from the wash. A gutter under a deck fails
-track-clearance, because its downpipe reaches out through the deck.
+**`viaducts`** (`x0`, `x1`, `style`; `s.viaduct(from_tag, to_tag)`) are deck spans hung off the back of
+the beam from the start of `from_tag` to the end of `to_tag`, and need a `track`. A deck is a solid slab
+over the walker (underside 3.35 m, above the awnings) with an enamel fascia, a girder under it every 2.5
+m and lamps in its soffit, and it is cover, so no rain falls beneath it between trains. The visual rain
+stops across the deck's whole x range, from the wall out to the camera, and awnings beneath it don't
+drip; the beam's light drip line is the only one along the viaduct. A deck would hide the 3.4 to 3.9 m
+part of the sign band, so a shop beneath one hangs a smaller sign just above its awning instead. When a
+train crosses it, the sheet falls from the deck's underside instead of the train's, so the deck is
+shelter from the rain but not from the wash. A gutter under a deck fails track-clearance, because its
+downpipe reaches out through the deck.
 
-Everything follows from `Level.wash_at(x, t)` and `wash_eta(x, t)` on the level clock (`elapsed`),
-which a checkpoint restores, so trains stay in sync after a resume (`--clock=S` starts the clock at S,
-for screenshots). The bots open the umbrella upright when a sheet will land on bare pavement on their
-path within the opening time plus 0.5 s, and never rest where it can land. They read every train
-perfectly and almost never get washed, so a track costs them stamina, time and a little slanted rain
-while they stand upright; Telstar Parade sets `par_speed` 1.4 for that reason. `style` is
-`"monorail"`; other styles are accepted but not built yet.
+Everything follows from `Level.wash_at(x, t)` and `wash_eta(x, t)` on the level clock (`elapsed`) and
+the attempt's departures (`Track.departures`), so gameplay, visuals, sound and the bots agree within a
+run. Testing flags: `--clock=S` starts the clock at S, `--train-seed=N` rolls the same departures every
+time (`--autopilot` runs and the tests always use seed 1, so bot numbers compare), and `--wash-always`
+drops the sheet along the whole track at once. The bots open the umbrella upright when a sheet will land
+on bare pavement on their path within the opening time plus 0.5 s, and never rest where it can land.
+They read every train perfectly and almost never get washed, so a track costs them stamina, time and a
+little slanted rain while they stand upright; Telstar Parade sets `par_speed` 1.4 for that reason.
+`style` is `"monorail"`; other styles are accepted but not built yet.
 
 **`set_pieces`** (`name`, `x0`, `x1`, `teaches`) is a top-level list the game ignores. Fill it in so
 the next person can see the intent without replaying the street.
 
 ## The design checks
 
-`level_preview.py` scores each tenth of `end_x` (about 26 m) for open sky x rain, plus gutters,
-puddles and crossings. A deck counts as cover. Every metre of track with no lot cover beneath it, deck
-or open sky, scores `WASH_W` (0.4) of a metre of open sky at rain 1 on top, because the wash is
-periodic and dodgeable. The `wash` column shows that share, and the strip draws it in the hazards lane.
-The checks are:
+`level_preview.py` scores each tenth of `end_x` (about 26 m) for open sky x rain, plus gutters, puddles
+and crossings. A deck counts as cover. Every metre of track with no lot cover beneath it, deck or open
+sky, scores `WASH_W` (5.2) x the wash duty of a metre of open sky at rain 1 on top. The duty is the
+share of the time a sheet falls on a spot, 0.92 s over the mean gap (0.052 for `gap` 10 to 25 s),
+because the preview can't know an attempt's timing. The `wash` column shows that share, and the strip
+draws it in the hazards lane. The checks are:
 
 - **start-covered.** The first 20 m has no open sky.
 - **ramp-to-midpoint.** Through decile 5, no decile falls more than 20% of the peak below the one
@@ -186,12 +194,13 @@ The checks are:
 - **checkpoints-safe.** `"checkpoints"` holds three x values, one near 25%, 50% and 75% of `end_x`
   (within 10% of `end_x`). Each sits 0.5 m into a stretch of cover and has `CLEAR_M` (4 m) of dry cover
   ahead before the next gap, gutter, puddle, car crossing's headlight zone or stretch of track with
-  no lot cover (the wash can land there whatever the clock says, so on a street with a track only
+  no lot cover (the wash can land there whatever the trains do, so on a street with a track only
   awnings and slabs qualify). Cover ends are pulled in
   by the wind slant plus half a body. `Street.write()` picks them with `solve_checkpoints`, so the plan
   never lists them. To place them by hand, set `s.checkpoints = [x1, x2, x3]` before `s.write()`; the
   check still applies. `tools/checkpoint_check.sh` replays each one in the game with the umbrella shut
-  and fails if the walker gets wet inside those 4 m.
+  and the sheet falling along the whole track (`--wash-always`), and fails if the walker gets wet
+  inside those 4 m.
 - **track-clearance** (streets with a `track`). No lamp post, balcony or arcade under the track and no
   gutter under a deck, as described under `track` above.
 

@@ -1,13 +1,15 @@
 class_name Track
 extends RefCounted
 ## A level's elevated monorail (its `track` record) and the deck spans along it (`viaducts`).
-## A train sets off from x1 every `period` s, offset by `phase` on the level clock, runs right to
-## left to x0, and sheds a sheet of water for WASH_LEN behind its nose wherever it is. Under a deck
-## the sheet falls from the deck's underside, elsewhere from the train's. Everything here is a pure
-## function of the level clock, so gameplay, visuals, audio and the bots all read the same train.
+## Trains set off from x1 at `departures` on the level clock, each a random `gap` after the last,
+## run right to left to x0, and shed a sheet of water for WASH_LEN behind the nose wherever they are.
+## Under a deck the sheet falls from the deck's underside, elsewhere from the train's. Everything
+## here is a pure function of the level clock and the departures rolled for this attempt, so
+## gameplay, visuals, audio and the bots all read the same train.
 
 const TRAIN_SPEED := 12.0
 const WASH_LEN := 11.0          # the sheet trails the nose this far, so each point is wet ~0.9 s
+const WASH_S := WASH_LEN / TRAIN_SPEED   # how long the sheet falls on any one spot
 const TRAIN_LEN := 30.0
 const WARN_S := 2.0
 
@@ -30,21 +32,27 @@ const DECK_Z1 := BEAM_Z0
 var x0: float
 var x1: float
 var style: String
-var period: float
-var phase: float
+var gap_min: float
+var gap_max: float
 var decks: Array = []           # [x0, x1] of each deck span
+var departures := PackedFloat64Array()   # ascending level-clock times a train sets off from x1
+var _rng := RandomNumberGenerator.new()
 
 
-static func parse(track: Dictionary, viaducts: Array) -> Track:
+## `seed` rolls this attempt's departures; the same seed always gives the same trains.
+static func parse(track: Dictionary, viaducts: Array, seed: int) -> Track:
 	var tr := Track.new()
 	tr.x0 = float(track["x0"])
 	tr.x1 = float(track["x1"])
 	tr.style = String(track.get("style", "monorail"))
-	tr.period = float(track["period"])
-	tr.phase = float(track.get("phase", 0.0))
-	assert(tr.period > WASH_LEN / TRAIN_SPEED, "track period shorter than one wash")
+	tr.gap_min = float(track["gap"][0])
+	tr.gap_max = float(track["gap"][1])
+	assert(tr.gap_min > WASH_S and tr.gap_max >= tr.gap_min, "train gap shorter than one wash")
 	for v in viaducts:
 		tr.decks.append([float(v["x0"]), float(v["x1"])])
+	tr._rng.seed = seed
+	# The first train set off a whole crossing before the clock starts, so the track is busy at t = 0.
+	tr.departures.append(-(tr.x1 - tr.x0 + TRAIN_LEN) / TRAIN_SPEED - tr._rng.randf_range(0.0, tr.gap_max))
 	return tr
 
 
@@ -64,40 +72,40 @@ func sheet_top(x: float) -> float:
 	return DECK_Y if deck_at(x) else TRAIN_Y
 
 
-## Seconds since the front of the current cycle's sheet passed x (0..period).
-func _since_front(x: float, t: float) -> float:
-	return fposmod(t - phase - (x1 - x) / TRAIN_SPEED, period)
+## Index in `departures` of the train that set off most recently by t (-1 before the first);
+## noses(t)[i] belongs to departure(t) - i. Rolls further departures as the clock nears the last one,
+## so there is always a next train.
+func departure(t: float) -> int:
+	while departures[-1] <= t:
+		departures.append(departures[-1] + _rng.randf_range(gap_min, gap_max))
+	return departures.bsearch(t, false) - 1
 
 
 func wash_at(x: float, t: float) -> bool:
-	return on_track(x) and _since_front(x, t) < WASH_LEN / TRAIN_SPEED
+	return wash_eta(x, t) == 0.0
 
 
 ## Seconds until the sheet next falls at x: 0 while it is falling there, INF off the track.
 func wash_eta(x: float, t: float) -> float:
 	if not on_track(x):
 		return INF
-	var s := _since_front(x, t)
-	return 0.0 if s < WASH_LEN / TRAIN_SPEED else period - s
-
-
-## Departure number of the train that set off most recently; noses(t)[i] belongs to cycle(t) - i.
-func cycle(t: float) -> int:
-	return floori((t - phase) / period)
-
-
-## World x of the nose of the train that set off most recently.
-func nose(t: float) -> float:
-	return x1 - TRAIN_SPEED * fposmod(t - phase, period)
+	var u := t - (x1 - x) / TRAIN_SPEED   # when a train passing x now would have set off
+	var k := departure(u)
+	if k >= 0 and u - departures[k] < WASH_S:
+		return 0.0
+	return departures[k + 1] - u
 
 
 ## World x of every train nose on the track at time t, newest first.
 func noses(t: float) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
-	var nx := nose(t)
-	while nx + TRAIN_LEN >= x0:
+	var k := departure(t)
+	while k >= 0:
+		var nx := x1 - TRAIN_SPEED * (t - departures[k])
+		if nx + TRAIN_LEN < x0:
+			break
 		out.append(nx)
-		nx -= TRAIN_SPEED * period
+		k -= 1
 	return out
 
 

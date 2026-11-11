@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Telstar Parade plan: see docs/LEVEL_AUTHORING.md. Writes levels/telstar_parade.json.
 
-Neon Junction's chrome under an elevated monorail that runs the whole street. A train comes every 12 s
-and sheds a sheet of water wherever it is: wait it out under an awning, hurry through, or keep the
-umbrella upright, which in open sky means giving up the tilt into the wind. Four glass deck spans are
-long cover from the rain, not from the wash. Between them, the usual mix of gaps, gutters and cars.
-Every payphone rings as the walker nears it.
+Neon Junction's chrome under an elevated monorail that runs the whole street. A train comes every 10 to
+25 s, rolled afresh each attempt, and sheds a sheet of water wherever it is: wait it out under an awning,
+hurry through, or keep the umbrella upright, which in open sky means giving up the tilt into the wind.
+Five viaduct deck spans, the first over the opening arcade, are long cover from the rain, not from the
+wash. Between them, the usual mix of gaps, gutters and cars. Every payphone rings as the walker nears it.
 """
 from street import Street
 
@@ -26,12 +26,12 @@ def shop(tag, w, style, cover, sign=None, **kw):
     s.lot(tag, w, style, cover, sign=sign, neon=bool(sign), **kw)
 
 
-# 1. The Telstar Arcade: finned kiosks and chrome canopies, continuous cover
+# 1. The Telstar Arcade: finned kiosks and chrome canopies under the first deck, where the first trains pass
 shop("telstar", 6, "shop_lit", "awning", sign="TELSTAR", color="teal", floors=5, awning_style="bubble")
 shop("automat", 8, "shop_lit", "awning", sign="AUTOMAT", color="red", floors=6, awning_style="googie")
 shop("booth1", 5, "shop_dark", "awning", sign="PHONES", color="blue", floors=5, awning_style="googie")
 shop("milk", 6, "shop_lit", "awning", sign="MILK BAR", color="orange", floors=4, awning_style="bubble")
-# first gaps
+# first gaps, the first two still under the deck
 seam("seam1", 2.5, 4)
 shop("radio", 5, "shop_lit", "awning", sign="RADIO", color="red", floors=3)
 shop("lot1", 4, "vacant", "none", floors=0)
@@ -44,7 +44,7 @@ shop("drug", 6, "shop_lit", "awning", sign="DRUGS", color="green", floors=4)
 shop("tickets", 5, "shop_lit", "awning", sign="TICKETS", color="red", floors=4, awning_style="googie")
 s.xing("comet", 7, car=True)
 shop("bank", 6, "doorway", "awning", sign="SAVINGS", color="blue", floors=6)
-# 2. The Parade Viaduct: the first trains, with awnings under the deck to wait beneath
+# 2. The Parade Viaduct: awnings under the deck to wait beneath
 shop("tv", 6, "shop_lit", "awning", sign="TELEVISIONS", color="teal", floors=4, awning_style="bubble")
 shop("vac1", 4, "vacant", "none", floors=0)
 shop("diner", 6, "shop_lit", "awning", sign="SATURN DINER", color="red", floors=4, awning_style="googie")
@@ -68,7 +68,7 @@ s.xing("orbit", 9, car=True)
 shop("credit", 8, "shuttered", "awning", sign="CREDIT", color="green", floors=7)
 shop("lot4", 7, "vacant", "none", floors=0)
 shop("chrome", 6, "shop_lit", "awning", sign="CHROME DINER", color="red", floors=3, awning_style="bubble")
-# 3. The Express Viaduct: trains closer together, longer bare stretches under the deck
+# 3. The Express Viaduct: longer bare stretches under the deck
 shop("laund", 5, "shop_lit", "awning", sign="LAUNDERETTE", color="teal", floors=4, awning_style="googie")
 shop("vac3", 6, "vacant", "none", floors=0)
 shop("bowl", 5, "shop_lit", "awning", sign="BOWL", color="red", floors=4, awning_style="bubble")
@@ -122,7 +122,8 @@ shop("inn", 8, "inn", "awning", sign="THE RAINY DAY INN", color="red", floors=6,
 shop("tower", 8, "shop_dark", "awning", sign="TOWER", color="teal", floors=8, awning_style="bubble")
 s.door("inn")
 
-s.track(period=12.0, phase=9.0)
+s.track(gap=(10, 25))
+s.viaduct("telstar", "cosmo")
 s.viaduct("tv", "cafe")
 s.viaduct("laund", "nova")
 s.viaduct("disco", "orb")
@@ -202,12 +203,15 @@ s.figure(s.mid("records"))
 s.figure(s.mid("station") + 1.5)
 s.figure(s.mid("mall"))
 
-s.set_piece("The Telstar Arcade", 0.0, s.end("milk"),
-            "walking under continuous awnings past finned kiosks and the first ringing payphone while the "
-            "first trains pass overhead: the awnings keep their sheet off")
+s.set_piece("The Telstar Arcade", 0.0, s.end("cosmo"),
+            "the first viaduct deck, over continuous awnings past finned kiosks and the first ringing payphone: "
+            "the first trains pass overhead and the awnings keep their sheet off. At the end of the deck two "
+            "short bare stretches, dry from the rain but not from a train's sheet")
+s.set_piece("First gaps", s.start("alley1"), s.end("bank"),
+            "the first open sky: two short gaps, then Comet Street's car with cover along its approach")
 s.set_piece("The Parade Viaduct", s.start("tv"), s.end("vac2"),
-            "the first deck: cover from the rain, but each train sheds its sheet onto the bare stretches "
-            "beneath it. Wait under an awning, hurry through, or hold the umbrella upright")
+            "a longer deck with wider bare stretches: cover from the rain, but each train sheds its sheet onto "
+            "them. Wait under an awning, hurry through, or hold the umbrella upright")
 s.set_piece("Orbit Avenue", s.start("lot2"), s.end("chrome"),
             "open lots, a gutter and a car crossing as the tailwind rises, with trains washing the open sky "
             "and the side street too: tilting into the wind and straightening up for the train pull against "

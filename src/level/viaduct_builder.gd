@@ -8,13 +8,16 @@ extends RefCounted
 const PILLAR_Z := (Track.BEAM_Z0 + Track.BEAM_Z1) * 0.5
 const PILLAR_STEP := 14.0
 const LAMP_EVERY := 2           # pillars per beam lamp: about the old lamp-post spacing
-const RIB_STEP := 2.0
+const GIRDER_STEP := 2.5
+const GIRDER_Y := 3.12          # foot of a girder at the fascia; still above the signs under the deck
+const FASCIA_Y0 := 3.2
+const FASCIA_Y1 := 3.78         # just under the train's back skirt (Track.TRAIN_Y)
 const DRIP_CHUNK := 30.0        # drip emitters stay short so off-screen ones are culled
+const BEAM_DRIP := 0.33         # the beam's drip line is light and sparse: the only drip along the viaduct
 
 var b: LevelBuilder
 var paint: Material
 var chrome: Material
-var glass: StandardMaterial3D
 
 
 func build(p_builder: LevelBuilder, tr: Track) -> void:
@@ -38,7 +41,7 @@ func build(p_builder: LevelBuilder, tr: Track) -> void:
 	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var dx := tr.x0
 	while dx < tr.x1:
-		b._drips(dx, minf(dx + DRIP_CHUNK, tr.x1), Track.BEAM_Y + 0.1, z1 + 0.04)
+		b._drips(dx, minf(dx + DRIP_CHUNK, tr.x1), Track.BEAM_Y + 0.1, z1 + 0.04, BEAM_DRIP)
 		dx += DRIP_CHUNK
 	for d in tr.decks:
 		_deck(d[0], d[1])
@@ -56,36 +59,44 @@ func build(p_builder: LevelBuilder, tr: Track) -> void:
 		px += PILLAR_STEP
 
 
-## A deck span from xa to xb, hung off the back of the beam: a glass canopy in a slim chrome frame,
-## so the shop signs behind it still show, with a neon tube along its lip.
+## A deck span from xa to xb, hung off the back of the beam: a solid slab with an enamel fascia,
+## haunched girders beneath it and lamps in its soffit. The fascia hangs only as low as the slab's
+## back edge already hides, so the signs dropped below the deck (LevelBuilder._sign_under_deck) still show.
 func _deck(xa: float, xb: float) -> void:
 	var w := xb - xa
 	var xm := (xa + xb) * 0.5
 	var z0 := Track.DECK_Z0
 	var z1 := Track.DECK_Z1
 	var y0 := Track.DECK_Y
-	if glass == null:
-		glass = StandardMaterial3D.new()
-		glass.albedo_color = Color(0.55, 0.8, 0.85, 0.3)
-		glass.metallic = 0.5
-		glass.roughness = 0.05
-		glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		glass.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var pane := b._box(Vector3(w, 0.04, z1 - z0), Vector3(xm, y0 + 0.14, (z0 + z1) * 0.5), glass)
-	pane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	b._box(Vector3(w, 0.06, 0.08), Vector3(xm, y0 + 0.13, z0 + 0.04), chrome)
-	b._cover_box(Vector3(w, Track.DECK_TOP - y0, z1 - z0), Transform3D(Basis(), Vector3(xm, (y0 + Track.DECK_TOP) * 0.5,
-		(z0 + z1) * 0.5)))
-	b._box(Vector3(w, 0.06, 0.06), Vector3(xm, y0 + 0.13, z1 - 0.02), chrome)
-	var tube := b._box(Vector3(w - 0.4, 0.035, 0.035), Vector3(xm, y0 + 0.06, z1 - 0.1), b._neon_mat(Color(0.25, 1.0, 0.92), 2.2))
+	var y1 := Track.DECK_TOP
+	var zc := (z0 + z1) * 0.5
+	b._cover_box(Vector3(w, y1 - y0, z1 - z0), Transform3D(Basis(), Vector3(xm, (y0 + y1) * 0.5, zc)))
+	b._box(Vector3(w, y1 - y0, z1 - z0), Vector3(xm, (y0 + y1) * 0.5, zc), b._mat("deck_soffit", Color(0.36, 0.35, 0.34), 0.9))
+	b._box(Vector3(w, y1 - y0, 0.14), Vector3(xm, (y0 + y1) * 0.5, z0 + 0.07), paint)
+	var enamel := b._mat("deck_fascia", Color(0.86, 0.82, 0.72), 0.35, 0.1)
+	enamel.emission_enabled = true
+	enamel.emission = enamel.albedo_color
+	enamel.emission_energy_multiplier = 0.18
+	b._box(Vector3(w, FASCIA_Y1 - FASCIA_Y0, 0.16), Vector3(xm, (FASCIA_Y0 + FASCIA_Y1) * 0.5, z1 - 0.08), enamel)
+	var band := b._box(Vector3(w - 0.3, 0.07, 0.02), Vector3(xm, FASCIA_Y1 - 0.13, z1 + 0.005), b._neon_mat(Color(1.0, 0.62, 0.25), 1.4))
+	band.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for y in [FASCIA_Y0 + 0.01, FASCIA_Y1 - 0.01]:
+		b._box(Vector3(w, 0.04, 0.04), Vector3(xm, y, z1 + 0.01), chrome)
+	var tube := b._box(Vector3(w - 0.4, 0.035, 0.035), Vector3(xm, FASCIA_Y0 + 0.06, z1 + 0.03), b._neon_mat(Color(0.25, 1.0, 0.92), 2.2))
 	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var rx := xa + 1.0
-	while rx < xb - 0.5:
-		b._box(Vector3(0.05, 0.08, z1 - z0), Vector3(rx, y0 + 0.08, (z0 + z1) * 0.5), chrome)
-		rx += RIB_STEP
+	var rib := PackedVector2Array([Vector2(z0 + 0.14, y0), Vector2(z1 - 0.16, y0), Vector2(z1 - 0.16, GIRDER_Y),
+		Vector2(z0 + 0.14, y0 - 0.06)])
+	var rx := xa + GIRDER_STEP * 0.5
+	while rx < xb - 0.6:
+		b.root.add_child(extrude(rib, rx - 0.07, rx + 0.07, paint))
+		b._box(Vector3(0.18, 0.025, 0.2), Vector3(rx, GIRDER_Y + 0.01, z1 - 0.26), chrome)
+		b._box(Vector3(0.08, FASCIA_Y1 - FASCIA_Y0 - 0.06, 0.03), Vector3(rx, (FASCIA_Y0 + FASCIA_Y1) * 0.5, z1 + 0.01), chrome)
+		rx += GIRDER_STEP
+	for hx in [xa + 0.15, xb - 0.15]:
+		b.root.add_child(extrude(rib, hx - 0.15, hx + 0.15, paint))
 	var lamp := b._neon_mat(Color(0.85, 0.95, 1.0), 1.6)
-	var lx := xa + 3.0
-	while lx < xb - 2.0:
+	var lx := xa + GIRDER_STEP
+	while lx < xb - 1.0:
 		var bar := b._box(Vector3(1.2, 0.05, 0.12), Vector3(lx, y0 - 0.03, 1.7), lamp)
 		bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var om := OmniLight3D.new()
@@ -96,8 +107,7 @@ func _deck(xa: float, xb: float) -> void:
 		om.light_volumetric_fog_energy = 0.4
 		om.position = Vector3(lx, y0 - 0.35, 1.9)
 		b.root.add_child(om)
-		lx += 8.0
-	b._drips(xa + 0.2, xb - 0.2, y0 + 0.1, z0 - 0.04)
+		lx += GIRDER_STEP * 2.0
 
 
 ## A station stair flight against the shopfronts, from the pavement at x + STAIR_RUN up to the deck at

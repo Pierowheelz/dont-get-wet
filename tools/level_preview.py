@@ -75,6 +75,8 @@ class Street:
         self.sun = [(float(f["x"]), float(f["x"]) + float(f["w"])) for f in self.features if f["type"] == "sun"]
         tr = data.get("track")
         self.track = (float(tr["x0"]), float(tr["x1"])) if tr else None
+        # Share of the time a sheet is falling on any one spot of the track, from the mean gap between trains.
+        self.wash_duty = WASH_S / ((float(tr["gap"][0]) + float(tr["gap"][1])) / 2.0) if tr else 0.0
         self.decks = [(float(v["x0"]), float(v["x1"])) for v in data.get("viaducts", [])]
         self.covers = self._cover_spans()
         self.wash = self._wash_zones()
@@ -158,6 +160,7 @@ PREFER_PENALTY_M = 2.0                   # how much farther from the target a < 
 ENTRY_M = 0.5                            # checkpoint sits this far into a safe run, so the whole body is sheltered
 SLANT_H = 3.1                            # awning height the wind slants rain across
 DECK_H = 3.35                            # Track.DECK_Y: a deck's ends let slanted rain further in
+WASH_S = 11.0 / 12.0                     # Track.WASH_S: seconds a sheet falls on any one spot
 WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind
 GUST_MAX = 1.4                           # Level.wind: gusts scale wind by up to 1 + 0.4
 BODY_HALF_M = 0.3
@@ -246,7 +249,7 @@ def solve_checkpoints(st):
 
 START_COVER_M = 20.0
 RAMP_TOL = 0.20
-WASH_W = 0.4      # a metre the wash can land on scores this fraction of a metre of open sky at rain 1
+WASH_W = 5.2      # a metre the wash can land on scores this x its wash duty of a metre of open sky at rain 1
 HOLD_TOL = 0.30
 
 
@@ -269,15 +272,16 @@ def decile_table(st, tun):
         per100 = 100.0 / (b - a)
         wash = sum(1 for x in xs if st.washed(x)) / n
         diff = 10.0 * sum((not st.covered(x)) * st.rain(x) * (1 + abs(st.wind(x))) for x in xs) / n \
-            + 10.0 * WASH_W * wash + (0.5 * g + 0.15 * p + 0.4 * c) * per100
+            + 10.0 * WASH_W * st.wash_duty * wash + (0.5 * g + 0.15 * p + 0.4 * c) * per100
         rows.append(dict(a=a, b=b, open=open_frac, longest=longest, longest_full=longest_full,
                          g=g, p=p, c=c, rain=rain, wind=wind, wash=wash, diff=diff))
     return rows
 
 
 DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
-                f"+ 10 * {WASH_W} * wash + (0.5*gutters + 0.15*puddles + 0.4*crossings) per 100 m, per decile of "
-                "end_x (rain is 0 in sun breaks; wash = share of track with no lot cover)")
+                f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.15*puddles + 0.4*crossings) per 100 m, per decile "
+                "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover; duty = share of the "
+                "time a sheet falls on a spot, Track.WASH_S over the mean train gap)")
 
 
 def crossable_m(tun, wind):

@@ -2,7 +2,7 @@ shader_type particles;
 // Rain streaks. Emitted in a box around the emitter (which follows the camera), falling along
 // `fall_dir`. They stop (and splash) on a cover height map built from the level data (awnings,
 // slabs, roofs, ground) and on the umbrella canopy, and vanish inside sunny zones — so the visual
-// rain matches the gameplay rain model exactly.
+// rain matches the gameplay rain model exactly — and under deck spans, out to the camera.
 
 uniform vec3 box_extents = vec3(14.0, 7.0, 5.0);
 uniform vec3 fall_dir = vec3(0.0, -1.0, 0.0);
@@ -47,12 +47,12 @@ void process() {
 	vec3 cm = (cuv.x >= 0.0 && cuv.x <= 1.0 && cuv.y >= 0.0 && cuv.y <= 1.0) ? texture(cover_map, cuv).rgb : vec3(-0.16, 0.0, -0.16);
 	bool hit = pos.y < cm.b;
 	// Thin shell: only stops drops just below its surface (i.e. ones that fell onto it this step).
-	if (cm.g > 0.5 && pos.y < cm.r && pos.y > cm.r - 0.3) hit = true;
+	if (cm.g > 0.5 && cm.g < 1.5 && pos.y < cm.r && pos.y > cm.r - 0.3) hit = true;
 	if (umbrella.w > 0.05) {
 		vec2 d = pos.xz - umbrella.xz;
 		if (dot(d, d) < umbrella.w * umbrella.w && pos.y < umbrella.y + 0.12 && pos.y > umbrella.y - 0.35) hit = true;
 	}
-	bool dead = hit;
+	bool dead = hit || (cm.g > 1.5 && pos.y < cm.r);   // under a deck: gone, no splash
 	// Sun test, matching Player._rain_exposure: a drop reads as falling on whatever it covers on
 	// screen, so move it along its camera ray into the player's plane, then follow its fall line to
 	// sky_y, where gameplay decides whether that spot is rained on. Testing raw world x instead

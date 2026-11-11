@@ -24,7 +24,7 @@ var _trains: Array[Node3D] = []
 var _sets: Array = []               # per sheet set: {sheets, mat, splash}
 var _floors: Array = []             # per sheet layer: where the sheet lands, every SEG along the track
 var _pass: AudioStreamPlayer
-var _played := -1000000             # cycle of the last train whose rumble started
+var _played := -1000000             # departure of the last train whose rumble started
 var _extra := 0.0                   # visuals keep running after the gameplay clock stops
 var _last_elapsed := -1.0
 
@@ -36,7 +36,7 @@ func _ready() -> void:
 	if ResourceLoader.exists("res://assets/audio/train_pass.ogg"):
 		_pass.stream = load("res://assets/audio/train_pass.ogg")
 	add_child(_pass)
-	var n := ceili((track.x1 - track.x0 + Track.TRAIN_LEN) / (Track.TRAIN_SPEED * track.period)) + 1
+	var n := ceili((track.x1 - track.x0 + Track.TRAIN_LEN) / (Track.TRAIN_SPEED * track.gap_min)) + 1
 	for i in n:
 		var train := _make_train()
 		train.visible = false
@@ -165,7 +165,7 @@ func _draw_sheet(ss: Dictionary, wash: Array, pl: Player) -> void:
 func _rumble(noses: PackedFloat32Array, t: float, px: float, speed: float) -> void:
 	if not track.on_track(px):
 		return
-	var newest := track.cycle(t)
+	var newest := track.departure(t)
 	for i in noses.size():
 		var c := newest - i
 		if c <= _played:
