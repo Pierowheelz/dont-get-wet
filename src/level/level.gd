@@ -133,6 +133,11 @@ func _ready() -> void:
 	var peds := preload("res://src/level/pedestrians.gd").new()
 	peds.level = self
 	add_child(peds)
+	if data.has("follower"):
+		var follower := preload("res://src/level/follower.gd").new()
+		follower.name = "Follower"
+		follower.level = self
+		add_child(follower)
 
 	var traffic := preload("res://src/level/traffic.gd").new()
 	traffic.level = self
@@ -148,6 +153,7 @@ func _ready() -> void:
 		audio = load("res://src/audio/level_audio.gd").new()
 		audio.level = self
 		add_child(audio)
+	_load_hints()
 
 
 func _parse_features() -> void:
@@ -263,6 +269,7 @@ func _process(delta: float) -> void:
 	_update_camera(delta)
 	if player:
 		_first_encounters()
+		_street_hints()
 		_update_gutter_streams()
 		_check_checkpoints()
 	if Game.autopilot and Game.trace_path != "" and player:
@@ -348,6 +355,28 @@ func _restore_checkpoint() -> void:
 	_car_hints = cp["car_hints"]
 	_next_cp = int(cp["index"]) + 1
 	resumed = true
+
+
+var _hints: Array = []   # [x, text, duration] from the level's `hints`, ascending x
+var _next_hint := 0
+
+
+## A checkpoint resume spawns the walker past some hints; those stay spent.
+func _load_hints() -> void:
+	for h in data.get("hints", []):
+		_hints.append([float(h["x"]), String(h["text"]), float(h.get("dur", 4.0))])
+	_hints.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	while _next_hint < _hints.size() and _hints[_next_hint][0] <= player.position.x:
+		_next_hint += 1
+
+
+## Each of the level's `hints` shows once, as the walker passes its x.
+func _street_hints() -> void:
+	while _next_hint < _hints.size() and player.position.x >= _hints[_next_hint][0]:
+		var h: Array = _hints[_next_hint]
+		_next_hint += 1
+		if hud:
+			hud.hint(h[1], h[2])
 
 
 ## One-off contextual hints the first time each mechanic shows up in a level.

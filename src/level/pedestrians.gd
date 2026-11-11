@@ -76,13 +76,15 @@ func _place_standers() -> void:
 
 
 ## The level's `figures`: the walker's own model in a doorway, umbrella furled at his side,
-## facing up the street the way the walker is going.
+## facing up the street the way the walker is going, or with `"facing": "away"` toward the building.
 func _place_figures() -> void:
 	if not ResourceLoader.exists(Player.CHARACTER_SCENE):
 		return
 	for f in level.data.get("figures", []):
 		var v: Node3D = (load(Player.CHARACTER_SCENE) as PackedScene).instantiate()
 		v.position = Vector3(float(f["x"]), level.ground_y(float(f["x"])), 0.5)
+		if f.get("facing", "street") == "away":
+			v.rotation.y = PI * 0.5   # back to the camera
 		level.world.add_child(v)
 		v.set_motion(0.0, 0.0)
 		v.set_stopped(false)

@@ -24,6 +24,8 @@ class Street:
         self.at = {}
         self.lots, self.crossings, self.features, self.props, self.set_pieces = [], [], [], [], []
         self.figures = []
+        self.hints = []
+        self.follower_appear = []
         self.end_x = None
         self.checkpoints = None   # set by hand to override the solver
 
@@ -65,9 +67,21 @@ class Street:
     def prop(self, id, x, **kw):
         self.props.append({"id": id, "x": round(x, 2), **kw})
 
-    def figure(self, x):
-        """A man in the walker's own suit, standing in a doorway facing up the street. Scenery only."""
-        self.figures.append({"x": round(x, 2)})
+    def figure(self, x, facing="street"):
+        """A man in the walker's own suit, standing in a doorway facing up the street (or, with
+        facing="away", toward the building with his back to the camera). Scenery only."""
+        f = {"x": round(x, 2)}
+        if facing != "street":
+            f["facing"] = facing
+        self.figures.append(f)
+
+    def hint(self, x, text, dur=4.0):
+        """A HUD line shown once per attempt as the walker passes x. Takes the {stop}/{hurry}/... tokens."""
+        self.hints.append({"x": round(x, 2), "text": text, "dur": dur})
+
+    def follower(self, x, hold):
+        """The follower walks in from the left edge when the walker passes x and holds there for hold s."""
+        self.follower_appear.append({"x": round(x, 2), "hold": hold})
 
     def set_piece(self, name, x0, x1, teaches):
         self.set_pieces.append({"name": name, "x0": x0, "x1": x1, "teaches": teaches})
@@ -84,6 +98,10 @@ class Street:
                 "props": sorted(self.props, key=lambda p: p["x"])}
         if self.figures:
             rest["figures"] = self.figures
+        if self.hints:
+            rest["hints"] = sorted(self.hints, key=lambda h: h["x"])
+        if self.follower_appear:
+            rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"]), "model": "old_man"}
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},
                  "length": self.x, "end_x": self.end_x, "checkpoints": [],
                  **{k: level[k] for k in ["rain", "wind", "gusts"]}, **rest}

@@ -23,6 +23,11 @@ func _frames(n: int) -> void:
 		await get_tree().physics_frame
 
 
+func _idle_frames(n: int) -> void:
+	for i in n:
+		await get_tree().process_frame
+
+
 func _place(x: float, open: float, tilt := 0.0) -> float:
 	var p: Player = level.player
 	p.position = Vector3(x, level.ground_y(x), Tun.f("player_z"))
@@ -79,6 +84,118 @@ func _test_street_text() -> void:
 		seen[HUD.fail_line("main_street")] = true
 	check(seen.keys().all(func(l: String) -> bool: return HUD.FAIL_LINES.has(l)), "a street without fail lines draws from the generic pool")
 	Game.nodes.erase("_text_test")
+
+
+## Main Street with extra level fields, loaded as its own street; the walker stays where the test puts him.
+func _street_with(extra: Dictionary) -> Level:
+	var d: Dictionary = Game.level_data("main_street")
+	d.merge(extra, true)
+	var path := OS.get_temp_dir().path_join("dgw_street_%d.json" % OS.get_process_id())
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(JSON.stringify(d))
+	f.close()
+	Game.nodes["_street_test"] = {"name": "Street Test", "file": path}
+	Game.current_level = "_street_test"
+	var lv: Level = load("res://src/level/level.tscn").instantiate()
+	add_child(lv)
+	lv.player.set_physics_process(false)
+	await _frames(3)
+	return lv
+
+
+func _drop_street(lv: Level) -> void:
+	lv.queue_free()
+	await _frames(2)
+	DirAccess.remove_absolute(Game.nodes["_street_test"]["file"])
+	Game.nodes.erase("_street_test")
+	Game.current_level = "main_street"
+	Game.checkpoint = {}
+
+
+func _test_street_hints() -> void:
+	var cp: float = level.checkpoints[0]
+	level.queue_free()
+	await _frames(2)
+	var hints := {"hints": [{"x": cp + 6.0, "text": "Second.", "dur": 3.0}, {"x": cp - 6.0, "text": "First.", "dur": 3.0}]}
+	var lv := await _street_with(hints)
+	var p: Player = lv.player
+	p.position.x = cp - 5.5
+	await _idle_frames(2)
+	check(lv.hud._hint_template == "First.", "a hint shows when the walker passes its x: '%s'" % lv.hud._hint_template)
+	lv.hud._hint_template = ""
+	p.position.x = cp - 8.0
+	await _idle_frames(2)
+	p.position.x = cp - 5.0
+	await _idle_frames(2)
+	check(lv.hud._hint_template != "First.", "walking back over a hint doesn't show it again")
+	p.position.x = cp + 6.5
+	await _idle_frames(2)
+	check(lv.hud._hint_template == "Second.", "the next hint shows at its own x")
+	await _drop_street(lv)
+
+	Game.debug_resume_cp = 0
+	lv = await _street_with(hints)
+	Game.debug_resume_cp = -1
+	p = lv.player
+	check(is_equal_approx(p.position.x, cp) and lv.hud._hint_template != "First.",
+		"resuming from a checkpoint past a hint doesn't show it")
+	p.position.x = cp + 6.5
+	await _idle_frames(2)
+	check(lv.hud._hint_template == "Second.", "... and the hints after the checkpoint still show")
+	await _drop_street(lv)
+
+
+## Runs `secs` of play with the walker at `walk_speed` (0 = holding stop); returns the closest the follower came.
+func _walk(lv: Level, secs: float, walk_speed: float) -> float:
+	var p: Player = lv.player
+	var fol: Node3D = lv.get_node("Follower")
+	p.state = Player.State.STOPPED if walk_speed == 0.0 else Player.State.WALK
+	p.speed = walk_speed
+	var closest := INF
+	var t := 0.0
+	while t < secs:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		if fol.visible:
+			closest = minf(closest, p.position.x - fol.position.x)
+	return closest
+
+
+func _test_follower() -> void:
+	var window_was := get_window().size
+	get_window().size = Vector2i(1920, 1080)   # headless defaults to a square window
+	var lv := await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 8.0}], "model": "old_man"},
+		"figures": [{"x": 5.0}, {"x": 9.0, "facing": "away"}]})
+	var p: Player = lv.player
+	var fol: Node3D = lv.get_node("Follower")
+	var figs: Array = lv.get_children().filter(func(c: Node) -> bool: return c.get("_figures") != null)[0]._figures
+	var faces: Array = figs.map(func(fg: Array) -> Vector3: return (fg[0] as Node3D).global_basis.x.snappedf(0.01))
+	check(faces == [Vector3(1, 0, 0), Vector3(0, 0, -1)], "figures face up the street, or with facing away toward the building: %s" % [faces])
+	check(not fol.visible, "the follower is nowhere until the walker reaches his first appearance")
+	p.position.x = 19.0
+	var closest := await _walk(lv, 5.0, 1.3)
+	check(fol.visible, "he walks in once the walker passes the appearance x")
+	var vp := get_viewport().get_visible_rect().size
+	var sx := lv.camera.unproject_position(fol.global_position + Vector3(0, 1.0, 0)).x / vp.x
+	check(sx > 0.03 and sx < 0.2, "he holds just inside the left edge of the frame (%.0f%% across)" % (sx * 100.0))
+	closest = minf(closest, await _walk(lv, 0.35, 0.0))
+	check(fol.get("speed") > 0.5, "when the walker stops, he keeps walking a moment (%.2f m/s)" % fol.get("speed"))
+	closest = minf(closest, await _walk(lv, 1.0, 0.0))
+	check(fol.get("speed") < 0.05, "... then stops too (%.2f m/s)" % fol.get("speed"))
+	closest = minf(closest, await _walk(lv, 1.5, 2.0))
+	check(fol.get("speed") > 1.7, "when the walker hurries, he hurries (%.2f m/s)" % fol.get("speed"))
+	closest = minf(closest, await _walk(lv, 12.0, 1.3))
+	check(not fol.visible, "after his hold he drops back out of the frame")
+	check(closest >= 2.95, "he never comes closer than 3 m (closest %.2f m)" % closest)
+	await _drop_street(lv)
+
+	Game.debug_resume_cp = 0
+	lv = await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 8.0}], "model": "old_man"}})
+	Game.debug_resume_cp = -1
+	await _walk(lv, 1.0, 1.3)
+	check(not lv.get_node("Follower").visible, "resuming past an appearance doesn't replay it")
+	await _drop_street(lv)
+	get_window().size = window_was
 
 
 func _test_checkpoints() -> void:
@@ -171,6 +288,8 @@ func _run() -> void:
 	_test_feedback_url()
 	_test_street_text()
 	await _test_checkpoints()
+	await _test_street_hints()
+	await _test_follower()
 	_test_dynamic_resolution()
 	_run_tests()
 	get_parent().finish(failures)
