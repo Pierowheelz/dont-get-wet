@@ -306,7 +306,8 @@ func _wash(x: float, open: float, tilt: float, t: float) -> float:
 ## down, so an upright umbrella or an awning beneath the deck stops it and a tilted one doesn't.
 func _test_viaduct() -> void:
 	Game.current_level = "telstar_parade"
-	level.queue_free()
+	if is_instance_valid(level):   # the street-hint test already freed it
+		level.queue_free()
 	await _frames(2)
 	level = load("res://src/level/level.tscn").instantiate()
 	add_child(level)
