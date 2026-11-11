@@ -162,7 +162,15 @@
     "neon_junction",
     "atomic_avenue"
    ],
-   "soon": true
+   "blurb": "Under the monorail, the trains shake the rain loose. Every payphone on the street is ringing.",
+   "difficulty": 5,
+   "file": "res://levels/telstar_parade.json",
+   "outro": "With your key, an envelope. A photograph of a man in a raincoat, face hidden by his umbrella. On the back, in pencil: FAIRWEATHER.",
+   "load": "Someone has already booked your room.",
+   "fail": [
+    "The train was on time.",
+    "He'll be late. They don't like late."
+   ]
   },
   {
    "id": "atomic_avenue",
