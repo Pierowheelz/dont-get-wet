@@ -34,7 +34,7 @@ func build(p_builder: LevelBuilder, tr: Track) -> void:
 		Vector2(z0, Track.BEAM_Y + 0.12)]), tr.x0, tr.x1, paint))
 	# The guide rails the bogies' side wheels run on, and a neon line along the soffit over the decks only.
 	for z in [z0 - 0.01, z1 + 0.01]:
-		b._box(Vector3(span, 0.1, 0.02), Vector3(mid, Track.BEAM_TOP - 0.42, z), chrome)
+		b._box(Vector3(span, 0.1, 0.02), Vector3(mid, Track.RAIL_Y, z), chrome)
 	b._box(Vector3(span, 0.04, 0.04), Vector3(mid, Track.BEAM_Y + 0.13, z1 + 0.015), chrome)
 	var neon := b._neon_mat(Color(0.25, 1.0, 0.92), 2.2)
 	for d in tr.decks:
@@ -72,17 +72,21 @@ func _deck(xa: float, xb: float) -> void:
 	var y1 := Track.DECK_TOP
 	var zc := (z0 + z1) * 0.5
 	b._cover_box(Vector3(w, y1 - y0, z1 - z0), Transform3D(Basis(), Vector3(xm, (y0 + y1) * 0.5, zc)))
-	b._box(Vector3(w, y1 - y0, z1 - z0), Vector3(xm, (y0 + y1) * 0.5, zc), b._mat("deck_soffit", Color(0.36, 0.35, 0.34), 0.9))
-	b._box(Vector3(w, y1 - y0, 0.14), Vector3(xm, (y0 + y1) * 0.5, z0 + 0.07), paint)
+	# The slab is three boxes side by side, never one inside another: a face shared with the fascia
+	# z-fights as the camera shakes under a train.
+	var sz0 := z0 + 0.14
+	var sz1 := z1 - 0.16
+	b._box(Vector3(w, y1 - y0, sz1 - sz0), Vector3(xm, (y0 + y1) * 0.5, (sz0 + sz1) * 0.5), b._mat("deck_soffit", Color(0.36, 0.35, 0.34), 0.9))
+	b._box(Vector3(w, y1 - y0, sz0 - z0), Vector3(xm, (y0 + y1) * 0.5, (z0 + sz0) * 0.5), paint)
 	var enamel := b._mat("deck_fascia", Color(0.86, 0.82, 0.72), 0.35, 0.1)
 	enamel.emission_enabled = true
 	enamel.emission = enamel.albedo_color
 	enamel.emission_energy_multiplier = 0.18
-	b._box(Vector3(w, FASCIA_Y1 - FASCIA_Y0, 0.16), Vector3(xm, (FASCIA_Y0 + FASCIA_Y1) * 0.5, z1 - 0.08), enamel)
+	b._box(Vector3(w, FASCIA_Y1 - FASCIA_Y0, z1 - sz1), Vector3(xm, (FASCIA_Y0 + FASCIA_Y1) * 0.5, (sz1 + z1) * 0.5), enamel)
 	var band := b._box(Vector3(w - 0.3, 0.07, 0.02), Vector3(xm, FASCIA_Y1 - 0.13, z1 + 0.005), b._neon_mat(Color(1.0, 0.62, 0.25), 1.4))
 	band.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for y in [FASCIA_Y0 + 0.01, FASCIA_Y1 - 0.01]:
-		b._box(Vector3(w, 0.04, 0.04), Vector3(xm, y, z1 + 0.01), chrome)
+		b._box(Vector3(w + 0.02, 0.04, 0.04), Vector3(xm, y, z1 + 0.01), chrome)
 	var tube := b._box(Vector3(w - 0.4, 0.035, 0.035), Vector3(xm, FASCIA_Y0 + 0.06, z1 + 0.03), b._neon_mat(Color(0.25, 1.0, 0.92), 2.2))
 	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var rib := PackedVector2Array([Vector2(z0 + 0.14, y0), Vector2(z1 - 0.16, y0), Vector2(z1 - 0.16, GIRDER_Y),

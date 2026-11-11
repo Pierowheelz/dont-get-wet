@@ -15,7 +15,7 @@ const BOGIES := [2.2, 6.4]          # bogie wells, from each car's front
 const WELL_LEN := 1.3
 const SKIRT_Y := 3.4                # foot of the front skirt, below the back one: the side the camera sees
 const ARCH_Y := 3.95                # the front skirt's foot over a bogie well
-const WELL_GAP := 0.32              # front skirt to beam, room for the guide wheels
+const WELL_GAP := 0.4               # front skirt to beam, room for the guide wheels
 const NOSE_SKIRT := 1.6             # the front skirt rounds off over this much of the nose
 
 var level: Node
@@ -322,9 +322,9 @@ func _make_train() -> Node3D:
 			_box(dark, b0, b1, inner1 - 0.02, inner1 + 0.3, ARCH_Y - 0.25, belly)
 			_box(chrome, b0 + 0.05, b1 - 0.05, inner1 + 0.29, inner1 + 0.32, ARCH_Y - 0.2, ARCH_Y - 0.12)
 			for wx in [b0 + 0.3, b1 - 0.3]:
-				var wz := Track.BEAM_Z1 + 0.18
-				_wheel(rubber, wx, wz, Track.BEAM_Y + 0.08, Track.BEAM_Y + 0.26, 0.18)
-				_wheel(chrome, wx, wz, Track.BEAM_Y + 0.05, Track.BEAM_Y + 0.09, 0.09)
+				var wz := Track.BEAM_Z1 + 0.02 + 0.18
+				_wheel(rubber, wx, wz, Track.RAIL_Y - 0.09, Track.RAIL_Y + 0.09, 0.18)
+				_wheel(chrome, wx, wz, Track.RAIL_Y - 0.12, Track.RAIL_Y - 0.08, 0.09)
 		if k < 2:
 			_box(dark, xb - 0.05, xb + CAR_STEP - CAR_LEN + 0.05, z0 + 0.3, z1 - 0.3, belly + 0.1, belly + 1.8)
 	# Headlamp set into the skirt's nose, tail lamp at the back.
