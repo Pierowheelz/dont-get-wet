@@ -451,7 +451,7 @@ func _train_and_phone_hints(delta: float) -> void:
 	var x := player.position.x
 	if not _seen.has("train") and player.state == Player.State.WALK and wash_eta(x, elapsed) <= Track.WARN_S:
 		_seen["train"] = true
-		hud.hint("Train coming. The viaduct sheds water when it passes. Wait it out ({stop}) or hurry ({hurry}).", 4.5)
+		hud.hint("Train coming. Water pours off it as it passes. Hold the umbrella upright, or wait under an awning ({stop}).", 4.5)
 	var near := -1
 	for i in phones.size():
 		if phones[i]["line"] != "" and absf(phones[i]["x"] - x) < PHONE_ANSWER_M and phone_ringing(i, x):
