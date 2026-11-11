@@ -32,13 +32,14 @@ func build(p_builder: LevelBuilder, tr: Track) -> void:
 	b.root.add_child(extrude(PackedVector2Array([Vector2(z0 + 0.1, Track.BEAM_Y), Vector2(z1 - 0.1, Track.BEAM_Y),
 		Vector2(z1, Track.BEAM_Y + 0.12), Vector2(z1, Track.BEAM_TOP), Vector2(z0, Track.BEAM_TOP),
 		Vector2(z0, Track.BEAM_Y + 0.12)]), tr.x0, tr.x1, paint))
-	# The guide rails the bogies' side wheels run on, and a neon line along the soffit.
+	# The guide rails the bogies' side wheels run on, and a neon line along the soffit over the decks only.
 	for z in [z0 - 0.01, z1 + 0.01]:
 		b._box(Vector3(span, 0.1, 0.02), Vector3(mid, Track.BEAM_TOP - 0.42, z), chrome)
 	b._box(Vector3(span, 0.04, 0.04), Vector3(mid, Track.BEAM_Y + 0.13, z1 + 0.015), chrome)
-	var tube := b._box(Vector3(span, 0.03, 0.03), Vector3(mid, Track.BEAM_Y - 0.02, (z0 + z1) * 0.5),
-		b._neon_mat(Color(0.25, 1.0, 0.92), 2.2))
-	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var neon := b._neon_mat(Color(0.25, 1.0, 0.92), 2.2)
+	for d in tr.decks:
+		var tube := b._box(Vector3(d[1] - d[0], 0.03, 0.03), Vector3((d[0] + d[1]) * 0.5, Track.BEAM_Y - 0.02, (z0 + z1) * 0.5), neon)
+		tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var dx := tr.x0
 	while dx < tr.x1:
 		b._drips(dx, minf(dx + DRIP_CHUNK, tr.x1), Track.BEAM_Y + 0.1, z1 + 0.04, BEAM_DRIP)
