@@ -93,8 +93,30 @@ of it.
 `assets/props/props.json`. A `phone_booth` with `"ring": true` (`s.prop("phone_booth", x, ring=True)`)
 rings as the walker approaches and goes quiet once he passes it.
 
-**`figures`** (`x`; `s.figure(x)`) are people built from the walker's own model, standing still in a
-doorway with the umbrella furled. Scenery only: put them under cover, away from features.
+**`figures`** (`x`, optional `facing`; `s.figure(x)`) are people built from the walker's own model,
+standing still in a doorway with the umbrella furled. Scenery only: put them under cover, away from
+features. `facing` is `"street"` (the default: he faces up the street, the way the walker goes) or
+`"away"` (`s.figure(x, facing="away")`: he faces the building, back to the camera).
+
+**`hints`** (`x`, `text`, `dur`; `s.hint(x, text, dur=4.0)`) are HUD lines shown once per attempt as
+the walker passes `x`, for `dur` seconds. The text takes the same `{stop}`, `{hurry}`, `{tilt}`,
+`{tilt_forward}` and `{umbrella}` tokens as the built-in hints. A checkpoint resume skips every hint
+at or before the checkpoint. A first-encounter hint (gutter, sun, wind, stop) that fires in the
+same moment replaces it, so keep `x` clear of the first gutter and sun break.
+
+**`follower`** (`{"appear": [{"x", "hold"}], "model"}`; `s.follower(x, hold)` once per appearance) is
+a scripted NPC in a long coat and hat, built from the `peds.json` model named by `model`
+(`old_man`). When the walker passes an `appear` x, he walks in from the left edge of the frame on
+the back lane, holds about 10% of the screen width inside it for `hold` seconds, then slows and
+drops back out of frame. He copies the walker 0.6 s late: he stops when the walker stops (or
+stands, defeated or at the door) and matches his walking or hurrying speed. He never comes within
+3 m. Within 6 m of the walker his footsteps play quietly, panned with his position. Scenery only:
+the bots and the rain model ignore him, and a checkpoint resume skips appearances behind it. Put
+each `x` where the walker is under cover, so a player who stops to listen stays dry.
+
+**Street text in `levels/index.json`.** Besides `blurb` and `outro`, a node can carry `load` (one
+line under the street name on the loading card) and `fail` (an array of fail-screen lines that
+replaces the generic pool for that street).
 
 **`set_pieces`** (`name`, `x0`, `x1`, `teaches`) is a top-level list the game ignores. Fill it in so
 the next person can see the intent without replaying the street.
