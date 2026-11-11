@@ -16,6 +16,7 @@ const HEAR_GAP := 6.0        # his footsteps carry this far behind the walker
 const CATCH_UP := 0.8        # fastest he closes in on his mark, m/s over the walker's pace
 const FALL_BACK := 0.5       # fastest he drops back
 const ACCEL := 3.0
+const RAINCOAT := Color(0.5, 0.42, 0.3)
 
 var level: Node
 var phase := Phase.OFF
@@ -65,9 +66,19 @@ func _build_model(id: String) -> void:
 	_model = (load(scene) as PackedScene).instantiate()
 	# His umbrella stays furled (carried below), and his coat and hat are always the same.
 	_model.set("umbrella", false)
-	_model.set("tint_options", {"double-breasted": [Color(0.62, 0.55, 0.42)], "fedora": [Color(0.3, 0.27, 0.24)]})
+	_model.set("tint_options", {"fedora": [Color(0.45, 0.4, 0.34)]})
 	add_child(_model)
 	_model.call("setup", 4242)
+	_dress_raincoat()
+	# He walks the dark back lane at the frame edge; a soft fill keeps the coat and hat readable.
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(0.85, 0.88, 1.0)
+	fill.light_energy = 0.8
+	fill.omni_range = 2.6
+	fill.omni_attenuation = 1.5
+	fill.position = Vector3(0.3, 1.3, 1.0)
+	fill.light_specular = 0.2
+	add_child(fill)
 	_skel = _model.find_child("GeneralSkeleton", true, false) as Skeleton3D
 	if _skel:
 		_hand = _skel.find_bone("RightHand")
@@ -77,6 +88,30 @@ func _build_model(id: String) -> void:
 	add_child(_umbrella)
 	_umbrella.set_state(0.0, Game.umbrella_radius(), 0.0)
 	(func() -> void: _umbrella._body.collision_layer = 0).call_deferred()
+
+
+## The pedestrian kit has no long coat: recolour the jacket as a raincoat and hang a skirt of the
+## same cloth from the waist to the knee.
+func _dress_raincoat() -> void:
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = RAINCOAT
+	cloth.roughness = 0.7
+	for mi in _model.find_children("*", "MeshInstance3D", true, false):
+		if String(mi.name).to_lower().contains("double-breasted"):
+			for s in (mi as MeshInstance3D).mesh.get_surface_count():
+				(mi as MeshInstance3D).set_surface_override_material(s, cloth)
+	var hem := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.19
+	cm.bottom_radius = 0.25
+	cm.height = 0.5
+	cm.radial_segments = 16
+	cm.rings = 1
+	hem.mesh = cm
+	hem.material_override = cloth
+	hem.scale = Vector3(1.0, 1.0, 0.8)
+	hem.position.y = 0.73
+	_model.add_child(hem)
 
 
 func _process(delta: float) -> void:
