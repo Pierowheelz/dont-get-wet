@@ -27,7 +27,7 @@ COVER_COLORS = {
     "balcony": (140, 98, 62),
     "arcade": (128, 96, 168),
     "canopy": (46, 148, 150),
-    "viaduct": (92, 104, 122),
+    "deck": (92, 104, 122),
 }
 WASH_C = (60, 150, 225)
 INK = (30, 34, 42)
@@ -73,7 +73,9 @@ class Street:
         self.crossings = [(float(c["x"]), float(c["x"]) + float(c["w"])) for c in data.get("crossings", [])]
         self.features = data.get("features", [])
         self.sun = [(float(f["x"]), float(f["x"]) + float(f["w"])) for f in self.features if f["type"] == "sun"]
-        self.viaducts = [(float(v["x0"]), float(v["x1"])) for v in data.get("viaducts", [])]
+        tr = data.get("track")
+        self.track = (float(tr["x0"]), float(tr["x1"])) if tr else None
+        self.decks = [(float(v["x0"]), float(v["x1"])) for v in data.get("viaducts", [])]
         self.covers = self._cover_spans()
         self.wash = self._wash_zones()
 
@@ -98,16 +100,19 @@ class Street:
                 out.append((lx, lx + lw, kind))
             elif kind == "canopy":
                 out.append((lx + 0.15, lx + lw - 0.15, kind))
-        return out + [(a, b, "viaduct") for a, b in self.viaducts]
+        return out + [(a, b, "deck") for a, b in self.decks]
 
     def _wash_zones(self):
-        """[(x0, x1)] under a viaduct deck with no lot cover beneath it: where a passing train's sheet of
-        water lands on the walker (Level.wash_at). It falls straight down, so awnings and slabs stop it."""
-        lot = [(a, b) for a, b, kind in self.covers if kind != "viaduct"]
-        return [(a, b) for a, b in _subtract(self.viaducts, lot) if b - a > 1e-6]
+        """[(x0, x1)] of track with no lot cover: where a passing train's sheet of water lands on the
+        walker (Level.wash_at), under a deck or not. It falls straight down, so awnings and slabs stop it."""
+        if not self.track:
+            return []
+        lot = [(a, b) for a, b, kind in self.covers if kind != "deck"]
+        run = [(max(self.track[0], 0.0), min(self.track[1], self.end_x))]
+        return [(a, b) for a, b in _subtract(run, lot) if b - a > 1e-6]
 
-    def under_viaduct(self, x):
-        return any(a <= x <= b for a, b in self.viaducts)
+    def under_deck(self, x):
+        return any(a <= x <= b for a, b in self.decks)
 
     def washed(self, x):
         return any(a <= x <= b for a, b in self.wash)
@@ -152,7 +157,7 @@ PREFER_CLEAR_M = 5.0                     # ... and the pick favours this much
 PREFER_PENALTY_M = 2.0                   # how much farther from the target a < PREFER_CLEAR_M candidate counts
 ENTRY_M = 0.5                            # checkpoint sits this far into a safe run, so the whole body is sheltered
 SLANT_H = 3.1                            # awning height the wind slants rain across
-DECK_H = 4.6                             # Viaduct.DECK_Y: a deck's ends let slanted rain further in
+DECK_H = 3.35                            # Track.DECK_Y: a deck's ends let slanted rain further in
 WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind
 GUST_MAX = 1.4                           # Level.wind: gusts scale wind by up to 1 + 0.4
 BODY_HALF_M = 0.3
@@ -177,7 +182,7 @@ def _subtract(runs, zones):
 
 def safe_runs(st):
     """[(start, end)] of cover that is dry for a walker: awnings merged where lots touch, shrunk at each
-    end by the wind slant plus half a body, with gutters, puddles, car-threat zones and viaduct wash cut
+    end by the wind slant plus half a body, with gutters, puddles, car-threat zones and train wash cut
     out (a checkpoint restores the level clock, so a train can be on its way)."""
     spans = sorted((a, b) for a, b, _ in st.covers)
     merged = []
@@ -189,7 +194,7 @@ def safe_runs(st):
 
     def margin(x):
         w = abs(st.wind(x)) * (GUST_MAX if st.gusts else 1.0)
-        return (DECK_H if st.under_viaduct(x) else SLANT_H) * WIND_SLANT * w + BODY_HALF_M
+        return (DECK_H if st.under_deck(x) else SLANT_H) * WIND_SLANT * w + BODY_HALF_M
 
     runs = [(a if a <= 0.0 else a + margin(a), b - margin(b)) for a, b in merged]
     zones = [(a - BODY_HALF_M, b + BODY_HALF_M) for a, b in st.wash]
@@ -272,7 +277,7 @@ def decile_table(st, tun):
 
 DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
                 f"+ 10 * {WASH_W} * wash + (0.5*gutters + 0.15*puddles + 0.4*crossings) per 100 m, per decile of "
-                "end_x (rain is 0 in sun breaks; wash = share under a viaduct deck with no lot cover)")
+                "end_x (rain is 0 in sun breaks; wash = share of track with no lot cover)")
 
 
 def crossable_m(tun, wind):
@@ -359,6 +364,21 @@ def run_checks(st, tun, rows):
     msg = detail if ok else ("; ".join(problems) + f". A failed player resumes at a checkpoint, so it must sit "
                              f"under cover with {CLEAR_M:.0f} m of dry stretch ahead: " + detail)
     checks.append(("checkpoints-safe", ok, msg))
+
+    if st.track:
+        clash = [f"lamp_post at {float(p['x']):.1f} m" for p in st.d.get("props", [])
+                 if p["id"] == "lamp_post" and st.track[0] <= float(p["x"]) <= st.track[1]]
+        clash += [f"{lot['cover']} at {float(lot['x']):.1f} m" for lot in st.d.get("lots", [])
+                  if lot.get("cover") in ("balcony", "arcade")
+                  and st.track[0] < float(lot["x"]) + float(lot["w"]) and st.track[1] > float(lot["x"])]
+        clash += [f"gutter at {float(f['x']):.1f} m under a deck" for f in st.features
+                  if f["type"] == "gutter" and st.under_deck(float(f["x"]))]
+        ok = not clash
+        msg = ("no lamp posts, balconies or arcades under the track, no gutters under a deck" if ok else
+               "; ".join(clash) + ". The train runs below lamp-post heads and balcony and arcade slabs, and a "
+               "deck sits where a gutter's downpipe reaches out, so they pass through each other: drop the lamp "
+               "post (the beam carries lamps), use an awning, or move the gutter off the deck")
+        checks.append(("track-clearance", ok, msg))
     return checks
 
 
@@ -530,10 +550,10 @@ def render(st, tun, traces, out, title):
         # cover
         d.text((LEFT - 8, y + 13), "cover", fill=INK, font=font(12, True), anchor="rm")
         d.rectangle([LEFT, y + 2, right_px, y + H_COVER - 4], fill=SKY)
-        for a, b, kind in sorted(st.covers, key=lambda c: c[2] == "viaduct"):
+        for a, b, kind in sorted(st.covers, key=lambda c: c[2] == "deck"):
             if b > x0m and a < x1m:
-                # A viaduct deck is a band across the top, so the lot cover beneath it still shows.
-                y1 = y + 9 if kind == "viaduct" else y + H_COVER - 4
+                # A deck is a band across the top, so the lot cover beneath it still shows.
+                y1 = y + 9 if kind == "deck" else y + H_COVER - 4
                 d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y1], fill=COVER_COLORS[kind])
         for s0, s1 in st.open_spans():
             if s1 > x0m and s0 < x1m and s1 - s0 >= 5.0:
@@ -616,7 +636,7 @@ def render(st, tun, traces, out, title):
     d.text((x + 28, ly + 6), "side street (cars)", fill=INK, font=font(12), anchor="lm")
     x += 170
     d.rectangle([x, ly + 2, x + 22, ly + 8], fill=WASH_C)
-    d.text((x + 28, ly + 6), "train wash (viaduct, no lot cover)", fill=INK, font=font(12), anchor="lm")
+    d.text((x + 28, ly + 6), "train wash (track, no lot cover)", fill=INK, font=font(12), anchor="lm")
     ly += 26
     x = LEFT
     for kind in ("puddle", "gutter", "sun", "vent", "fire_barrel"):

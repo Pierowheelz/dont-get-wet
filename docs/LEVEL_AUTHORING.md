@@ -99,8 +99,8 @@ passes it. Two optional fields change that:
   rings, once per attempt. That answers it and the ringing stops.
 
 `station_stairs` (`s.prop("station_stairs", x)`) is a stair flight against the shopfronts from the
-pavement at `x + 6` up to a viaduct deck at `x`. It is dressing only and only makes sense under a
-viaduct; the space under its high end (`x` to about `x + 2`) fits a phone booth.
+pavement at `x + 6` up to a deck span at `x`. It is dressing only and only makes sense under a deck;
+the space under its high end (`x` to about `x + 2`) fits a phone booth.
 
 **`figures`** (`x`, optional `facing`; `s.figure(x)`) are people built from the walker's own model,
 standing still in a doorway with the umbrella furled. Scenery only: put them under cover, away from
@@ -127,29 +127,43 @@ each `x` where the walker is under cover, so a player who stops to listen stays 
 line under the street name on the loading card) and `fail` (an array of fail-screen lines that
 replaces the generic pool for that street).
 
-**`viaducts`** (`x0`, `x1`, `style`, `period`, `phase`; `s.viaduct(from_tag, to_tag, period=, phase=)`)
-are elevated monorail decks over the walker's line from the start of `from_tag` to the end of
-`to_tag`. The deck is cover (underside 4.6 m), so no rain falls beneath it. A train crosses each span
-right to left every `period` seconds, offset by `phase` on the level clock, and shakes a sheet of
-water off the deck for 11 m behind its nose (12 m/s, so each point is wet for about 0.9 s). The sheet
-falls straight down:
+**`track`** (`x0`, `x1`, `style`, `period`, `phase`; `s.track(period=, phase=)`) is an elevated
+monorail beam along the street, just in front of the walker's line. `s.track()` runs it from 40 m
+before the street to 40 m past its end, so neither end shows; pass `x0=`/`x1=` to shorten it, and keep
+the ends off screen, because a train appears at `x1` and vanishes past `x0`. A train sets off from
+`x1` every `period` seconds, offset by `phase` on the level clock, and runs right to left at 12 m/s.
+Wherever it is, it sheds a sheet of water for 11 m behind its nose, so each point is wet for about
+0.9 s. The sheet falls straight down:
 
-- An awning (or slab) beneath the deck stops it, so a span reads as stretches of shelter and bare
-  stretches between them. Use awnings only under a deck: balcony and arcade rails reach above 4.6 m,
-  and so do lamp posts.
+- Lot cover stops it: an awning beneath the track keeps the walker dry.
 - An open umbrella held upright stops it. A tilted one doesn't: rays go straight up from the body
-  samples, and `wet_wash_rate` (36/s, near the gutter rate) applies to the exposed fraction.
+  samples to the train's underside (or a deck's), and `wet_wash_rate` (36/s, near the gutter rate)
+  applies to the exposed fraction. In open sky with wind that is the street's test: tilt into the
+  rain, or straighten up for the train.
 - Two seconds before the sheet reaches him, a rumble builds (`train_pass`) and the train's headlight
-  sweeps in from the right; the camera shakes as it goes over. The first train under a span shows a
-  hint.
+  sweeps in from the right; the camera shakes as it goes over. The first train shows a hint.
+
+The beam's underside is at 3.65 m and the train's skirts hang to 3.4 to 3.85 m, low enough that the
+camera sees them. Things that stand higher at the kerb or over the pavement go through the train, so
+`level_preview.py --report` fails **track-clearance** for a `lamp_post` prop on the track (the beam
+carries its own lamps, one every other pillar) and for a `balcony` or `arcade` lot under it (their
+slabs sit at 4.1 m); use awnings. Shop signs (3.1 to 3.9 m on the facade), blade signs and awnings
+clear it. Pillars stand under the beam every 14 m, never in a side street.
+
+**`viaducts`** (`x0`, `x1`, `style`; `s.viaduct(from_tag, to_tag)`) are deck spans hung off the back
+of the beam from the start of `from_tag` to the end of `to_tag`, and need a `track`. A deck is a glass
+canopy over the walker (underside 3.35 m, above the awnings), and it is cover, so no rain falls beneath
+it between trains. When a train crosses it, the sheet falls from the deck's underside instead of the
+train's, so the deck is shelter from the rain but not from the wash. A gutter under a deck fails
+track-clearance, because its downpipe reaches out through the deck.
 
 Everything follows from `Level.wash_at(x, t)` and `wash_eta(x, t)` on the level clock (`elapsed`),
-which a checkpoint restores, so trains stay in sync after a resume. The bots open the umbrella upright
-when a sheet will land on bare pavement on their path within the opening time plus 0.5 s, and never
-rest on a bare stretch under a deck. They read every train perfectly and never get washed, so a
-viaduct street costs them only stamina and time; Telstar Parade sets `par_speed` 1.4 for that reason.
-`style` is `"monorail"`; other styles are accepted but not built yet. Pillars stand at the kerb about
-every 14 m, never in a side street.
+which a checkpoint restores, so trains stay in sync after a resume (`--clock=S` starts the clock at S,
+for screenshots). The bots open the umbrella upright when a sheet will land on bare pavement on their
+path within the opening time plus 0.5 s, and never rest where it can land. They read every train
+perfectly and almost never get washed, so a track costs them stamina, time and a little slanted rain
+while they stand upright; Telstar Parade sets `par_speed` 1.4 for that reason. `style` is
+`"monorail"`; other styles are accepted but not built yet.
 
 **`set_pieces`** (`name`, `x0`, `x1`, `teaches`) is a top-level list the game ignores. Fill it in so
 the next person can see the intent without replaying the street.
@@ -157,9 +171,10 @@ the next person can see the intent without replaying the street.
 ## The design checks
 
 `level_preview.py` scores each tenth of `end_x` (about 26 m) for open sky x rain, plus gutters,
-puddles and crossings. A viaduct deck counts as cover; its bare stretches (no lot cover beneath) score
-`WASH_W` (0.4) of a metre of open sky at rain 1, because the wash is periodic and dodgeable. The
-`wash` column shows that share, and the strip draws it in the hazards lane. The checks are:
+puddles and crossings. A deck counts as cover. Every metre of track with no lot cover beneath it, deck
+or open sky, scores `WASH_W` (0.4) of a metre of open sky at rain 1 on top, because the wash is
+periodic and dodgeable. The `wash` column shows that share, and the strip draws it in the hazards lane.
+The checks are:
 
 - **start-covered.** The first 20 m has no open sky.
 - **ramp-to-midpoint.** Through decile 5, no decile falls more than 20% of the peak below the one
@@ -169,12 +184,15 @@ puddles and crossings. A viaduct deck counts as cover; its bare stretches (no lo
 - **span-crossable.** No open span is longer than one bar of stamina (33 m with no wind).
 - **checkpoints-safe.** `"checkpoints"` holds three x values, one near 25%, 50% and 75% of `end_x`
   (within 10% of `end_x`). Each sits 0.5 m into a stretch of cover and has `CLEAR_M` (4 m) of dry cover
-  ahead before the next gap, gutter, puddle, car crossing's headlight zone or bare stretch under a
-  viaduct deck (the wash can land there whatever the clock says). Cover ends are pulled in
+  ahead before the next gap, gutter, puddle, car crossing's headlight zone or stretch of track with
+  no lot cover (the wash can land there whatever the clock says, so on a street with a track only
+  awnings and slabs qualify). Cover ends are pulled in
   by the wind slant plus half a body. `Street.write()` picks them with `solve_checkpoints`, so the plan
   never lists them. To place them by hand, set `s.checkpoints = [x1, x2, x3]` before `s.write()`; the
   check still applies. `tools/checkpoint_check.sh` replays each one in the game with the umbrella shut
   and fails if the walker gets wet inside those 4 m.
+- **track-clearance** (streets with a `track`). No lamp post, balcony or arcade under the track and no
+  gutter under a deck, as described under `track` above.
 
 A decile is short, so a breather has to sit inside the same decile as its test. A decile that is all
 cover right after a hard one fails the ramp check. Sun breaks count as zero rain, so a sun decile

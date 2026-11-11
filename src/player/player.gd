@@ -356,10 +356,10 @@ func _gutter_exposure() -> float:
 	return 0.0
 
 
-## A train's sheet falls straight down off the viaduct deck: each body sample under it is soaked
-## unless lot cover (an awning beneath the deck) or the canopy is directly above it.
+## A train's sheet falls straight down off the train, or off the deck it is crossing: each body
+## sample under it is soaked unless lot cover (an awning or slab) or the canopy is directly above it.
 func _wash_exposure() -> float:
-	if not level.under_viaduct(position.x - 0.5) and not level.under_viaduct(position.x + 0.5):
+	if level.track == null:
 		return 0.0
 	var t: float = level.elapsed
 	var total := 0.0
@@ -369,23 +369,23 @@ func _wash_exposure() -> float:
 		total += s[1]
 		if not level.wash_at(p.x, t):
 			continue
-		var top := Vector3(p.x, Viaduct.DECK_Y - 0.05, p.z)
+		var top := Vector3(p.x, level.track.sheet_top(p.x) - 0.05, p.z)
 		if _cast(p, top, COVER_MASK):
 			continue
 		hit += s[1] * (umbrella_leak() if _cast(p, top, UMBRELLA_MASK) else 1.0)
 	return hit / total
 
 
-## Lot cover (an awning or slab) between this spot and the viaduct deck: the wash can't land here.
+## Lot cover (an awning or slab) between this spot and the sheet: the wash can't land here.
 func _under_lot_cover(x: float) -> bool:
 	var p := Vector3(x, level.ground_y(x) + 1.7, position.z)
-	return _cast(p, Vector3(x, Viaduct.DECK_Y - 0.05, position.z), COVER_MASK)
+	return _cast(p, Vector3(x, level.track.sheet_top(x) - 0.05, position.z), COVER_MASK)
 
 
 ## The bots' read of the wash: will a sheet land, on bare pavement, somewhere he'll be over the next
 ## `horizon` seconds? Walks his own path forward in time against the same Level.wash_at gameplay uses.
 func _wash_threat(horizon: float) -> bool:
-	if not level.under_viaduct(position.x) and not level.under_viaduct(position.x + 4.0):
+	if level.track == null:
 		return false
 	var t: float = level.elapsed
 	var v := maxf(speed, Tun.f("walk_speed")) if state == State.WALK else 0.0
@@ -593,7 +593,7 @@ func _autopilot(delta: float) -> Array:
 			if absf(g - position.x) < 1.2:
 				stop = false
 		for off in [-0.45, 0.45]:
-			if level.under_viaduct(position.x + off) and not _under_lot_cover(position.x + off):
+			if level.track and level.track.on_track(position.x + off) and not _under_lot_cover(position.x + off):
 				stop = false
 	_ap_resting = stop
 	return [u, h, tl, stop]

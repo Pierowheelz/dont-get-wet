@@ -23,6 +23,7 @@ var debug_auto_continue := false    # --auto-continue: result screen presses Con
 var debug_confirm_upgrade := &""    # --confirm-upgrade=light opens the map with that buy prompt up (testing)
 var debug_tilt := NAN              # --tilt=-1..1 holds the umbrella open at that tilt (testing)
 var debug_start_wet := 0.0          # --wet=NN starts the level already damp (testing)
+var debug_clock := 0.0              # --clock=S starts the level clock at S, which times the trains (testing)
 var debug_resume_cp := -1          # --resume-checkpoint=N starts the level resumed from its checkpoint N (testing; --wet= sets the wetness)
 var last_result: Dictionary = {}
 var checkpoint: Dictionary = {}     # latest checkpoint of the level being played (Level._take_checkpoint); memory only, never saved
@@ -58,6 +59,8 @@ func _ready() -> void:
 			debug_resume_cp = int(a.substr(20))
 		if a.begins_with("--wet="):
 			debug_start_wet = float(a.substr(6))
+		if a.begins_with("--clock="):
+			debug_clock = float(a.substr(8))
 		if a.begins_with("--shots="):
 			for t in a.substr(8).split(","):
 				_shots.append(float(t))

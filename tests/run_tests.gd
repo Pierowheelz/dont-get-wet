@@ -302,8 +302,9 @@ func _wash(x: float, open: float, tilt: float, t: float) -> float:
 	return level.player._wash_exposure()
 
 
-## Telstar Parade: a train's sheet of water is a pure function of the level clock; it falls straight
-## down, so an upright umbrella or an awning beneath the deck stops it and a tilted one doesn't.
+## Telstar Parade: a train's sheet of water is a pure function of the level clock and falls wherever
+## the train is, from a deck where one hangs over him and from the train elsewhere. It falls straight
+## down, so an upright umbrella or an awning stops it and a tilted umbrella doesn't.
 func _test_viaduct() -> void:
 	Game.current_level = "telstar_parade"
 	if is_instance_valid(level):   # the street-hint test already freed it
@@ -314,26 +315,31 @@ func _test_viaduct() -> void:
 	await _frames(5)
 	var p: Player = level.player
 	p.set_physics_process(false)
-	check(not level.viaducts.is_empty(), "telstar_parade has viaducts: %d" % level.viaducts.size())
-	if level.viaducts.is_empty():
+	var tr: Track = level.track
+	check(tr != null and not tr.decks.is_empty(), "telstar_parade has a track with deck spans")
+	if tr == null or tr.decks.is_empty():
 		return
-	var v: Viaduct = level.viaducts[0]
-	var bare := -1.0
-	var awning := -1.0
+	var deck: Array = tr.decks[0]
+	var bare := -1.0       # open lot under the first deck
+	var open_sky := -1.0   # open lot under bare beam
+	var awning := -1.0     # awning under the first deck
 	for lot in level.data["lots"]:
 		var mid: float = lot["x"] + lot["w"] * 0.5
-		if mid > v.x0 + 1.0 and mid < v.x1 - 1.0:
-			if lot["cover"] == "none" and bare < 0.0:
+		var on_deck: bool = mid > deck[0] + 1.0 and mid < deck[1] - 1.0
+		if lot["cover"] == "none" and lot["w"] >= 4.0 and mid > 20.0:
+			if on_deck and bare < 0.0:
 				bare = mid
-			if lot["cover"] == "awning" and not lot.has("tears") and awning < 0.0:
-				awning = mid
-	var t_front := v.phase + (v.x1 + Viaduct.RUN_IN - bare) / Viaduct.TRAIN_SPEED
+			if not tr.deck_at(mid) and open_sky < 0.0:
+				open_sky = mid
+		if on_deck and lot["cover"] == "awning" and not lot.has("tears") and awning < 0.0:
+			awning = mid
+	var t_front := tr.phase + (tr.x1 - bare) / Track.TRAIN_SPEED
 	var t := t_front + 0.3
 	check(level.wash_at(bare, t) and not level.wash_at(bare, t_front - 0.2) and not level.wash_at(bare, t_front + 1.2),
 		"the sheet falls at x=%.1f for about a second after the train's nose passes" % bare)
 	check(absf(level.wash_eta(bare, t_front - 1.5) - 1.5) < 0.01 and level.wash_eta(bare, t) == 0.0,
 		"wash_eta counts down to the sheet and is 0 under it")
-	check(level.wash_at(bare, t + v.period) and is_inf(level.wash_eta(v.x1 + 5.0, t)), "trains repeat every period; off the span there's none")
+	check(level.wash_at(bare, t + tr.period) and is_inf(level.wash_eta(tr.x1 + 5.0, t)), "trains repeat every period; off the track there's none")
 	var shut := await _wash(bare, 0.0, 0.0, t)
 	check(shut > 0.95, "under the sheet with the umbrella shut: exposure %.2f ~ 1" % shut)
 	var upright := await _wash(bare, 1.0, 0.0, t)
@@ -341,8 +347,16 @@ func _test_viaduct() -> void:
 	var tilted := await _wash(bare, 1.0, Tun.f("umbrella_max_tilt"), t)
 	check(tilted > 0.3, "umbrella tilted fully forward: exposure %.2f, the sheet reaches him" % tilted)
 	if awning > 0.0:
-		var t_aw := v.phase + (v.x1 + Viaduct.RUN_IN - awning) / Viaduct.TRAIN_SPEED + 0.3
+		var t_aw := tr.phase + (tr.x1 - awning) / Track.TRAIN_SPEED + 0.3
 		check(level.wash_at(awning, t_aw) and await _wash(awning, 0.0, 0.0, t_aw) == 0.0, "under an awning beneath the deck the sheet never reaches him")
+	check(open_sky > 0.0, "telstar_parade has an open lot off the decks at x=%.1f" % open_sky)
+	if open_sky > 0.0:
+		var t_sky := tr.phase + (tr.x1 - open_sky) / Track.TRAIN_SPEED + 0.3
+		var sky_shut := await _wash(open_sky, 0.0, 0.0, t_sky)
+		var sky_upright := await _wash(open_sky, 1.0, 0.0, t_sky)
+		var sky_between := await _wash(open_sky, 0.0, 0.0, t_sky + 2.0)
+		check(sky_shut > 0.95 and sky_upright < 0.1 and sky_between == 0.0,
+			"off the decks the train's own sheet lands on him: shut %.2f, upright %.2f, between trains %.2f" % [sky_shut, sky_upright, sky_between])
 	await _place(bare, 0.0, 0.0)
 	level.elapsed = t
 	check(level.player._wash_threat(1.8), "the bots see the sheet coming where he stands")
@@ -366,9 +380,9 @@ func _test_viaduct() -> void:
 	check(level.phone_ringing(keep, kx + 6.0), "a `keep` phone rings on after he passes")
 	p.position.x = kx + 0.5
 	p.state = Player.State.STOPPED
-	level._viaduct_and_phone_hints(0.3)
+	level._train_and_phone_hints(0.3)
 	check(level.phone_ringing(keep, kx + 0.5), "a moment's stop beside it doesn't answer it")
-	level._viaduct_and_phone_hints(0.4)
+	level._train_and_phone_hints(0.4)
 	check(not level.phone_ringing(keep, kx + 0.5) and level._seen.has("phone@%d" % keep), "holding stop beside it answers it: the line shows and the ring stops")
 	p.state = Player.State.WALK
 

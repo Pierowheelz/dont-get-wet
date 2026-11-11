@@ -89,7 +89,7 @@ var _awning_style_at := {}          # lot x -> AWNING_STYLES key, resolved while
 var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
 var _awning_used := {}              # style -> lots given it so far
 var gutters: Array = []             # resolved gutter streams, see _resolve_gutters
-var viaducts: Array[Viaduct] = []   # parsed once here; Level takes them from the builder
+var track: Track                    # parsed once here; Level takes it from the builder
 
 
 func build(p_root: Node3D, p_data: Dictionary) -> void:
@@ -100,16 +100,17 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	assert(_check_awning_styles())
 	_load_kits()
 	_resolve_gutters()
-	for v in data.get("viaducts", []):
-		viaducts.append(Viaduct.parse(v))
+	assert(data.has("track") or not data.has("viaducts"), "deck spans need a track")
+	if data.has("track"):
+		track = Track.parse(data["track"], data.get("viaducts", []))
 	if ResourceLoader.exists("res://assets/fonts/sign.ttf"):
 		sign_font = load("res://assets/fonts/sign.ttf")
 	_build_ground()
 	for lot in data.get("lots", []):
 		_build_lot(lot)
 	kit = _kits.get("60s", {})
-	for v in viaducts:
-		ViaductBuilder.new().build(self, v)
+	if track:
+		ViaductBuilder.new().build(self, track)
 	for c in data.get("crossings", []):
 		_build_crossing(c)
 	_build_backdrop()
@@ -162,8 +163,10 @@ func cover_map() -> Array:
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, func(_z): return ARCADE_Y)
 			"canopy":
 				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, func(_z): return 3.55)
-	for v in viaducts:
-		_cover_fill(img, x0, v.x0, v.x1, Viaduct.DECK_Z0, Viaduct.DECK_Z1, func(_z): return Viaduct.DECK_TOP)
+	if track:
+		_cover_fill(img, x0, track.x0, track.x1, Track.BEAM_Z0, Track.BEAM_Z1, func(_z): return Track.BEAM_TOP)
+		for d in track.decks:
+			_cover_fill(img, x0, d[0], d[1], Track.DECK_Z0, Track.DECK_Z1, func(_z): return Track.DECK_TOP)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
 
@@ -1327,7 +1330,7 @@ func _build_prop(p: Dictionary) -> void:
 			ViaductBuilder.new().station_stairs(self, x)
 
 
-func _lamp_light(x: float) -> void:
+func _lamp_light(x: float, y := 5.0, z := 2.2) -> void:
 	var sl := SpotLight3D.new()
 	# Sodium lamps downtown; cold LED streetlights as the city turns retro-future.
 	sl.light_color = Color(1.0, 0.7, 0.42).lerp(Color(0.62, 0.8, 1.0), float(data.get("neon", 0.0)))
@@ -1336,6 +1339,6 @@ func _lamp_light(x: float) -> void:
 	sl.spot_angle = 55.0
 	sl.light_volumetric_fog_energy = 2.0
 	sl.shadow_enabled = not Game.settings.get("low_quality", false)
-	sl.position = Vector3(x, 5.0, 2.2)
+	sl.position = Vector3(x, y, z)
 	sl.rotation = Vector3(-PI * 0.5, 0, 0)
 	root.add_child(sl)

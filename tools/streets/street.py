@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import level_preview
 
 LEVELS = Path(__file__).resolve().parent.parent.parent / "levels"
+TRACK_PAST = 40.0   # a default track runs this far past both ends of the street, so no end shows
 
 
 class Street:
@@ -26,6 +27,7 @@ class Street:
         self.figures = []
         self.hints = []
         self.follower_appear = []
+        self.track_rec = None
         self.viaducts = []
         self.end_x = None
         self.checkpoints = None   # set by hand to override the solver
@@ -84,11 +86,15 @@ class Street:
         """The follower walks in from the left edge when the walker passes x and holds there for hold s."""
         self.follower_appear.append({"x": round(x, 2), "hold": hold})
 
-    def viaduct(self, from_tag, to_tag, period, phase=0.0, style="monorail"):
-        """An elevated deck from the start of from_tag to the end of to_tag. A train crosses it right to
-        left every `period` s (offset `phase` on the level clock) and washes water off the deck."""
-        self.viaducts.append({"x0": self.start(from_tag), "x1": self.end(to_tag), "style": style,
-                              "period": float(period), "phase": float(phase)})
+    def track(self, period, phase=0.0, style="monorail", x0=None, x1=None):
+        """An elevated monorail from x0 to x1 (default: the whole street and TRACK_PAST beyond it). A
+        train sets off from x1 every `period` s (offset `phase` on the level clock), runs right to left
+        and sheds a sheet of water behind it wherever it is."""
+        self.track_rec = {"x0": x0, "x1": x1, "style": style, "period": float(period), "phase": float(phase)}
+
+    def viaduct(self, from_tag, to_tag, style="monorail"):
+        """A deck span under the track from the start of from_tag to the end of to_tag: cover."""
+        self.viaducts.append({"x0": self.start(from_tag), "x1": self.end(to_tag), "style": style})
 
     def set_piece(self, name, x0, x1, teaches):
         self.set_pieces.append({"name": name, "x0": x0, "x1": x1, "teaches": teaches})
@@ -109,6 +115,12 @@ class Street:
             rest["hints"] = sorted(self.hints, key=lambda h: h["x"])
         if self.follower_appear:
             rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"]), "model": "old_man"}
+        assert self.track_rec or not self.viaducts, "deck spans need s.track()"
+        if self.track_rec:
+            t = dict(self.track_rec)
+            t["x0"] = -TRACK_PAST if t["x0"] is None else t["x0"]
+            t["x1"] = round(self.x + TRACK_PAST, 2) if t["x1"] is None else t["x1"]
+            rest["track"] = t
         if self.viaducts:
             rest["viaducts"] = self.viaducts
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},

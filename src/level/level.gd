@@ -22,7 +22,7 @@ var sun_zones: Array = []      # [x0, x1] rain-free span (the break, widened to 
 var dry_zones: Array = []      # [x0, x1, rate, needs_closed_umbrella]
 var crossings: Array = []      # [x0, x1]
 var cars: Array = []           # CarHazard nodes
-var viaducts: Array[Viaduct] = []
+var track: Track              # the elevated monorail, or null
 var phones: Array = []         # {x, keep, line} of every ringing payphone, in prop order
 
 var player: Player
@@ -94,6 +94,7 @@ func _ready() -> void:
 	player.position = Vector3(spawn_x, ground_y(spawn_x), Tun.f("player_z"))
 	add_child(player)
 	player.wet = Game.debug_start_wet
+	elapsed = Game.debug_clock
 	if debug_cp:
 		_take_checkpoint(Game.debug_resume_cp)
 	if resume:
@@ -132,7 +133,7 @@ func _ready() -> void:
 			cars.append(car)
 			car.approaching.connect(_on_car_approaching)
 
-	if not viaducts.is_empty():
+	if track:
 		var trains := preload("res://src/level/viaduct_trains.gd").new()
 		trains.level = self
 		add_child(trains)
@@ -180,7 +181,7 @@ func _parse_features() -> void:
 				dry_zones.append([x - w2 * 0.5, x + w2 * 0.5, Tun.f("dry_vent_rate") * 1.2, false])
 	for g in builder.gutters:
 		gutters.append(g["x"])
-	viaducts = builder.viaducts
+	track = builder.track
 	for pr in data.get("props", []):
 		if pr.get("id", "") == "phone_booth" and pr.get("ring", false):
 			phones.append({"x": float(pr["x"]), "keep": bool(pr.get("keep", false)), "line": String(pr.get("line", ""))})
@@ -270,25 +271,12 @@ func car_threat(x: float) -> bool:
 ## Whether a train's sheet of water is falling at x at level-clock time t. Callers pass `elapsed`,
 ## which a checkpoint restores, so trains stay in sync after a resume.
 func wash_at(x: float, t: float) -> bool:
-	for v in viaducts:
-		if v.wash_at(x, t):
-			return true
-	return false
+	return track != null and track.wash_at(x, t)
 
 
-## Seconds until a train's sheet next falls at x (0 while it is falling there, INF off every span).
+## Seconds until a train's sheet next falls at x (0 while it is falling there, INF off the track).
 func wash_eta(x: float, t: float) -> float:
-	var eta := INF
-	for v in viaducts:
-		eta = minf(eta, v.wash_eta(x, t))
-	return eta
-
-
-func under_viaduct(x: float) -> bool:
-	for v in viaducts:
-		if v.covers(x):
-			return true
-	return false
+	return track.wash_eta(x, t) if track else INF
 
 
 ## A payphone rings from PHONE_HEAR before the walker reaches it until he passes it, or, with `keep`,
@@ -317,7 +305,7 @@ func _process(delta: float) -> void:
 	if player:
 		_first_encounters()
 		_street_hints()
-		_viaduct_and_phone_hints(delta)
+		_train_and_phone_hints(delta)
 		_update_gutter_streams()
 		_check_checkpoints()
 	if Game.autopilot and Game.trace_path != "" and player:
@@ -455,14 +443,13 @@ const PHONE_ANSWER_S := 0.6
 var _phone_hold := 0.0
 
 
-## The first train's warning while he's under a viaduct, and a phone's `line` once he holds stop
-## beside it while it rings (which answers it).
-func _viaduct_and_phone_hints(delta: float) -> void:
+## The first train's warning, and a phone's `line` once he holds stop beside it while it rings
+## (which answers it).
+func _train_and_phone_hints(delta: float) -> void:
 	if hud == null or not hud.has_method("hint"):
 		return
 	var x := player.position.x
-	if not _seen.has("train") and under_viaduct(x) and player.state == Player.State.WALK \
-			and wash_eta(x, elapsed) <= Viaduct.WARN_S:
+	if not _seen.has("train") and player.state == Player.State.WALK and wash_eta(x, elapsed) <= Track.WARN_S:
 		_seen["train"] = true
 		hud.hint("Train coming. The viaduct sheds water when it passes. Wait it out ({stop}) or hurry ({hurry}).", 4.5)
 	var near := -1

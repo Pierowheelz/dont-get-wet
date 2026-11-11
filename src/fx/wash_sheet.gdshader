@@ -1,12 +1,12 @@
 shader_type spatial;
 render_mode cull_disabled, blend_mix, depth_draw_never, shadows_disabled;
 
-// A sheet of water shaken off the viaduct deck. Noise runs in world space so the segments that make
-// up one sheet read as a single curtain. `front`/`back` are the sheet's world x ends: the leading
+// A sheet of water shed by a monorail train, off the train or the deck it crosses. Noise runs in
+// world space so the segments that make up one sheet read as a single curtain. `front`/`back` are the sheet's world x ends: the leading
 // edge (left, under the train's nose) is ragged and thin, the trailing edge thins out as it drains.
 uniform float front = 0.0;
 uniform float back = 11.0;
-uniform float top_y = 4.6;
+instance uniform float top_y = 4.5;
 
 varying vec3 wpos;
 
