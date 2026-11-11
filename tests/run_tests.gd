@@ -36,7 +36,8 @@ func _place(x: float, open: float, tilt := 0.0) -> float:
 	p.visual.set_umbrella_pose(p.arm_raise(), tilt, 0.0)
 	await _frames(3)
 	p._update_umbrella()
-	await _frames(2)
+	for i in 2:   # raycasts see the moved canopy only after physics has stepped
+		await get_tree().physics_frame
 	return p._rain_exposure()
 
 
@@ -215,12 +216,10 @@ func _test_follower() -> void:
 	p.position.x = 63.5
 	await _walk(lv, 6.2, 1.3)
 	var umb: Umbrella = fol.get("_umbrella")
-	var skel := fol.find_child("GeneralSkeleton", true, false) as Skeleton3D
-	var hand := func(bone: String) -> Vector3: return skel.to_global(skel.get_bone_global_pose(skel.find_bone(bone)).origin)
 	check(umb.current_radius() > Tun.f("umbrella_radius") - 0.05 and umb.current_radius() < Game.umbrella_radius() - 0.1,
 		"in the rain (x %.1f) he opens a starter-size umbrella, whatever the walker bought (rim %.2f m)" % [fol.position.x, umb.current_radius()])
-	check(umb.global_position.distance_to(hand.call("LeftHand")) < umb.global_position.distance_to(hand.call("RightHand")),
-		"... held in his left hand")
+	var holder := umb.get_parent().get_parent() as BoneAttachment3D
+	check(holder != null and holder.bone_name == &"LeftHand", "... held in his left hand (%s)" % (holder.bone_name if holder else "no bone"))
 	await _walk(lv, 7.0, 1.3)
 	check(umb.current_radius() < 0.2, "under the awnings (x %.1f) he furls it again (rim %.2f m)" % [fol.position.x, umb.current_radius()])
 	await _drop_street(lv)
