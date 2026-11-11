@@ -58,6 +58,29 @@ func _test_feedback_url() -> void:
 		"feedback link opens the form with the version filled in")
 
 
+## A street's `load` and `fail` lines from levels/index.json; streets without them keep the defaults.
+func _test_street_text() -> void:
+	const HUD := preload("res://src/ui/hud.gd")
+	Game.nodes["_text_test"] = {"name": "Test Lane", "load": "Nobody followed you.", "fail": ["One.", "Two."]}
+	Game._show_loading("_text_test")
+	var name_lbl: Label = Game._loading.get_node("ColorRect/Label")
+	var line_lbl: Label = Game._loading.get_node("ColorRect/Line")
+	check(name_lbl.text == "Walking to Test Lane…" and line_lbl.text == "Nobody followed you.",
+		"the loading card shows the street's load line under its name: %s / %s" % [name_lbl.text, line_lbl.text])
+	Game._show_loading("main_street")
+	check(line_lbl.text == "", "a street without a load line shows only its name")
+	Game.hide_loading()
+	var seen := {}
+	for i in 40:
+		seen[HUD.fail_line("_text_test")] = true
+	check(seen.keys().size() == 2 and seen.has("One.") and seen.has("Two."), "a street's fail lines replace the generic pool: %s" % [seen.keys()])
+	seen = {}
+	for i in 40:
+		seen[HUD.fail_line("main_street")] = true
+	check(seen.keys().all(func(l: String) -> bool: return HUD.FAIL_LINES.has(l)), "a street without fail lines draws from the generic pool")
+	Game.nodes.erase("_text_test")
+
+
 func _test_checkpoints() -> void:
 	var cps: Array = level.checkpoints
 	check(cps.size() == 3 and cps[0] < cps[1] and cps[1] < cps[2], "main_street has three ascending checkpoints: %s" % [cps])
@@ -146,6 +169,7 @@ func _run() -> void:
 	print("umbrella center ", p.umbrella.canopy_center(), " player ", p.global_position, " radius ", p.umbrella.current_radius())
 	_test_sun_drying()
 	_test_feedback_url()
+	_test_street_text()
 	await _test_checkpoints()
 	_test_dynamic_resolution()
 	_run_tests()

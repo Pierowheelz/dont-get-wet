@@ -356,8 +356,14 @@ func _toggle_pause() -> void:
 
 # --- end screens ------------------------------------------------------------------------------
 
+## A street's `fail` lines in levels/index.json replace the generic pool.
+static func fail_line(level_id: String) -> String:
+	var pool: Array = Game.nodes.get(level_id, {}).get("fail", FAIL_LINES)
+	return String(pool[randi() % pool.size()])
+
+
 func show_fail() -> void:
-	var line: String = FAIL_LINES[randi() % FAIL_LINES.size()]
+	var line := fail_line(level.level_id)
 	var stats := "Made it %d%% of the way, in %s." % [int(level.progress() * 100.0), UIStyle.fmt_time(level.elapsed)]
 	var buttons := [
 		["Restart", func() -> void: Game.play_level(level.level_id)],

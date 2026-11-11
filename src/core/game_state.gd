@@ -428,7 +428,7 @@ func play_level(id: String, from_checkpoint := false) -> void:
 	# threads crashes or deadlocks it. _notification defers the quit until they finish.
 	get_tree().auto_accept_quit = false
 	current_level = id
-	_show_loading(String(nodes.get(id, {}).get("name", "")))
+	_show_loading(id)
 	# Freeze whatever is behind the card (e.g. the level being restarted) while we build.
 	get_tree().paused = true
 	await get_tree().process_frame
@@ -481,8 +481,9 @@ func _notification(what: int) -> void:
 var _loading: CanvasLayer
 
 
-## A black card with the street name, shown while a level builds; the level's HUD fades in over it.
-func _show_loading(street: String) -> void:
+## A black card with the street name and the street's `load` line, shown while a level builds; the
+## level's HUD fades in over it.
+func _show_loading(id: String) -> void:
 	if _loading == null:
 		_loading = CanvasLayer.new()
 		_loading.layer = 100
@@ -501,6 +502,17 @@ func _show_loading(street: String) -> void:
 		lbl.add_theme_font_size_override("font_size", 40)
 		lbl.add_theme_color_override("font_color", Color(0.9, 0.88, 0.82, 0.85))
 		bg.add_child(lbl)
+		var line := Label.new()
+		line.name = "Line"
+		line.set_anchors_preset(Control.PRESET_CENTER)
+		line.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		line.grow_vertical = Control.GROW_DIRECTION_BOTH
+		line.position.y += 52.0
+		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		line.add_theme_font_override("font", UIStyle.F_ITALIC)
+		line.add_theme_font_size_override("font_size", 26)
+		line.add_theme_color_override("font_color", Color(0.9, 0.88, 0.82, 0.5))
+		bg.add_child(line)
 		# The little walker from the map, strolling along above the street name.
 		var walker := preload("res://src/ui/loading_walker.gd").new()
 		walker.name = "Walker"
@@ -508,7 +520,10 @@ func _show_loading(street: String) -> void:
 		walker.position.y -= 70.0
 		bg.add_child(walker)
 		add_child(_loading)
+	var node: Dictionary = nodes.get(id, {})
+	var street := String(node.get("name", ""))
 	(_loading.get_node("ColorRect/Label") as Label).text = ("Walking to %s…" % street) if street != "" else "Loading…"
+	(_loading.get_node("ColorRect/Line") as Label).text = String(node.get("load", ""))
 	_loading.visible = true
 
 
