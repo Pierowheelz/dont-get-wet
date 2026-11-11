@@ -10,6 +10,9 @@ const HAIR_SHADER := preload("res://assets/characters/walker/walker_hair.gdshade
 const Loco := preload("res://assets/characters/walker/locomotion.gd")
 const SAD_STRIDE := 0.85   # shorter, shuffling steps when defeated
 
+## Hold the open umbrella in the left fist: get_grip(&"right") is then in the left hand.
+@export var umbrella_left := false
+
 @onready var _model: Node3D = $Model
 var _skel: Skeleton3D
 var _tree: AnimationTree
@@ -54,6 +57,7 @@ func _build() -> void:
 
 	_mod = PoseModifier.new()
 	_mod.name = "PoseModifier"
+	_mod.umbrella_left = umbrella_left
 	_skel.add_child(_mod)
 	_mod.setup(_skel, Loco.ANIMS[&"idle"])
 	var rel := Transform3D.IDENTITY
@@ -63,7 +67,10 @@ func _build() -> void:
 		n = n.get_parent()
 	_mod.char_from_skel = rel
 
-	_grip_r = _make_grip(&"RightHand", _mod.grip_r_offset, "GripRight")
+	if umbrella_left:
+		_grip_r = _make_grip(&"LeftHand", _mod.grip_lf_offset, "GripRight")
+	else:
+		_grip_r = _make_grip(&"RightHand", _mod.grip_r_offset, "GripRight")
 	_grip_l = _make_grip(&"LeftHand", _mod.grip_l_offset, "GripLeft")
 	_setup_materials()
 	_apply_params(0.0)

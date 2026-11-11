@@ -34,7 +34,8 @@ func get_grip(hand: StringName) -> Node3D                      # &"right" (raise
   and the grip is ~1.40–1.55 m above the feet, ~0.10–0.20 m in front of the chest (+X), elbow bent —
   the natural way people hold an umbrella. The umbrella shaft is 0.75 m, so the canopy apex sits at
   ~2.2 m. Tilt rotates the grip about the Z axis (+ tilts the canopy toward +X). For `&"left"`, +Y points down toward the ground
-  (umbrella carried closed like a cane / hanging).
+  (umbrella carried closed like a cane / hanging). With `umbrella_left` set before it enters the tree, the
+  walker holds the open umbrella in his left fist instead, mirrored, and `&"right"` is that left-fist grip.
 - The player script turns the root 180° about Y to walk left (defeat sequence).
 
 ## 2. Building kit — `res://assets/buildings/kit.json`

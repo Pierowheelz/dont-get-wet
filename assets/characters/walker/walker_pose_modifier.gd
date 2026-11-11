@@ -1,7 +1,8 @@
 extends SkeletonModifier3D
 ## Procedural layer applied on top of the locomotion AnimationTree (runs after the mixer).
 ## - spine/neck slump (sad), bent-over heavy breathing (stopped / catching breath)
-## - right arm: analytic two-bone IK to the umbrella-holding pose, blended by `raise`
+## - right arm: analytic two-bone IK to the umbrella-holding pose, blended by `raise` (with
+##   `umbrella_left`, the left arm holds it and the right one works the runner and swings free)
 ## - left arm: slightly damped swing (carrying the closed umbrella), fists around the handles;
 ##   while the umbrella opens/closes it reaches in under the canopy and slides the runner up/down
 ##   the shaft, with the head ducked and the upper body leaning in a little
@@ -19,6 +20,7 @@ var sad := 0.0
 var breath := 0.0      # 0..1 weight of the "catching breath" overlay
 var run := 0.0         # gait position: 0 walk .. 0.5 brisk .. 1 jog
 var stride := 1.0      # leg swing amplitude kept (walker.gd shortens the cycle to match)
+var umbrella_left := false
 @export var hip_back := 0.0      # rad the pelvis is pitched back (legs counter-rotated: no)
 @export var pelvis_tilt := 0.16   # rad of posterior pelvic tilt (tucks the backside under)
 @export_range(0.0, 1.0) var posture_fix := 0.0   # per-frame torso straightening (0 = trust the clip)
@@ -273,15 +275,18 @@ func _process_modification_with_delta(_delta: float) -> void:
 		_rot_global(skel, ft, right_axis, -corr)
 
 	# --- Free arm: swing back behind the hip as the same-side leg comes forward ----------------
-	if w < 0.5:
-		_swing(skel, "Right", right_axis, free_arm_swing * (1.0 - 2.0 * w) * (1.0 - 0.7 * sad), 0.4)
+	var held_r := fid * w if umbrella_left else w   # the right hand is on the shaft
+	if held_r < 0.5:
+		_swing(skel, "Right", right_axis, free_arm_swing * (1.0 - 2.0 * held_r) * (1.0 - 0.7 * sad), 0.4)
 
 	# --- Fists ---------------------------------------------------------------------------------
 	_curl_hand(skel, "Left", 1.0)
-	_curl_hand(skel, "Right", lerpf(0.35 + 0.25 * run, 1.0, w))
+	_curl_hand(skel, "Right", lerpf(0.35 + 0.25 * run, 1.0, held_r))
 
 
 func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float) -> void:
+	var m := _mirror()
+	var side := "Left" if umbrella_left else "Right"
 	var sway_a := (sin(time * 2.3) * 0.22 + sin(time * 3.9 + 1.0) * 0.07) * droop
 	var sway_side := sin(time * 1.7 + 0.5) * 0.12 * droop
 	# Tipped forward while being opened / closed (at least OPEN_TIP, more if the player tilts it).
@@ -290,33 +295,43 @@ func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float
 	# Hold the umbrella relative to where his chest actually is (elbow bent ~90°, hand at chest/
 	# chin height in front of the sternum), not at a fixed point he would have to reach for.
 	var neck_c := char_from_skel * skel.get_bone_global_pose(_b["Neck"]).origin
-	var p := Vector3(neck_c.x + HOLD_FWD, neck_c.y + HOLD_DROP, HOLD_POS.z)
+	var p := Vector3(neck_c.x + HOLD_FWD, neck_c.y + HOLD_DROP, HOLD_POS.z * m)
 	p.x += 0.03 * tilt_now     # the shaft tilts at the wrist; the arm barely moves
 	p.y += -0.04 * maxf(tilt_now, 0.0) - 0.24 * droop
 	# Tipped back, the shaft would cut through his shoulder: lift the grip with the tilt, from chest
 	# height when upright to just below the shoulder at full back tilt.
-	var shoulder_c := char_from_skel * skel.get_bone_global_pose(_b["RightUpperArm"]).origin
+	var shoulder_c := char_from_skel * skel.get_bone_global_pose(_b[side + "UpperArm"]).origin
 	var lift := clampf(-tilt / Tun.f("umbrella_max_tilt"), 0.0, 1.0)
 	p.y = lerpf(p.y, shoulder_c.y - TILT_LIFT_BELOW_SHOULDER - 0.24 * droop, lift)
-	p.z += TILT_BACK_OUT * lift   # and out past the deltoid, so the shaft runs beside it
+	p.z += TILT_BACK_OUT * lift * m   # and out past the deltoid, so the shaft runs beside it
 	# Near full tilt the shaft is horizontal at chest height and, tipped back, would run through his
 	# torso; push the hand out to the camera side so it passes in front of the body instead.
-	p.z += SIDE_OUT * smoothstep(0.85, Tun.f("umbrella_max_tilt"), absf(tilt_now))
-	p.z += 0.07 * droop
+	p.z += SIDE_OUT * smoothstep(0.85, Tun.f("umbrella_max_tilt"), absf(tilt_now)) * m
+	p.z += 0.07 * droop * m
 	# Opening / closing: hold it out a little ahead, so the folded canopy isn't in his face.
 	var fid := fiddle()
 	p.x += RUNNER_PUSH_FWD * fid
 	p.y += 0.03 * fid
 
-	var rot := Basis(Vector3(0, 0, 1), -tilt_total) * Basis(Vector3(1, 0, 0), sway_side)
+	var rot := Basis(Vector3(0, 0, 1), -tilt_total) * Basis(Vector3(1, 0, 0), sway_side * m)
 	var y_c := rot * Vector3.UP
-	var x_c := HOLD_FINGER_DIR.normalized()
+	var x_c := (HOLD_FINGER_DIR * Vector3(1, 1, m)).normalized()
 	x_c = (x_c - y_c * x_c.dot(y_c)).normalized()
 	var z_c := x_c.cross(y_c).normalized()
 	var grip_c := Transform3D(Basis(x_c, y_c, z_c), p)
-	var hand_s := skel_from_char * grip_c * grip_r_offset.affine_inverse()
+	var hand_s := skel_from_char * grip_c * _hold_grip().affine_inverse()
 
-	_ik_arm(skel, skel_from_char, "Right", hand_s, ELBOW_POLE, w)
+	_ik_arm(skel, skel_from_char, side, hand_s, ELBOW_POLE * Vector3(1, 1, m), w)
+
+
+## The umbrella hand's fist around the shaft, in its hand bone's space.
+func _hold_grip() -> Transform3D:
+	return grip_lf_offset if umbrella_left else grip_r_offset
+
+
+## Character-frame z scale that moves the right-handed umbrella poses to the left side.
+func _mirror() -> float:
+	return -1.0 if umbrella_left else 1.0
 
 
 ## 0..1 how busy the left hand is with the umbrella: on while it opens/closes, off when it is
@@ -325,24 +340,27 @@ func fiddle() -> float:
 	return Umbrella.hand_on_shaft(spread)
 
 
-## Left fist around the shaft under the canopy, sliding up as it opens (down as it closes). The shaft
-## frame comes from the right hand as just posed, so the hands stay together.
+## The other fist around the shaft under the canopy, sliding up as it opens (down as it closes). The
+## shaft frame comes from the umbrella hand as just posed, so the hands stay together.
 func _solve_runner_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float) -> void:
-	var grip_r := skel.get_bone_global_pose(_b["RightHand"]) * grip_r_offset
-	var y_s := grip_r.basis.y.normalized()
+	var m := _mirror()
+	var hold := "Left" if umbrella_left else "Right"
+	var other := "Right" if umbrella_left else "Left"
+	var grip_h := skel.get_bone_global_pose(_b[hold + "Hand"]) * _hold_grip()
+	var y_s := grip_h.basis.y.normalized()
 	var c := Umbrella.canopy_spread(spread) / Umbrella.OPEN_SPREAD
 	var h := lerpf(RUNNER_LOW, RUNNER_HIGH, clampf(c, 0.0, 1.0))
-	var x_s := (skel_from_char.basis * RUNNER_FINGER_DIR).normalized()
+	var x_s := (skel_from_char.basis * (RUNNER_FINGER_DIR * Vector3(1, 1, m))).normalized()
 	x_s = (x_s - y_s * x_s.dot(y_s)).normalized()
-	var grip_l := Transform3D(Basis(x_s, y_s, x_s.cross(y_s).normalized()), grip_r.origin + y_s * h)
-	var target := grip_l * grip_lf_offset.affine_inverse()
+	var grip_o := Transform3D(Basis(x_s, y_s, x_s.cross(y_s).normalized()), grip_h.origin + y_s * h)
+	var target := grip_o * (grip_r_offset if umbrella_left else grip_lf_offset).affine_inverse()
 	# Reach / let go by moving the hand target between its animated swing and the shaft (blending
 	# joint rotations instead swings the arm out straight in front of him half way).
-	var anim := skel.get_bone_global_pose(_b["LeftHand"])
+	var anim := skel.get_bone_global_pose(_b[other + "Hand"])
 	var k := smoothstep(0.0, 1.0, w)
 	var hand_s := Transform3D(anim.basis.orthonormalized().slerp(target.basis.orthonormalized(), k),
 			anim.origin.lerp(target.origin, k))
-	_ik_arm(skel, skel_from_char, "Left", hand_s, ELBOW_POLE_L, clampf(w * 4.0, 0.0, 1.0))
+	_ik_arm(skel, skel_from_char, other, hand_s, ELBOW_POLE_L * Vector3(1, 1, m), clampf(w * 4.0, 0.0, 1.0))
 
 
 ## Analytic two-bone IK: place `side`'s hand bone at `hand_s` (skeleton space), elbow toward
