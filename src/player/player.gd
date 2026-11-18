@@ -436,31 +436,19 @@ func _check_puddles() -> void:
 ## to several points spread across it, so a smaller (half-open) canopy still catches part of it.
 ## Cover blocks fully; the canopy blocks spray better than rain while it's still opening (slack
 ## fabric is still a wall to a sideways sheet of water).
-const SPLASH_SPREAD := [
-	Vector3(0, 0, 0), Vector3(-0.45, 0.35, 0), Vector3(0.45, -0.3, 0),
-	Vector3(0, -0.55, 0.25), Vector3(0.3, 0.5, -0.25), Vector3(-0.3, -0.2, -0.3),
-]
-
-
-func receive_splash(source: Vector3, amount: float) -> void:
+## Droplets of a car's splash that reached him (CarHazard, through a DropletBurst).
+func splash_wet(amount: float) -> void:
 	if state != State.WALK and state != State.STOPPED:
 		return
-	var leak := pow(clampf(1.0 - open, 0.0, 1.0), 1.6)
-	var total := 0.0
-	var hit := 0.0
-	for s in SAMPLES:
-		var p := _sample_world(s[0])
-		for off: Vector3 in SPLASH_SPREAD:
-			var src := source + off
-			total += s[1]
-			if _cast(p, src, COVER_MASK):
-				continue
-			hit += s[1] * (leak if _cast(p, src, UMBRELLA_MASK) else 1.0)
-	var got := amount * hit / total
-	wet = minf(wet + got, Tun.f("wet_max"))
-	stats["splashes"] += 1
-	stats["wet_splash"] += got
-	splashed.emit(got)
+	wet = minf(wet + amount, Tun.f("wet_max"))
+	stats["wet_splash"] += amount
+
+
+## The splash is over: `total` reached him in all.
+func splash_done(total: float) -> void:
+	if total > 0.0:
+		stats["splashes"] += 1
+		splashed.emit(total)
 
 
 func _footsteps(delta: float) -> void:
@@ -591,8 +579,9 @@ func _autopilot(delta: float) -> Array:
 	# live state instead let a flicker in the cover check release it mid-rest (worse with --human's
 	# delayed replay). Rest through a light sprinkle at the cover's edge, but if a gust drives real
 	# rain in, give up the rest and don't settle again until he has moved on a little.
+	var car_coming: bool = level.car_threat(position.x)   # its splash takes a moment to land: no resting through it
 	if _ap_resting:
-		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5 or under_fire:
+		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5 or under_fire or car_coming:
 			_ap_resting = false
 			_ap_no_rest_before = position.x + 1.5
 		else:
@@ -607,7 +596,7 @@ func _autopilot(delta: float) -> Array:
 	for g in level.gutters:
 		if g - position.x > -0.6 and g - position.x < lead:
 			danger = true
-	var car_ahead: bool = level.car_threat(position.x)
+	var car_ahead := car_coming
 	if car_ahead:
 		danger = true
 	var wash := _wash_threat(Game.umbrella_open_time() + 0.5)
@@ -633,10 +622,10 @@ func _autopilot(delta: float) -> Array:
 			tl = 0.0     # straighten up under a gutter stream
 	if wash:
 		tl = 0.0
-	if jet_in:
-		tl = minf(tl, -0.6)    # put the canopy between him and the jet: back far enough, not flat (that lets the rain in)
+	if att != null and att.brace():
+		tl = minf(tl, -0.85)   # put the canopy between him and the jet: well back, not quite flat (that lets the rain in)
 	var stop := false
-	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire:
+	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire and not car_ahead:
 		stop = true
 		for off in [-0.9, -0.45, 0.0, 0.45, 0.9]:
 			if _exposed_at(position.x + off) or _exposed_at(position.x + off, 0.5):

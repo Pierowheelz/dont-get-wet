@@ -369,8 +369,9 @@ func _test_courier() -> void:
 	await _tail(lv, 8.0, 3.5, 0.0, 0.0, func() -> bool: return c.phase == c.Phase.AIM)
 	check(c.phase == c.Phase.AIM and p.state != Player.State.DEFEATED, "the 4th gain: he turns to aim")
 	p.wet = 0.0
+	seed(13)
 	await _tail(lv, 6.0, 0.0, 0.0, 0.0, func() -> bool: return p.state == Player.State.DEFEATED)
-	check(p.fail_cause == &"shot" and p.wet >= 2.0 * Tun.f("wet_car_splash") - 0.5,
+	check(p.fail_cause == &"shot" and p.wet >= 0.8 * Tun.f("wet_max"),
 		"... and fires twice, each soaking like a car's splash (wet %.1f), then the attempt fails as SHOT (%s)" % [p.wet, p.fail_cause])
 	await _drop_street(lv)
 
@@ -487,13 +488,23 @@ func _run() -> void:
 	print("  exposure by open amount: ", " ".join(sweep))
 	var e_part := await _place(open_x, 0.65)   # canopy ~60% spread (Umbrella.canopy_spread)
 	check(e_part > e and e_part < 0.95, "partly-open umbrella protects partially: %.2f" % e_part)
-	# Car splash: forward tilt should shield most of it.
-	for cfg in [[0.0, 0.0], [1.0, 0.0], [1.0, 0.85]]:
-		await _place(open_x, cfg[0], cfg[1])
-		p.wet = 0.0
-		var src := Vector3(p.position.x + 2.6, 2.1, p.position.z)
-		p.receive_splash(src, 28.0)
-		print("  splash open=%.1f tilt=%.2f -> wet %.1f" % [cfg[0], cfg[1], p.wet])
+	# Car splash: real droplets. Near the crossing they soak him, a canopy tilted forward stops most of
+	# them, and standing back out of the wave's reach he stays dry.
+	var got: Array = []
+	seed(42)   # droplet bursts are random: fix them so the check is stable
+	for cfg in [[0.0, 0.0, 3.0], [1.0, 1.0, 3.0], [0.0, 0.0, 10.0]]:
+		await _place(open_x, cfg[0], cfg[1] * Tun.f("umbrella_max_tilt"))
+		var car := CarHazard.new()
+		car.level = level
+		car.crossing_x = p.position.x + cfg[2]
+		level.add_child(car)
+		var was: float = p.stats["wet_splash"]
+		car._do_splash(p)
+		await get_tree().create_timer(2.0).timeout
+		got.append(p.stats["wet_splash"] - was)
+		car.queue_free()
+	check(got[0] >= 0.6 * Tun.f("wet_car_splash") and got[0] <= Tun.f("wet_car_splash") and got[1] < got[0] * 0.3 and got[2] == 0.0,
+		"car splash from its droplets: 3 m from the crossing %.1f, tilted forward %.1f, 10 m back %.1f" % got)
 	print("umbrella center ", p.umbrella.canopy_center(), " player ", p.global_position, " radius ", p.umbrella.current_radius())
 	_test_sun_drying()
 	_test_feedback_url()
@@ -634,6 +645,24 @@ func _test_viaduct() -> void:
 	p.state = Player.State.WALK
 
 
+## Fires one real WaterJet at the walker, standing at x with the umbrella open and tilted `tilt` of
+## full, from where a pursuer 5.8 m behind holds his umbrella to fire (muzzle `muzzle_y` up). Returns
+## what the pellets did.
+func _shot(x: float, tilt: float, muzzle_y := 1.35) -> Dictionary:
+	var p: Player = level.player
+	for settle in 2:
+		await _place(x, 1.0, tilt * Tun.f("umbrella_max_tilt"))
+	p.jet_kick = 0.0
+	var hit_was: float = p.stats["wet_hit"]
+	var elev := PI * 0.5 - WaterJet.AIM_TILT
+	var basis := Basis(Vector3(0, 0, 1), -(PI * 0.5 - elev))   # the shaft (local +Y) along +X, elev above level
+	var from := p.global_position + Vector3(-5.8, muzzle_y, -0.35)
+	var jet := WaterJet.fire(level, func() -> Transform3D: return Transform3D(basis, from), -1.0, 0.05)
+	var blocked: bool = await jet.resolved
+	return {"blocked": blocked, "landed": jet.burst.landed, "stopped": jet.burst.stopped,
+		"wet": p.stats["wet_hit"] - hit_was, "kick": p.jet_kick}
+
+
 ## Viaduct Road: railway arches are cover from the rain and the sheet; jets from behind are blocked
 ## by a canopy tilted back toward them (and shove it, less with Sturdy Frame) or soak him as SHOT;
 ## the men who fire them hold fire under an arch and stay spent after a checkpoint resume.
@@ -666,49 +695,27 @@ func _test_viaduct_road() -> void:
 	var bare := await _wash(open_x, 0.0, 0.0, t_open)
 	check(bare > 0.95, "on an open girder span (x=%.1f) the sheet falls through onto him: exposure %.2f" % [open_x, bare])
 
-	var muzzle := func() -> Vector3: return p.global_position + Vector3(-5.8, 2.2, -0.3)
-	for settle in 2:
-		await _place(open_x, 1.0, -0.6 * Tun.f("umbrella_max_tilt"))
-	p.wet = 0.0
-	p.jet_kick = 0.0
-	var blocked := WaterJet.strike(p, muzzle.call())
-	check(blocked and p.wet == 0.0 and p.jet_kick > 0.5, "a jet into a canopy tilted back toward it is blocked (wet %.1f) and shoves it (%.2f)" % [p.wet, p.jet_kick])
-	p.jet_kick = 0.0
-	for settle in 2:
-		await _place(open_x, 1.0, 0.0)
-	p.wet = 0.0
-	blocked = WaterJet.strike(p, muzzle.call())
-	check(not blocked and is_equal_approx(p.wet, Tun.f("wet_jet_hit")) and p.stats["wet_hit"] >= Tun.f("wet_jet_hit"),
-		"over an upright canopy it hits him: soaks %.1f (wet_jet_hit)" % p.wet)
-
-	# A real shot: flat enough that an upright canopy doesn't stop it; it has to be tilted back.
-	var shares: Array = []
-	for tl in [0.0, -0.6, -0.8]:
-		for settle in 2:
-			await _place(open_x, 1.0, tl * Tun.f("umbrella_max_tilt"))
-		var from := p.global_position + Vector3(-5.8, 1.45, -0.35)
-		var elev := PI * 0.5 - WaterJet.AIM_TILT
-		var sol: Array = WaterJet.solve(from, Vector3(cos(elev), sin(elev), 0.0), p.global_position + Vector3(0.0, WaterJet.AIM_Y, 0.0))
-		shares.append(WaterJet.block_share(p, WaterJet.incoming_from(from, sol[0], sol[1])))
-	check(shares[0] < WaterJet.BLOCK_SHARE and shares[1] >= WaterJet.BLOCK_SHARE,
-		"a shot along its real arc gets past an upright canopy (%.2f) and is blocked by one tilted back (60%%: %.2f, 80%%: %.2f)" % shares)
+	# Real shots from where a pursuer stands, umbrella down at his chest: what wets him is the pellets
+	# that reach him. An upright canopy lets them by; one tilted back toward him stops them and is shoved.
+	seed(12)
+	var up := await _shot(open_x, 0.0)
+	check(up["landed"] > 0 and up["wet"] > Tun.f("wet_jet_hit") * 0.6 and up["wet"] <= Tun.f("wet_jet_hit") + 0.01,
+		"over an upright canopy the shot reaches him: %d pellets, wet %.1f (a full hit is %.0f)" % [up["landed"], up["wet"], Tun.f("wet_jet_hit")])
+	var back := await _shot(open_x, -0.85)
+	check(back["wet"] < up["wet"] * 0.35 and back["stopped"] > back["landed"] * 2 and back["kick"] > 0.5,
+		"a canopy tilted well back toward him stops most of it (%d pellets stopped, %d through: wet %.1f) and is shoved (%.2f)" % [back["stopped"], back["landed"], back["wet"], back["kick"]])
 	var sturdy_was: int = Game.run.upgrades[&"sturdy"]
 	var kicks: Array = []
 	for tier in [0, 3]:
 		Game.run.upgrades[&"sturdy"] = tier
-		p.jet_kick = 0.0   # the last shove has worn off
-		for settle in 2:   # the arm eases into a new tilt
-			await _place(open_x, 1.0, -0.6 * Tun.f("umbrella_max_tilt"))
-		WaterJet.strike(p, muzzle.call())
-		kicks.append(p.jet_kick)
+		kicks.append((await _shot(open_x, -0.85))["kick"])
 	Game.run.upgrades[&"sturdy"] = sturdy_was
-	check(kicks[1] < kicks[0] and is_equal_approx(kicks[1] / kicks[0], Game.jet_shove_mult(3)),
-		"Sturdy Frame tier 3 takes a quarter of the shove a bare frame does (%.2f vs %.2f)" % [kicks[1], kicks[0]])
-	await _place(open_x, 0.0, 0.0)
+	check(kicks[1] < kicks[0] and absf(kicks[1] / kicks[0] - Game.jet_shove_mult(3)) < 0.15,
+		"Sturdy Frame tier 3 takes about a quarter of the shove a bare frame does (%.2f vs %.2f)" % [kicks[1], kicks[0]])
 	p.wet = Tun.f("wet_max") - 2.0
-	WaterJet.strike(p, muzzle.call())
+	await _shot(open_x, 0.0)
 	p._physics_process(1.0 / 60.0)
-	check(p.state == Player.State.DEFEATED and p.fail_cause == &"shot", "a jet that soaks him fails the attempt as SHOT: %s" % p.fail_cause)
+	check(p.state == Player.State.DEFEATED and p.fail_cause == &"shot", "a shot that soaks him fails the attempt as SHOT: %s" % p.fail_cause)
 	p.state = Player.State.WALK
 
 	var att: Node = level.attackers

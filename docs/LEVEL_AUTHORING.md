@@ -75,8 +75,12 @@ The level ends at the inn door. The builder sets `end_x` from the kit door: an 8
 door at `x + 4`. Keep the JSON `end_x` in step with it, because the preview uses the JSON value.
 
 **Crossings** (`x`, `w`, optional `car`; `s.xing(tag, w, car=True)`) are open road. The ground drops 0.16 m, props inside are
-skipped, and `"car": true` adds a car whose splash costs up to 20. A forward-tilted open umbrella blocks most
-of it.
+skipped, and `"car": true` adds a car whose splash costs up to 25 (`wet_car_splash`). The splash is a burst of
+600 real droplets (`DropletBurst`) thrown off the puddle at about 45 degrees, fanned along the street: only
+those that come down on the walker from the knees up wet him (0.28 each, 1.2 times that on his torso). Unblocked
+it costs the full 25 two to four metres short of the crossing, about 23 at 5 m, 17 at 6 m and nothing out of its
+reach (about 9 m). A forward-tilted open umbrella stops the droplets it meets: about 4 get through at 3 m, 1 to 2
+from 4 m out (closer than 3 m the wave is still rising and more gets under it).
 
 **Features:**
 
@@ -140,7 +144,7 @@ At each stop `x` he faces the shop window for `dur` seconds. The rules, all in `
   (a glance while facing the glass). At 2 he walks at 1.25 m/s and window stops are 40% shorter. At 3
   his free hand goes inside his coat on every glance. The 4th gain: he turns to face the walker, aims the
   umbrella and fires twice (`WaterJet`, 0.6 s glint, then 0.25 s for the second barrel). Each shot
-  soaks like a car's splash (`wet_car_splash`) whatever the canopy does; 0.5 s after the second
+  carries a car's splash (`wet_car_splash`) in pellets the canopy can't stop; 0.5 s after the second
   lands, the attempt fails as `shot`.
 - **Fails.** `made` when the walker comes within 1.2 m of him or passes him; `lost` when he has been
   off the right edge of the frame (taken as at least 16:9) for 2 s. Neither applies in the last 6 m
@@ -242,22 +246,22 @@ has gone). When the walker passes `x`:
   (`Level.camera_bias`) to keep him 1.3 m inside the left edge. Once he has closed in he walks no
   faster than `walk_speed`, so a walker who hurries or runs leaves him behind: out of the frame for
   1 s, he gives up and doesn't come back.
-- **Every 2.5 s** he fires a telegraphed shot (`WaterJet`): a 0.6 s glint at his umbrella's tip, then
-  a shotgun burst of pellets along the shaft. Shooters hold the umbrella `WaterJet.AIM_TILT` forward
-  (the shaft about 12 degrees above level; it is never held flatter than 10), so the burst flies
-  almost flat with a slight arc, its speed set to land on his chest where he'll be. An upright
-  canopy doesn't stop it. One that hides at least half his body from the burst's last 0.15 s of
-  arc (tilted back toward the shooter: 60% of full tilt is enough, flat back lets the rain in) blocks it and is shoved
-  aside for 0.7 s (tilt and droop, `jet_shove`, less with Sturdy Frame: `upgrade_sturdy_jet_shove`).
-  Otherwise it soaks him by `wet_jet_hit` (12) through `Player.soak(amount, &"shot")`, so a jet that
-  soaks him fails the attempt as SHOT.
+- **Every 2.5 s** he fires a telegraphed shot (`WaterJet`): a 0.6 s glint at his umbrella's tip
+  (brought down to chest height), then a tight shotgun burst of 46 pellets (`DropletBurst`) out
+  along the street, `WaterJet.SHOT_ELEV` (5 degrees) above level and fast enough to reach his chest
+  where he'll be. Each pellet that reaches him from the knees up wets him (a full hit is
+  `wet_jet_hit`, 12, through `Player.soak(amount, &"shot")`, so a shot that soaks him fails the
+  attempt as SHOT); his canopy stops the ones it meets. Upright, it stops none; tilted back toward
+  the shooter, 70% of full tilt stops about three quarters, 85% nearly all (flat back lets the rain
+  in). A canopy that stops a fifth or more is shoved aside for 0.7 s (tilt and droop, `jet_shove`,
+  less with Sturdy Frame: `upgrade_sturdy_jet_shove`).
 - **Under a railway arch** he holds his fire, but the held shot still counts, as does one he can't
   reach from more than 9 m back. After `shots` he drops back out of the left of the frame.
 
 The first one shows "Behind you." as the warning starts and a tilt-back hint at his first glint. A
 checkpoint resume skips every pursuer whose `x` is behind it, so one who was on at the checkpoint
 doesn't come back. The bots open up ahead of each glint (`next_glint_in`, as the canopy takes
-`umbrella_open_time` to open) and tilt back (60% of full tilt) when a jet glints, with the human
+`umbrella_open_time` to open) and tilt back (85% of full tilt) when a jet glints, with the human
 bot's reaction delay, and never stop to rest in his line of fire. level_preview can't simulate them and
 ignores them: `tools/preview.sh` is the judge. Bring each in some 15 m short of a run of arches, so a
 few shots come in the open and the rest are held, and keep the human bot's minimum stamina above 10:

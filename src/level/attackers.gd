@@ -22,6 +22,7 @@ const SHOT_EVERY := 2.5
 const FIRST_SHOT := 2.2      # after the warning: time to walk into the frame and close in
 const RANGE := 9.0           # further back than this he can't reach, and the shot is lost
 const MAX_SPEED := 2.8         # coming up behind him, before he has closed in
+const BRACE_S := 0.35          # how long before a shot leaves the bots tilt back for it
 const GIVE_UP_S := 1.0         # out of the frame this long after the warning, he gives up
 const SHADOW_W := 2.6         # across the pavement: the lamp is off to the kerb side, so it fans out
 const SHADOW_Z := 1.2
@@ -115,6 +116,12 @@ func _ready() -> void:
 ## A jet is glinting or in the air: the moment to tilt back.
 func incoming() -> bool:
 	return jet != null and is_instance_valid(jet) and jet.phase != WaterJet.Phase.SPENT
+
+
+## The shot is about to leave or in the air: the moment to have the canopy tilted back (the arm
+## takes about a quarter of a second to swing it).
+func brace() -> bool:
+	return incoming() and jet.time_to_fire() < BRACE_S
 
 
 ## He's on and still has water.
@@ -246,9 +253,10 @@ func _hint(text: String, dur: float) -> void:
 func _pose(delta: float) -> void:
 	var aiming: bool = jet != null and is_instance_valid(jet) and jet.phase != WaterJet.Phase.SPENT
 	_aim = move_toward(_aim, WaterJet.AIM_TILT if aiming else 0.0, delta * 4.0)
+	var raise := lerpf(1.0, WaterJet.AIM_RAISE, _aim / WaterJet.AIM_TILT)   # brought down to chest height to fire
 	_model.call("set_motion", speed, clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0))
 	_model.call("set_stopped", speed < 0.05)
-	_model.call("set_umbrella_pose", 1.0, _aim, 0.0)
+	_model.call("set_umbrella_pose", raise, _aim, 0.0)
 	_model.call("set_umbrella_open", 1.0)
 	_umbrella.set_state(1.0, Game.umbrella_radius(0), 0.0)
 

@@ -11,6 +11,11 @@ enum S { IDLE, DRIVING, GONE }
 const TRIGGER_DIST := 8.5
 const SPEED := 11.0
 const START_Z := -30.0
+const SPLASH_DROPS := 600
+const SPLASH_Z := 0.5          # the wave's width across the street, each side of the walker's line
+const SPLASH_SPREAD := 15.0    # degrees either side of its direction, along the street
+const SPLASH_REACH_S := 1.4
+const WET_PER_DROP := 0.28     # an unblocked walker 2-4 m short of the crossing takes the whole wet_car_splash
 
 var level: Node
 var crossing_x := 0.0
@@ -18,10 +23,13 @@ var crossing_w := 9.0
 var state := S.IDLE
 var _splashed := false
 var _body: Node3D
-var _spray: GPUParticles3D
 var _lights: Array[SpotLight3D] = []
 var _beacon: Label3D
 var _t := 0.0
+var burst: DropletBurst        # the last splash
+var _splash_t := 0.0
+var splash_dir := Vector3(-1.0, 1.0, 0.0)   # the wave leaves the puddle at about 45 degrees...
+var splash_v := [5.5, 10.0]                   # ...at these speeds (m/s)
 
 
 func _ready() -> void:
@@ -60,9 +68,6 @@ func _ready() -> void:
 	_beacon.visible = false
 	add_child(_beacon)
 	_beacon.global_position = Vector3(crossing_x + 0.3, 2.9, 2.2)
-	_spray = _make_spray()
-	_spray.top_level = true
-	add_child(_spray)
 
 
 ## A car model suited to the level: retro hover-cars appear with probability = neon.
@@ -109,39 +114,6 @@ static func greybox_car() -> Node3D:
 	return n
 
 
-func _make_spray() -> GPUParticles3D:
-	var p := GPUParticles3D.new()
-	p.amount = 600
-	p.lifetime = 1.1
-	p.one_shot = true
-	p.explosiveness = 0.85
-	p.emitting = false
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = Vector3(-1.0, 0.9, 0.0)
-	pm.spread = 28.0
-	pm.initial_velocity_min = 4.0
-	pm.initial_velocity_max = 8.5
-	pm.gravity = Vector3(0, -9.8, 0)
-	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(0.3, 0.1, 1.2)
-	pm.scale_min = 0.5
-	pm.scale_max = 1.6
-	p.process_material = pm
-	var q := QuadMesh.new()
-	q.size = Vector2(0.09, 0.09)
-	var dm := StandardMaterial3D.new()
-	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	dm.albedo_color = Color(0.7, 0.78, 0.9, 0.55)
-	dm.albedo_texture = _droplet_tex()
-	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	q.material = dm
-	p.draw_pass_1 = q
-	p.visibility_aabb = AABB(Vector3(-10, -2, -6), Vector3(20, 8, 12))
-	return p
-
-
 static func _droplet_tex() -> GradientTexture2D:
 	var g := Gradient.new()
 	g.set_color(0, Color(1, 1, 1, 1))
@@ -157,10 +129,17 @@ static func _droplet_tex() -> GradientTexture2D:
 
 
 func is_threat_for(x: float) -> bool:
-	if state == S.GONE or _splashed:
+	if state == S.GONE:
+		return false
+	if _splashed and not splash_in_air():
 		return false
 	var d := crossing_x - x
 	return d > -0.5 and d < TRIGGER_DIST + 2.0
+
+
+## The wave is still coming down on the pavement (strays after SPLASH_REACH_S are stragglers).
+func splash_in_air() -> bool:
+	return _splashed and _t - _splash_t < SPLASH_REACH_S
 
 
 func _physics_process(delta: float) -> void:
@@ -180,6 +159,7 @@ func _physics_process(delta: float) -> void:
 			position.z += SPEED * delta
 			if not _splashed and position.z >= 0.6:
 				_splashed = true
+				_splash_t = _t
 				_beacon.visible = false
 				_do_splash(player)
 			if position.z > 40.0:
@@ -188,18 +168,23 @@ func _physics_process(delta: float) -> void:
 				set_physics_process(false)
 
 
+## The wave off the puddle: a DropletBurst, so the walker gets wet only where its droplets reach him
+## (WET_PER_DROP each, at most `wet_car_splash`), and a forward-tilted canopy stops what it meets.
 func _do_splash(player: Node3D) -> void:
-	var at := Vector3(crossing_x + 0.9, LevelBuilder.ROAD_Y + 0.1, 1.6)
-	_spray.global_position = at
-	_spray.restart()
-	_spray.emitting = true
+	var at := Vector3(crossing_x + 0.9, LevelBuilder.ROAD_Y + 0.1, Tun.f("player_z"))
 	splashed_puddle.emit(at)
-	var dist := crossing_x - player.position.x
-	var falloff := clampf(1.0 - (dist - 4.0) / 3.5, 0.0, 1.0)
-	if dist < -0.5:
-		falloff = 1.0
-	if falloff <= 0.0:
-		return
-	# The wave arcs up and comes down on the walker from the front.
-	var src := Vector3(player.position.x + clampf(dist, 1.0, 2.6), 2.1, player.position.z)
-	player.receive_splash(src, Tun.f("wet_car_splash") * falloff)
+	var starts := PackedVector3Array()
+	for i in SPLASH_DROPS:
+		starts.append(at + Vector3(randf_range(-0.3, 0.3), randf_range(-0.1, 0.1), randf_range(-SPLASH_Z, SPLASH_Z)))
+	# Fanned along the street (up and down), barely across it: a wave thrown at the pavement.
+	var vels := PackedVector3Array()
+	var base := atan2(splash_dir.y, -splash_dir.x)
+	for i in SPLASH_DROPS:
+		var a := base + deg_to_rad(randf_range(-SPLASH_SPREAD, SPLASH_SPREAD))
+		var v := randf_range(splash_v[0], splash_v[1])
+		vels.append(Vector3(-cos(a), sin(a), randf_range(-0.06, 0.06)) * v)
+	burst = DropletBurst.spawn(level, starts, vels, WET_PER_DROP, {"max_wet": Tun.f("wet_car_splash"),
+		"color": Color(0.7, 0.78, 0.9, 0.55)})
+	var p := player as Player
+	burst.hit.connect(func(wet: float) -> void: p.splash_wet(wet))
+	burst.done.connect(func(_landed: int, _stopped: int) -> void: p.splash_done(burst.wet_given))
