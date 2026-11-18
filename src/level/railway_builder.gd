@@ -117,8 +117,8 @@ func _arches(xa: float, xb: float) -> void:
 		lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var om := OmniLight3D.new()
 		om.light_color = Color(1.0, 0.72, 0.42)
-		om.light_energy = 1.1
-		om.omni_range = 4.5
+		om.light_energy = 1.7
+		om.omni_range = 5.0
 		om.omni_attenuation = 1.3
 		om.light_volumetric_fog_energy = 0.6
 		om.position = Vector3(lx, Track.RAIL_SOFFIT - 0.4, 1.5)
