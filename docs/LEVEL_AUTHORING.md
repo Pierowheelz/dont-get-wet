@@ -123,7 +123,8 @@ stands, defeated or at the door) and matches his walking or hurrying speed. He n
 the bots and the rain model ignore him, and a checkpoint resume skips appearances behind it. Put
 each `x` where the walker is under cover, so a player who stops to listen stays dry.
 
-**Street text in `levels/index.json`.** Besides `blurb` and `outro`, a node can carry `load` (one
+**Street text in `levels/index.json`.** Besides `blurb` and `outro` (a string, or an array of lines
+shown one under another), a node can carry `load` (one
 line under the street name on the loading card) and `fail` (an array of fail-screen lines that
 replaces the generic pool for that street). `fail` can instead be a dictionary keyed by fail cause
 (`wet`, `shot`, `lost`, `made`; titles in `HUD.FAIL_TITLES`), each an array of lines. A cause with no

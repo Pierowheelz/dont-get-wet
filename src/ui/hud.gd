@@ -499,7 +499,8 @@ func show_result(r: Dictionary) -> void:
 	head.add_child(hv)
 	hv.add_child(UIStyle.label("SHELTER REACHED", &"KickerLabel", 24))
 	hv.add_child(UIStyle.label(String(level.data.get("name", "")).to_upper(), &"HeaderLabel", 84))
-	var outro := String(Game.nodes.get(level.level_id, {}).get("outro", ""))
+	var outro_v: Variant = Game.nodes.get(level.level_id, {}).get("outro", "")
+	var outro := "\n".join(PackedStringArray(outro_v)) if outro_v is Array else String(outro_v)
 	if outro != "":
 		var ol := UIStyle.label(outro, &"ItalicLabel", 24)
 		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
