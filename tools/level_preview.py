@@ -75,6 +75,8 @@ class Street:
         self.sun = [(float(f["x"]), float(f["x"]) + float(f["w"])) for f in self.features if f["type"] == "sun"]
         tr = data.get("track")
         self.track = (float(tr["x0"]), float(tr["x1"])) if tr else None
+        # A railway's arches (its `viaducts`) are solid brick: the wash can't fall through them.
+        self.railway = bool(tr) and tr.get("style", "monorail") == "railway"
         # Share of the time a sheet is falling on any one spot of the track, from the mean gap between trains.
         self.wash_duty = WASH_S / ((float(tr["gap"][0]) + float(tr["gap"][1])) / 2.0) if tr else 0.0
         self.decks = [(float(v["x0"]), float(v["x1"])) for v in data.get("viaducts", [])]
@@ -106,10 +108,11 @@ class Street:
 
     def _wash_zones(self):
         """[(x0, x1)] of track with no lot cover: where a passing train's sheet of water lands on the
-        walker (Level.wash_at), under a deck or not. It falls straight down, so awnings and slabs stop it."""
+        walker (Level.wash_at), under a monorail deck or not. It falls straight down, so awnings, slabs
+        and a railway's arches stop it."""
         if not self.track:
             return []
-        lot = [(a, b) for a, b, kind in self.covers if kind != "deck"]
+        lot = [(a, b) for a, b, kind in self.covers if kind != "deck" or self.railway]
         run = [(max(self.track[0], 0.0), min(self.track[1], self.end_x))]
         return [(a, b) for a, b in _subtract(run, lot) if b - a > 1e-6]
 
@@ -160,6 +163,7 @@ PREFER_PENALTY_M = 2.0                   # how much farther from the target a < 
 ENTRY_M = 0.5                            # checkpoint sits this far into a safe run, so the whole body is sheltered
 SLANT_H = 3.1                            # awning height the wind slants rain across
 DECK_H = 3.35                            # Track.DECK_Y: a deck's ends let slanted rain further in
+ARCH_H = 3.1                             # Track.RAIL_SOFFIT: the same at the ends of a run of railway arches
 WASH_S = 11.0 / 12.0                     # Track.WASH_S: seconds a sheet falls on any one spot
 WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind
 GUST_MAX = 1.4                           # Level.wind: gusts scale wind by up to 1 + 0.4
@@ -197,7 +201,8 @@ def safe_runs(st):
 
     def margin(x):
         w = abs(st.wind(x)) * (GUST_MAX if st.gusts else 1.0)
-        return (DECK_H if st.under_deck(x) else SLANT_H) * WIND_SLANT * w + BODY_HALF_M
+        h = (ARCH_H if st.railway else DECK_H) if st.under_deck(x) else SLANT_H
+        return h * WIND_SLANT * w + BODY_HALF_M
 
     runs = [(a if a <= 0.0 else a + margin(a), b - margin(b)) for a, b in merged]
     zones = [(a - BODY_HALF_M, b + BODY_HALF_M) for a, b in st.wash]
@@ -280,7 +285,8 @@ def decile_table(st, tun):
 
 DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
                 f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.15*puddles + 0.4*crossings) per 100 m, per decile "
-                "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover; duty = share of the "
+                "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover (a railway's arches count as "
+                "lot cover); duty = share of the "
                 "time a sheet falls on a spot, Track.WASH_S over the mean train gap)")
 
 
@@ -378,10 +384,11 @@ def run_checks(st, tun, rows):
         clash += [f"gutter at {float(f['x']):.1f} m under a deck" for f in st.features
                   if f["type"] == "gutter" and st.under_deck(float(f["x"]))]
         ok = not clash
+        lamps = "hang a bracket_lamp from the viaduct" if st.railway else "the beam carries lamps"
         msg = ("no lamp posts, balconies or arcades under the track, no gutters under a deck" if ok else
                "; ".join(clash) + ". The train runs below lamp-post heads and balcony and arcade slabs, and a "
                "deck sits where a gutter's downpipe reaches out, so they pass through each other: drop the lamp "
-               "post (the beam carries lamps), use an awning, or move the gutter off the deck")
+               f"post ({lamps}), use an awning, or move the gutter off the deck")
         checks.append(("track-clearance", ok, msg))
     return checks
 

@@ -1,6 +1,9 @@
 class_name Track
 extends RefCounted
-## A level's elevated monorail (its `track` record) and the deck spans along it (`viaducts`).
+## A level's elevated railway (its `track` record) and the covered spans along it (`viaducts`).
+## `style` "monorail" is a beam in front of the walker with glass decks hung off it; "railway" is a
+## brick viaduct over the pavement whose arches (the `viaducts` spans) are cover from the rain and
+## the wash alike, joined by open iron girder spans.
 ## Trains set off from x1 at `departures` on the level clock, each a random `gap` after the last,
 ## run right to left to x0, and shed a sheet of water for WASH_LEN behind the nose wherever they are.
 ## Under a deck the sheet falls from the deck's underside, elsewhere from the train's. Everything
@@ -30,12 +33,26 @@ const DECK_TOP := BEAM_Y
 const DECK_Z0 := 0.6            # clear of the blade signs on the facades
 const DECK_Z1 := BEAM_Z0
 
+# Railway cross-section: the viaduct stands over the pavement, from the shopfronts to the kerb, low
+# enough that the camera sees the carriages over the parapet. Its arches are solid cover above every
+# awning; the girder spans between them have an open floor, so rain and the sheet fall through.
+const RAIL_Z0 := 0.15           # back face, against the shopfronts
+const RAIL_Z1 := 3.45           # front face, over the kerb
+const RAIL_SOFFIT := 3.1        # underside of an arch's vault: clear of the awnings (3.05 at the wall)
+const RAIL_BED := 3.5           # top of the deck, where the sleepers lie
+const RAIL_PARAPET := 3.85
+const RAIL_TRAIN_Y := 3.95      # underside of the carriages: the sheet falls from here
+const RAIL_TRAIN_Z0 := 0.35
+const RAIL_TRAIN_Z1 := 3.25
+const RAIL_TRAIN_LEN := 25.0    # two carriages
+
 var x0: float
 var x1: float
 var style: String
 var gap_min: float
 var gap_max: float
-var decks: Array = []           # [x0, x1] of each deck span
+var decks: Array = []           # [x0, x1] of each deck span (railway: each run of arches)
+var train_len := TRAIN_LEN
 var departures := PackedFloat64Array()   # ascending level-clock times a train sets off from x1
 var _rng := RandomNumberGenerator.new()
 
@@ -46,6 +63,8 @@ static func parse(track: Dictionary, viaducts: Array, seed: int) -> Track:
 	tr.x0 = float(track["x0"])
 	tr.x1 = float(track["x1"])
 	tr.style = String(track.get("style", "monorail"))
+	if tr.railway():
+		tr.train_len = RAIL_TRAIN_LEN
 	tr.gap_min = float(track["gap"][0])
 	tr.gap_max = float(track["gap"][1])
 	assert(tr.gap_min > WASH_S and tr.gap_max >= tr.gap_min, "train gap shorter than one wash")
@@ -53,8 +72,17 @@ static func parse(track: Dictionary, viaducts: Array, seed: int) -> Track:
 		tr.decks.append([float(v["x0"]), float(v["x1"])])
 	tr._rng.seed = seed
 	# The first train set off a whole crossing before the clock starts, so the track is busy at t = 0.
-	tr.departures.append(-(tr.x1 - tr.x0 + TRAIN_LEN) / TRAIN_SPEED - tr._rng.randf_range(0.0, tr.gap_max))
+	tr.departures.append(-(tr.x1 - tr.x0 + tr.train_len) / TRAIN_SPEED - tr._rng.randf_range(0.0, tr.gap_max))
 	return tr
+
+
+func railway() -> bool:
+	return style == "railway"
+
+
+## Under a railway arch: dry, the sheet can't reach him, and nobody behind him has a clear shot.
+func arch_at(x: float) -> bool:
+	return railway() and deck_at(x)
 
 
 func on_track(x: float) -> bool:
@@ -68,8 +96,11 @@ func deck_at(x: float) -> bool:
 	return false
 
 
-## Height the sheet falls from at x: a deck's underside, or the train's.
+## Height the sheet falls from at x: a deck's underside, or the train's. A railway's sheet always
+## falls from the carriages, onto an arch's deck or through a girder span's open floor.
 func sheet_top(x: float) -> float:
+	if railway():
+		return RAIL_TRAIN_Y
 	return DECK_Y if deck_at(x) else TRAIN_Y
 
 
@@ -103,7 +134,7 @@ func noses(t: float) -> PackedFloat32Array:
 	var k := departure(t)
 	while k >= 0:
 		var nx := x1 - TRAIN_SPEED * (t - departures[k])
-		if nx + TRAIN_LEN < x0:
+		if nx + train_len < x0:
 			break
 		out.append(nx)
 		k -= 1

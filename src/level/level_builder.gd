@@ -166,7 +166,11 @@ func cover_map() -> Array:
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, func(_z): return ARCADE_Y)
 			"canopy":
 				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, func(_z): return 3.55)
-	if track:
+	if track and track.railway():
+		for d in track.decks:
+			# A railway arch keeps the rain off the pavement beneath it; the road in front stays wet.
+			_cover_fill(img, x0, d[0], d[1], 0.0, Track.RAIL_Z1, func(_z): return Track.RAIL_BED, COVER_HIDE)
+	elif track:
 		for d in track.decks:
 			# Visual only: the street under a deck reads dry from the wall out to the camera.
 			_cover_fill(img, x0, d[0], d[1], 0.0, COVER_Z1, func(_z): return Track.DECK_TOP, COVER_HIDE)
@@ -427,7 +431,8 @@ func _build_lot(lot: Dictionary) -> void:
 			# Gas-station canopy (the kit module draws it; we add the collider).
 			_cover_box(Vector3(w - 0.3, 0.4, 3.5), Transform3D(Basis(), Vector3(x + w * 0.5, 3.75, 1.55)))
 			_drips(x + 0.15, x + w - 0.15, 3.5, 3.32)
-	if lot.has("sign") and style != "vacant":
+	var under_viaduct: bool = track != null and track.railway() and lot.get("cover", "none") == "awning"
+	if lot.has("sign") and style != "vacant" and not under_viaduct:   # a railway viaduct hides an awning lot's sign
 		_build_sign(x, w, String(lot["sign"]), style, bool(lot.get("neon", false)))
 	if style != "vacant" and rng.randf() < float(data.get("neon", 0.0)) * 0.45:
 		_build_holo(x, w, floors)
@@ -1048,14 +1053,15 @@ func _build_sign(x: float, w: float, text: String, style: String, neon: bool) ->
 		lbl.font = sign_font
 	lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
 	var low := _sign_under_deck(x, w)
-	lbl.position = Vector3(x + w * 0.5, 3.2 if low else 3.5, SIGN_Z)
+	var rail := track != null and track.railway()
+	lbl.position = Vector3(x + w * 0.5, 2.78 if rail else (3.2 if low else 3.5), SIGN_Z)
 	var lit := style in ["shop_lit", "inn"]
 	lbl.modulate = Color(1.0, 0.85, 0.55) if lit else Color(0.55, 0.5, 0.42)
 	lbl.outline_size = 0
 	lbl.shaded = not lit
 	lbl.double_sided = false
 	var max_w := (w - 0.6) / lbl.pixel_size
-	lbl.font_size = int(clampf(max_w / maxf(1.0, text.length() * 0.62), 40.0, 60.0 if low else 110.0))
+	lbl.font_size = int(clampf(max_w / maxf(1.0, text.length() * 0.62), 40.0, 60.0 if low or rail else 110.0))
 	root.add_child(lbl)
 
 
@@ -1358,6 +1364,8 @@ func _build_prop(p: Dictionary) -> void:
 			_box(Vector3(0.1, 1.2, 0.1), Vector3(x, 0.6, 3.2), _mat("pole", Color(0.12, 0.13, 0.12), 0.5, 0.8))
 		"station_stairs":
 			ViaductBuilder.new().station_stairs(self, x)
+		"bracket_lamp":
+			RailwayBuilder.bracket_lamp(self, x)
 
 
 func _lamp_light(x: float, y := 5.0, z := 2.2) -> void:

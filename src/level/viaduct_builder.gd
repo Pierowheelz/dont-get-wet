@@ -25,6 +25,9 @@ var chrome: Material
 
 
 func build(p_builder: LevelBuilder, tr: Track) -> void:
+	if tr.railway():
+		RailwayBuilder.new().build(p_builder, tr)
+		return
 	b = p_builder
 	paint = b._mat("deck_paint", Color(0.7, 0.67, 0.6), 0.75)
 	chrome = b._material_res("chrome", b._mat("chrome_fb", Color(0.85, 0.86, 0.88), 0.1, 1.0))

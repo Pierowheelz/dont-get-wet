@@ -36,9 +36,9 @@ func _ready() -> void:
 	if ResourceLoader.exists("res://assets/audio/train_pass.ogg"):
 		_pass.stream = load("res://assets/audio/train_pass.ogg")
 	add_child(_pass)
-	var n := ceili((track.x1 - track.x0 + Track.TRAIN_LEN) / (Track.TRAIN_SPEED * track.gap_min)) + 1
+	var n := ceili((track.x1 - track.x0 + track.train_len) / (Track.TRAIN_SPEED * track.gap_min)) + 1
 	for i in n:
-		var train := _make_train()
+		var train := RailwayBuilder.make_train(i % 2 == 1) if track.railway() else _make_train()
 		train.visible = false
 		add_child(train)
 		_trains.append(train)
@@ -83,6 +83,8 @@ func _find_floors() -> void:
 
 ## Where a sheet layer falls from: the deck's underside where one hangs over that layer, else the train's.
 func _top(x: float, z: float) -> float:
+	if track.railway():
+		return Track.RAIL_TRAIN_Y
 	return Track.DECK_Y if z < Track.DECK_Z1 and track.deck_at(x) else Track.TRAIN_Y
 
 
@@ -100,12 +102,12 @@ func _process(delta: float) -> void:
 	var washes: Array = []
 	for i in _trains.size():
 		var train := _trains[i]
-		train.visible = i < noses.size() and noses[i] < cx + VIEW_M and noses[i] + Track.TRAIN_LEN > cx - VIEW_M
+		train.visible = i < noses.size() and noses[i] < cx + VIEW_M and noses[i] + track.train_len > cx - VIEW_M
 		if not train.visible:
 			continue
 		var nx := noses[i]
 		train.position.x = nx
-		var near := maxf(maxf(nx - px, px - (nx + Track.TRAIN_LEN)), 0.0)
+		var near := maxf(maxf(nx - px, px - (nx + track.train_len)), 0.0)
 		shake = maxf(shake, pow(clampf(1.0 - near / 18.0, 0.0, 1.0), 2.0))
 		var wash := track.wash_span(nx)
 		if not wash.is_empty():
