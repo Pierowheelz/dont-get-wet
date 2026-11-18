@@ -123,6 +123,38 @@ stands, defeated or at the door) and matches his walking or hurrying speed. He n
 the bots and the rain model ignore him, and a checkpoint resume skips appearances behind it. Put
 each `x` where the walker is under cover, so a player who stops to listen stays dry.
 
+**`courier`** (`{"appear_x", "door_x", "stops": [{"x", "dur"}]}`; `s.courier(appear_x, door_x,
+stops=[(x, dur), ...])`) is a scripted pedestrian the walker must keep in frame, under the only
+yellow umbrella on the street. He stands in a doorway at `appear_x` and steps out onto a lane just
+behind the walker's once the walker is 8 m from it, opening the umbrella as he goes; he never furls it,
+so he needs no cover. He walks at 1.15 m/s to `door_x` (the inn door) and goes in ahead of the walker.
+At each stop `x` he faces the shop window for `dur` seconds. The rules, all in `src/level/courier.gd`:
+
+- **Glance.** When the walker is within 4 m behind him he slows for 0.5 s, then turns his head and
+  shoulders back over 1 s, holds, and turns forward again; at most one glance every 5 s. As the turn
+  completes, if the walker's umbrella is not open and tilted fully forward (90% of the maximum
+  tilt, the tilt that blocks a car's splash), his suspicion goes up by one.
+- **Suspicion shows only in what he does.** Each gain: he holds the look 0.6 s longer and a low sting
+  plays (`glance_sting`). At 1 he glances from 5 m, and at every window stop he checks the reflection
+  (a glance while facing the glass). At 2 he walks at 1.25 m/s and window stops are 40% shorter. At 3
+  his free hand goes inside his coat on every glance. The 4th gain: he turns round, aims the umbrella,
+  a glint for 0.6 s, a jet, and the attempt fails as `shot`.
+- **Fails.** `made` when the walker comes within 1.2 m of him or passes him; `lost` when he has been
+  off the right edge of the frame (taken as at least 16:9) for 2 s. Neither applies in the last 6 m
+  before his door.
+- **Hints** are event-driven, once per attempt: when he steps out, at his first glance, and the first
+  time the walker is within 5 m of him at a window stop.
+- **The bots** hold stop to stay his glance distance + 1.2 m back, hurry if he is about to leave the
+  frame, and open the umbrella tilted fully forward while he glances. The human bot reacts late as
+  usual. `level_preview.py` ignores him (`tools/preview.sh` is the judge); the street's `par_speed`
+  has to allow for his pace and stops (Atomic Avenue uses 1.25).
+- **Checkpoints.** A resume (or `--start-x`) past his doorway puts him 6.5 m ahead and already walking,
+  with the stops behind spent and his suspicion as it was at the checkpoint.
+- **Testing flags:** `--courier-suspicion=N` starts him at suspicion N, `--courier-pace=M` makes him
+  walk at M m/s (to test `lost`), and `--courier-gap=M` changes the 6.5 m resume gap.
+
+Put stops in front of lit windows, and give the walker somewhere to wait about 5 m short of each.
+
 **Street text in `levels/index.json`.** Besides `blurb` and `outro` (a string, or an array of lines
 shown one under another), a node can carry `load` (one
 line under the street name on the loading card) and `fail` (an array of fail-screen lines that
