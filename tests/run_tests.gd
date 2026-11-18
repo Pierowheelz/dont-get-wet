@@ -349,6 +349,7 @@ func _run() -> void:
 	await _test_follower()
 	await _test_fail_cause()
 	await _test_viaduct()
+	await _test_viaduct_road()
 	_test_dynamic_resolution()
 	_run_tests()
 	get_parent().finish(failures)
@@ -476,6 +477,130 @@ func _test_viaduct() -> void:
 	level._train_and_phone_hints(0.4)
 	check(not level.phone_ringing(keep, kx + 0.5) and level._seen.has("phone@%d" % keep), "holding stop beside it answers it: the line shows and the ring stops")
 	p.state = Player.State.WALK
+
+
+## Viaduct Road: railway arches are cover from the rain and the sheet; jets from behind are blocked
+## by a canopy tilted back toward them (and shove it, less with Sturdy Frame) or soak him as SHOT;
+## the men who fire them hold fire under an arch and stay spent after a checkpoint resume.
+func _test_viaduct_road() -> void:
+	Game.current_level = "viaduct_road"
+	if is_instance_valid(level):
+		level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	var p: Player = level.player
+	p.set_physics_process(false)
+	_unhook_defeat(p)
+	var tr: Track = level.track
+	check(tr != null and tr.railway() and not tr.decks.is_empty(), "viaduct_road has a railway with runs of arches")
+	var arch: Array = tr.decks[1]
+	var ax: float = (arch[0] + arch[1]) * 0.5
+	check(tr.arch_at(ax) and not tr.arch_at(arch[1] + 3.0), "arch_at is true under the arches and false on the girders past them")
+	var shut := await _place(ax, 0.0)
+	check(shut < 0.05, "under a railway arch with the umbrella shut: rain exposure %.2f ~ 0" % shut)
+	var t_sheet := _next_sheet(ax) + 0.3
+	check(level.wash_at(ax, t_sheet) and await _wash(ax, 0.0, 0.0, t_sheet) == 0.0, "the train's sheet never reaches him under an arch")
+	var open_x := -1.0
+	for lot in level.data["lots"]:
+		var mid: float = lot["x"] + lot["w"] * 0.5
+		if lot["style"] == "vacant" and lot["w"] >= 4.0 and mid > 40.0 and not tr.deck_at(mid) and open_x < 0.0:
+			open_x = mid
+	var t_open := _next_sheet(open_x) + 0.3
+	var bare := await _wash(open_x, 0.0, 0.0, t_open)
+	check(bare > 0.95, "on an open girder span (x=%.1f) the sheet falls through onto him: exposure %.2f" % [open_x, bare])
+
+	var muzzle := func() -> Vector3: return p.global_position + Vector3(-5.8, 2.2, -0.3)
+	for settle in 2:
+		await _place(open_x, 1.0, -0.6 * Tun.f("umbrella_max_tilt"))
+	p.wet = 0.0
+	p.jet_kick = 0.0
+	var blocked := WaterJet.strike(p, muzzle.call())
+	check(blocked and p.wet == 0.0 and p.jet_kick > 0.5, "a jet into a canopy tilted back toward it is blocked (wet %.1f) and shoves it (%.2f)" % [p.wet, p.jet_kick])
+	p.jet_kick = 0.0
+	for settle in 2:
+		await _place(open_x, 1.0, 0.0)
+	p.wet = 0.0
+	blocked = WaterJet.strike(p, muzzle.call())
+	check(not blocked and is_equal_approx(p.wet, Tun.f("wet_jet_hit")) and p.stats["wet_hit"] >= Tun.f("wet_jet_hit"),
+		"over an upright canopy it hits him: soaks %.1f (wet_jet_hit)" % p.wet)
+
+	var sturdy_was: int = Game.run.upgrades[&"sturdy"]
+	var kicks: Array = []
+	for tier in [0, 3]:
+		Game.run.upgrades[&"sturdy"] = tier
+		p.jet_kick = 0.0   # the last shove has worn off
+		for settle in 2:   # the arm eases into a new tilt
+			await _place(open_x, 1.0, -0.6 * Tun.f("umbrella_max_tilt"))
+		WaterJet.strike(p, muzzle.call())
+		kicks.append(p.jet_kick)
+	Game.run.upgrades[&"sturdy"] = sturdy_was
+	check(kicks[1] < kicks[0] and is_equal_approx(kicks[1] / kicks[0], Game.jet_shove_mult(3)),
+		"Sturdy Frame tier 3 takes a quarter of the shove a bare frame does (%.2f vs %.2f)" % [kicks[1], kicks[0]])
+	await _place(open_x, 0.0, 0.0)
+	p.wet = Tun.f("wet_max") - 2.0
+	WaterJet.strike(p, muzzle.call())
+	p._physics_process(1.0 / 60.0)
+	check(p.state == Player.State.DEFEATED and p.fail_cause == &"shot", "a jet that soaks him fails the attempt as SHOT: %s" % p.fail_cause)
+	p.state = Player.State.WALK
+
+	var att: Node = level.attackers
+	check(att != null and att.phase == att.Phase.OFF and not att.visible, "nobody is behind him before the first attacker's x")
+	att._begin(0)
+	att._t = 2.0
+	await _idle_frames(3)
+	var edge: float = att._frame_edge()
+	var tip: float = att._shadow.global_position.x + att._shadow.global_basis.x.length() * 0.5
+	check(att.position.x < edge and att._shadow.visible and tip > edge + 4.0,
+		"the warning: he is still out of shot (%.1f < %.1f) while his shadow already lies on the pavement in it" % [att.position.x, edge])
+	att._set_phase(att.Phase.FIRE)
+	att._shot_t = 0.0
+	var shots: int = att.shots_left
+	p.position.x = ax
+	att._fire_control(0.016, p)
+	check(att.jet == null and att.held == 1 and att.shots_left == shots - 1, "under an arch he holds his fire, and the held shot still counts")
+	p.position.x = open_x
+	att._shot_t = 0.0
+	att._fire_control(0.016, p)
+	check(att.incoming(), "out from under the arches he fires")
+	att.jet.queue_free()
+	att.jet = null
+
+	# A resume from the second checkpoint: the first two men are spent, the third still comes.
+	var xs: Array = level.data["attackers"].map(func(a: Dictionary) -> float: return float(a["x"]))
+	var cp_i := 0
+	while cp_i < level.checkpoints.size() and float(level.checkpoints[cp_i]) < xs[1]:
+		cp_i += 1
+	check(cp_i < level.checkpoints.size() and float(level.checkpoints[cp_i]) < xs[2], "a checkpoint lies between the second and third men")
+	level.queue_free()
+	await _frames(2)
+	Game.debug_resume_cp = cp_i
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	Game.debug_resume_cp = -1
+	await _frames(3)
+	p = level.player
+	p.set_physics_process(false)
+	att = level.attackers
+	check(att._next == 2, "resuming past two men's x skips both (next is #%d)" % att._next)
+	p.position.x = xs[1] + 2.0
+	await _idle_frames(3)
+	check(att.phase == att.Phase.OFF and att.index == -1, "... and walking back over one's x doesn't bring him")
+	p.position.x = xs[2] + 0.5
+	await _idle_frames(3)
+	check(att.phase == att.Phase.WARN and att.index == 2, "the third still comes when the walker reaches his x")
+
+	var r := Run.new("left", Game.start_node)
+	r.completed = [Game.start_node, "canal_row", "mill_road", "kiln_street"]
+	r.current_node = "kiln_street"
+	var run_was := Game.run
+	Game.run = r
+	check(not Game.is_soon("viaduct_road") and Game.can_select("viaduct_road"), "the map opens Viaduct Road once Kiln Street is walked")
+	r.completed = [Game.start_node, "canal_row", "mill_road"]
+	r.current_node = "mill_road"
+	check(not Game.can_select("viaduct_road"), "... and not before")
+	Game.run = run_was
 
 
 ## Each observe() is one second of play: median frame and GPU time in ms.
