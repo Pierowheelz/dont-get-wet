@@ -16,14 +16,14 @@ signal resolved(blocked: bool)
 enum Phase { GLINT, TRAVEL, SPENT }
 
 const GLINT_S := 0.6
-const AIM_TILT := 0.96        # rad of forward tilt a shooter holds: the shaft ~35° above level
-const MIN_ELEV := 0.35        # rad: the shaft is never held flatter than this
+const AIM_TILT := 1.2         # rad of forward tilt a shooter holds: the shaft ~21° above level
+const MIN_ELEV := 0.3         # rad: the shaft is never held flatter than this
 const MAX_ELEV := 1.15
 const GRAVITY := 9.8
 const PELLETS := 46
 const SPREAD := 0.1           # rad of cone half-angle
-const SPEED_JITTER := 0.07
-const TRAIL := 3              # ghost copies behind each pellet, so it reads as a streak
+const SPEED_JITTER := 0.13     # the burst strings out along its path more than it spreads
+const TRAIL := 5              # ghost copies behind each pellet, so it reads as a streak
 const TRAIL_DT := 0.014
 const BLOCK_SHARE := 0.5      # weighted share of his body the canopy must shield
 const AIM_Y := 1.25           # the burst comes down on his chest
@@ -206,9 +206,9 @@ func _draw_pellets(t: float) -> void:
 	for i in PELLETS:
 		for k in TRAIL + 1:
 			var tk := maxf(t - k * TRAIL_DT, 0.0)
-			var s := 1.0 - 0.22 * k
+			var s := 1.0 - 0.14 * k
 			mm.set_instance_transform(i * (TRAIL + 1) + k, Transform3D(Basis.from_scale(Vector3.ONE * s), _pos(tk, _pellets[i])))
-			mm.set_instance_color(i * (TRAIL + 1) + k, Color(1, 1, 1, fade * (0.85 - 0.2 * k)))
+			mm.set_instance_color(i * (TRAIL + 1) + k, Color(1, 1, 1, fade * (0.85 - 0.13 * k)))
 
 
 func _resolve(p: Player) -> void:

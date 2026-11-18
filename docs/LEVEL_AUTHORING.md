@@ -241,7 +241,7 @@ has gone). When the walker passes `x`:
   (`Level.camera_bias`) to keep him 1.3 m inside the left edge.
 - **Every 2.5 s** he fires a telegraphed shot (`WaterJet`): a 0.6 s glint at his umbrella's tip, then
   a shotgun burst of pellets along the shaft. Shooters hold the umbrella `WaterJet.AIM_TILT` forward
-  (the shaft about 35 degrees above level; it is never held flatter than 20), so the burst arcs up
+  (the shaft about 21 degrees above level; it is never held flatter than 17), so the burst arcs up
   and comes down on the walker, its speed set to land on his chest where he'll be. An open canopy
   that hides at least half his body from the burst's last 0.3 s of arc (tilted back toward the
   shooter; about 30 degrees back is enough, flat back lets the rain in) blocks it and is shoved
