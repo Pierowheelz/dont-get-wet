@@ -54,8 +54,6 @@ const TWIST := 1.9                # rad of upper-body turn at full glance (plus 
 const HIP_TURN := 0.5
 const WINDOW_TWIST := 0.9
 const AIM_TURN_S := 0.5
-const GLINT_S := 0.6
-const JET_S := 0.45
 
 var level: Node
 var phase := Phase.WAIT
@@ -85,8 +83,6 @@ var _model: Node3D
 var _umbrella: Umbrella
 var _grip: Node3D
 var _twist: CourierTwist
-var _glint: MeshInstance3D
-var _jet: MeshInstance3D
 var _sting: AudioStreamPlayer
 
 
@@ -173,53 +169,6 @@ func _build_fx() -> void:
 	if ResourceLoader.exists(STING):
 		_sting.stream = load(STING)
 	add_child(_sting)
-	_glint = MeshInstance3D.new()
-	var q := QuadMesh.new()
-	q.size = Vector2(0.5, 0.5)
-	var gm := StandardMaterial3D.new()
-	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	gm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	gm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	gm.albedo_texture = _star_tex()
-	gm.albedo_color = Color(1.0, 0.97, 0.85)
-	gm.no_depth_test = true
-	q.material = gm
-	_glint.mesh = q
-	_glint.top_level = true
-	_glint.visible = false
-	add_child(_glint)
-	_jet = MeshInstance3D.new()
-	var c := CylinderMesh.new()
-	c.top_radius = 0.05
-	c.bottom_radius = 0.11
-	c.height = 1.0
-	var jm := StandardMaterial3D.new()
-	jm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	jm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	jm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	jm.albedo_color = Color(0.8, 0.9, 1.0, 1.0)
-	c.material = jm
-	_jet.mesh = c
-	_jet.top_level = true
-	_jet.visible = false
-	add_child(_jet)
-
-
-## A four-pointed sparkle for the glint at his umbrella tip.
-static func _star_tex() -> ImageTexture:
-	var n := 64
-	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
-	for y in n:
-		for x in n:
-			var u := (x + 0.5) / n * 2.0 - 1.0
-			var v := (y + 0.5) / n * 2.0 - 1.0
-			var r := sqrt(u * u + v * v)
-			var core := exp(-r * r * 30.0)
-			var rays := exp(-absf(u) * 28.0) * maxf(1.0 - absf(v), 0.0) + exp(-absf(v) * 28.0) * maxf(1.0 - absf(u), 0.0)
-			var a := clampf(core + rays * 0.8, 0.0, 1.0)
-			img.set_pixel(x, y, Color(1, 1, 1, a))
-	return ImageTexture.create_from_image(img)
 
 
 # --- public -----------------------------------------------------------------------------------
@@ -456,38 +405,19 @@ func _door(delta: float, p: Player) -> void:
 		visible = false
 
 
-## The 4th gain: he turns right round, levels the umbrella at the walker, a glint, the jet.
+## The 4th gain: he turns right round, levels the umbrella at the walker and fires a WaterJet.
 func _aim(delta: float, p: Player) -> void:
 	speed = move_toward(speed, 0.0, 3.0 * delta)
 	position.x += speed * delta
 	_yaw = move_toward(_yaw, -PI, PI / AIM_TURN_S * delta)
 	_hand = move_toward(_hand, 0.0, 3.0 * delta)
-	var tip := _umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + 0.05, 0.0)
-	var t := _phase_t - AIM_TURN_S
-	_glint.visible = t > 0.0 and t < GLINT_S + JET_S
-	if _glint.visible:
-		_glint.global_position = tip + Vector3(0.0, 0.0, 0.3)
-		var pulse := sin(clampf(t / GLINT_S, 0.0, 1.0) * PI)
-		_glint.scale = Vector3.ONE * (0.4 + 1.4 * pulse)
-	if t >= GLINT_S and t < GLINT_S + JET_S:
-		var chest := p.global_position + Vector3(0.0, 1.3, 0.0)
-		var along := (t - GLINT_S) / JET_S
-		var end := tip.lerp(chest, minf(along * 3.0, 1.0))
-		_jet.visible = true
-		var dir := end - tip
-		_jet.global_transform = Transform3D(Basis(_arc(Vector3.UP, dir.normalized())) * Basis.from_scale(Vector3(1.0, maxf(dir.length(), 0.01), 1.0)), tip + dir * 0.5)
-	else:
-		_jet.visible = false
-	if t >= GLINT_S + JET_S * 0.35 and not _aim_fired:
+	if _phase_t >= AIM_TURN_S and not _aim_fired:
 		_aim_fired = true
-		p.soak(Tun.f("wet_max") * 0.3, &"shot")
-		p.fail(&"shot")
-
-
-static func _arc(from: Vector3, to: Vector3) -> Quaternion:
-	if from.cross(to).length_squared() < 1e-10:
-		return Quaternion.IDENTITY if from.dot(to) > 0.0 else Quaternion(Vector3.RIGHT, PI)
-	return Quaternion(from, to)
+		# The same telegraphed jet the pursuers fire. Blocked or not, he's been made: the attempt
+		# fails as SHOT once it lands.
+		var jet := WaterJet.fire(level, func() -> Vector3:
+			return _umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0))
+		jet.resolved.connect(func(_blocked: bool) -> void: p.fail(&"shot"))
 
 
 # --- the look ---------------------------------------------------------------------------------
