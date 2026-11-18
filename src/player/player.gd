@@ -613,6 +613,10 @@ func _autopilot(delta: float) -> Array:
 		danger = true
 	if jet_in:
 		danger = true
+	# The canopy takes umbrella_open_time to open and a shot lands about a second after its glint:
+	# have it up before his next one.
+	if under_fire and att.next_glint_in() < Game.umbrella_open_time() + 0.2:
+		danger = true
 	_ap_hold = 0.35 if danger else maxf(0.0, _ap_hold - delta)
 	var u := 1.0 if (danger or _ap_hold > 0.0) else 0.0
 	var h := 0.0

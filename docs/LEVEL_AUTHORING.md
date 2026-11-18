@@ -238,22 +238,25 @@ has gone). When the walker passes `x`:
   pavement by a lamp behind him, growing as he comes, before he is in shot. Author a `bracket_lamp`
   about 9 m before `x` so the lamp is there.
 - **Then** he walks in from the left and holds 5.8 m behind the walker; the camera eases back
-  (`Level.camera_bias`) to keep him 1.3 m inside the left edge.
+  (`Level.camera_bias`) to keep him 1.3 m inside the left edge. Once he has closed in he walks no
+  faster than `walk_speed`, so a walker who hurries or runs leaves him behind: out of the frame for
+  1 s, he gives up and doesn't come back.
 - **Every 2.5 s** he fires a telegraphed shot (`WaterJet`): a 0.6 s glint at his umbrella's tip, then
   a shotgun burst of pellets along the shaft. Shooters hold the umbrella `WaterJet.AIM_TILT` forward
-  (the shaft about 21 degrees above level; it is never held flatter than 17), so the burst arcs up
-  and comes down on the walker, its speed set to land on his chest where he'll be. An open canopy
-  that hides at least half his body from the burst's last 0.3 s of arc (tilted back toward the
-  shooter; about 30 degrees back is enough, flat back lets the rain in) blocks it and is shoved
+  (the shaft about 12 degrees above level; it is never held flatter than 10), so the burst flies
+  almost flat with a slight arc, its speed set to land on his chest where he'll be. An upright
+  canopy doesn't stop it. One that hides at least half his body from the burst's last 0.15 s of
+  arc (tilted back toward the shooter: 60% of full tilt is enough, flat back lets the rain in) blocks it and is shoved
   aside for 0.7 s (tilt and droop, `jet_shove`, less with Sturdy Frame: `upgrade_sturdy_jet_shove`).
-  Otherwise it soaks him by `wet_jet_hit` (7) through `Player.soak(amount, &"shot")`, so a jet that
+  Otherwise it soaks him by `wet_jet_hit` (12) through `Player.soak(amount, &"shot")`, so a jet that
   soaks him fails the attempt as SHOT.
 - **Under a railway arch** he holds his fire, but the held shot still counts, as does one he can't
   reach from more than 9 m back. After `shots` he drops back out of the left of the frame.
 
 The first one shows "Behind you." as the warning starts and a tilt-back hint at his first glint. A
 checkpoint resume skips every pursuer whose `x` is behind it, so one who was on at the checkpoint
-doesn't come back. The bots open up and tilt back (60% of full tilt) when a jet glints, with the human
+doesn't come back. The bots open up ahead of each glint (`next_glint_in`, as the canopy takes
+`umbrella_open_time` to open) and tilt back (60% of full tilt) when a jet glints, with the human
 bot's reaction delay, and never stop to rest in his line of fire. level_preview can't simulate them and
 ignores them: `tools/preview.sh` is the judge. Bring each in some 15 m short of a run of arches, so a
 few shots come in the open and the rest are held, and keep the human bot's minimum stamina above 10:
