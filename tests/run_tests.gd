@@ -36,6 +36,7 @@ func _place(x: float, open: float, tilt := 0.0) -> float:
 	p.visual.set_umbrella_pose(p.arm_raise(), tilt, 0.0)
 	await _frames(3)
 	p._update_umbrella()
+	await get_tree().process_frame   # the canopy rebuilds its collider in _process
 	for i in 2:   # raycasts see the moved canopy only after physics has stepped
 		await get_tree().physics_frame
 	return p._rain_exposure()
@@ -255,6 +256,127 @@ func _test_follower() -> void:
 	get_window().size = window_was
 
 
+## Keeps the walker `gap` m behind the courier (0 = holding stop where he is) for `secs` of play, with
+## the umbrella at `open` and `tilt`. Returns the seconds until `until` held, or -1.
+func _tail(lv: Level, secs: float, gap: float, open := 0.0, tilt := 0.0, until := Callable()) -> float:
+	var p: Player = lv.player
+	var c: Node3D = lv.courier
+	p.state = Player.State.STOPPED if gap == 0.0 else Player.State.WALK
+	var t := 0.0
+	while t < secs:
+		if p.state == Player.State.WALK or p.state == Player.State.STOPPED:
+			if gap > 0.0:
+				p.position.x = c.position.x - gap
+			p.open = open
+			p.tilt = tilt
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		if until.is_valid() and until.call():
+			return t
+	return -1.0
+
+
+const COURIER := {"courier": {"appear_x": 30.0, "door_x": 200.0, "stops": [{"x": 120.0, "dur": 2.0}, {"x": 70.0, "dur": 3.0}]}}
+
+
+## Courier on Main Street: he steps out, glances when the walker is close, and ends the attempt as
+## LOST, MADE or SHOT.
+func _test_courier() -> void:
+	var lv := await _street_with(COURIER)
+	var p: Player = lv.player
+	var c: Node3D = lv.courier
+	var max_tilt := Tun.f("umbrella_max_tilt")
+	check(c != null and c.phase == c.Phase.WAIT and is_equal_approx(c.position.x, 30.0) and is_equal_approx(c.door_x, 200.0)
+		and c.stops == [[70.0, 3.0], [120.0, 2.0]], "the courier field: he waits in his doorway at appear_x, stops sorted: %s" % [c.stops if c else null])
+	p.position.x = 21.0
+	await _tail(lv, 0.2, 0.0)
+	check(c.phase == c.Phase.WAIT, "he stays in the doorway while the walker is far off")
+	p.position.x = 23.0
+	await _tail(lv, 3.5, 7.0)
+	check(c.phase == c.Phase.WALK and is_equal_approx(c.position.z, c.LANE_Z) and lv._seen.has("courier"),
+		"once the walker is near he steps out onto his lane, with the hint (phase %d)" % c.phase)
+	var x0: float = c.position.x
+	await _tail(lv, 2.0, 7.0)
+	check(absf((c.position.x - x0) / 2.0 - c.PACE) < 0.05 and not c.glancing(), "he walks at %.2f m/s and doesn't glance at a walker 7 m back" % ((c.position.x - x0) / 2.0))
+
+	# Glances: within GLANCE_DIST with his face showing, suspicion goes up when the turn completes.
+	var began := await _tail(lv, 6.0, 3.5, 0.0, 0.0, func() -> bool: return c.glancing())
+	check(began >= 0.0 and lv._seen.has("courier_glance"), "the walker 3.5 m behind: he starts a glance, with the hint")
+	var done := await _tail(lv, 3.0, 3.5, 0.0, 0.0, func() -> bool: return c.suspicion > 0)
+	check(c.suspicion == 1 and absf(done - (c.SLOW_S + c.TURN_S)) < 0.1,
+		"the umbrella not tilted forward: +1 suspicion as the turn completes (%.2f s in)" % done)
+	check(is_equal_approx(c.glance_dist(), c.GLANCE_DIST + c.GLANCE_DIST_UNEASY), "at suspicion 1 he glances from a metre further")
+	var glanced := false
+	var t := 0.0
+	while t < 9.0:
+		await _tail(lv, 0.1, 3.5, 1.0, max_tilt)
+		t += 0.1
+		glanced = glanced or c._glance_checked
+	check(glanced and c.suspicion == 1, "the umbrella open and tilted fully forward: his next glance gains nothing (suspicion %d)" % c.suspicion)
+	var hidden := Courier.face_hidden(p)
+	p.tilt = max_tilt * 0.6
+	check(hidden and not Courier.face_hidden(p), "only a full forward tilt hides the face")
+
+	# The bots: hang back, and tilt forward while he glances.
+	p.position.x = c.position.x - 3.0
+	var ap: Array = c.steer_bot(p, [0.0, 0.5, 0.0, false])
+	check(ap[3] and ap[1] == 0.0, "the bots hold stop when they're inside his glance distance")
+	c._glance_t = 0.1
+	ap = c.steer_bot(p, [0.0, 0.0, 0.0, false])
+	check(ap[0] == 1.0 and ap[2] == 1.0, "... and open the umbrella tilted fully forward while he glances")
+	c._glance_t = -1.0
+
+	# LOST: off the right edge of the frame for 2 s.
+	_unhook_defeat(p)
+	var off_t := -1.0
+	t = 0.0
+	while t < 20.0 and p.state != Player.State.DEFEATED:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		p.state = Player.State.STOPPED if p.state != Player.State.DEFEATED else p.state
+		if off_t < 0.0 and c.position.x - 0.3 > c.frame_right():
+			off_t = t
+	check(p.fail_cause == &"lost" and off_t > 0.0 and absf(t - off_t - c.LOST_S) < 0.1,
+		"the walker standing still: he walks out of frame, and %.2f s later the attempt fails as LOST" % (t - off_t))
+	await _drop_street(lv)
+
+	# MADE: the walker within 1.2 m of him.
+	lv = await _street_with(COURIER)
+	p = lv.player
+	c = lv.courier
+	_unhook_defeat(p)
+	p.position.x = 23.0
+	await _tail(lv, 3.5, 7.0)
+	await _tail(lv, 0.3, 1.6)
+	check(p.state != Player.State.DEFEATED, "1.6 m behind him is close, but not too close")
+	await _tail(lv, 0.3, 1.0)
+	check(p.state == Player.State.DEFEATED and p.fail_cause == &"made", "1 m behind him: YOU WERE MADE (%s)" % p.fail_cause)
+	await _drop_street(lv)
+
+	# SHOT: the 4th gain.
+	lv = await _street_with(COURIER)
+	p = lv.player
+	c = lv.courier
+	_unhook_defeat(p)
+	p.position.x = 23.0
+	await _tail(lv, 3.5, 7.0)
+	c.suspicion = 3
+	await _tail(lv, 8.0, 3.5, 0.0, 0.0, func() -> bool: return c.phase == c.Phase.AIM)
+	check(c.phase == c.Phase.AIM and p.state != Player.State.DEFEATED, "the 4th gain: he turns to aim")
+	await _tail(lv, 3.0, 0.0, 0.0, 0.0, func() -> bool: return p.state == Player.State.DEFEATED)
+	check(p.fail_cause == &"shot", "... and fires: the attempt fails as SHOT (%s)" % p.fail_cause)
+	await _drop_street(lv)
+
+	# A checkpoint resume past his doorway puts him on his way just ahead, past the stops behind it.
+	Game.debug_resume_cp = 0
+	lv = await _street_with(COURIER)
+	Game.debug_resume_cp = -1
+	c = lv.courier
+	check(c.phase == c.Phase.WALK and absf(c.position.x - lv.player.position.x - c.RESUME_GAP) < 0.5 and c._next_stop == 1,
+		"resuming at x %.1f: he's already walking, %.1f m ahead, with the stop behind spent" % [lv.player.position.x, c.position.x - lv.player.position.x])
+	await _drop_street(lv)
+
+
 func _test_checkpoints() -> void:
 	var cps: Array = level.checkpoints
 	check(cps.size() == 3 and cps[0] < cps[1] and cps[1] < cps[2], "main_street has three ascending checkpoints: %s" % [cps])
@@ -347,6 +469,7 @@ func _run() -> void:
 	await _test_checkpoints()
 	await _test_street_hints()
 	await _test_follower()
+	await _test_courier()
 	await _test_fail_cause()
 	await _test_viaduct()
 	await _test_viaduct_road()
@@ -790,6 +913,17 @@ func _run_tests() -> void:
 	var built_left := Game.nodes.keys().filter(func(id: String) -> bool:
 		return not Game.is_soon(id) and Game.branch[id] in ["", "left"]).size()
 	check(Game.reachable_count(everywhere) == built_left, "streets-walked count leaves out coming-soon streets")
+
+	# Atomic Avenue opens on the right once Telstar Parade is walked.
+	var job := Run.new("right", start)
+	job.completed = [start, "arcade_lane", "neon_junction"]
+	job.current_node = "neon_junction"
+	Game.run = job
+	check(Game.branch["atomic_avenue"] == "right" and not Game.is_soon("atomic_avenue") and not Game.can_select("atomic_avenue"),
+		"atomic_avenue is built, on the right, and locked before Telstar Parade")
+	job.completed.append("telstar_parade")
+	job.current_node = "telstar_parade"
+	check(Game.can_select("atomic_avenue"), "... and selectable once Telstar Parade is walked")
 
 	for f in DirAccess.get_files_at(dir):
 		DirAccess.remove_absolute(dir.path_join(f))
