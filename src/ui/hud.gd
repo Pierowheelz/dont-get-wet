@@ -356,14 +356,21 @@ func _toggle_pause() -> void:
 
 # --- end screens ------------------------------------------------------------------------------
 
-## A street's `fail` lines in levels/index.json replace the generic pool.
-static func fail_line(level_id: String) -> String:
-	var pool: Array = Game.nodes.get(level_id, {}).get("fail", FAIL_LINES)
-	return String(pool[randi() % pool.size()])
+const FAIL_TITLES := {&"wet": "YOU GOT WET", &"shot": "SHOT", &"lost": "YOU LOST HIM", &"made": "YOU WERE MADE"}
+
+
+## A street's `fail` lines in levels/index.json: an array replaces the generic pool for getting wet,
+## and a dictionary keyed by cause (see FAIL_TITLES) gives each cause its own lines.
+static func fail_line(level_id: String, cause := &"wet") -> String:
+	var lines: Variant = Game.nodes.get(level_id, {}).get("fail", FAIL_LINES)
+	var pool: Array = lines.get(String(cause), FAIL_LINES if cause == &"wet" else []) if lines is Dictionary \
+		else (lines if cause == &"wet" else [])
+	return String(pool[randi() % pool.size()]) if not pool.is_empty() else ""
 
 
 func show_fail() -> void:
-	var line := fail_line(level.level_id)
+	var cause: StringName = level.player.fail_cause
+	var line := fail_line(level.level_id, cause)
 	var stats := "Made it %d%% of the way, in %s." % [int(level.progress() * 100.0), UIStyle.fmt_time(level.elapsed)]
 	var buttons := [
 		["Restart", func() -> void: Game.play_level(level.level_id)],
@@ -372,7 +379,7 @@ func show_fail() -> void:
 	]
 	if Game.checkpoint.get("id", "") == level.level_id:
 		buttons.push_front(["Checkpoint", func() -> void: Game.play_level(level.level_id, true)])
-	_overlay = _panel("YOU GOT WET", line, stats, buttons, false, true)
+	_overlay = _panel(FAIL_TITLES.get(cause, FAIL_TITLES[&"wet"]), line, stats, buttons, false, true)
 
 
 func _panel(title: String, kicker: String, body: String, buttons: Array, vertical: bool, fail := false) -> Control:

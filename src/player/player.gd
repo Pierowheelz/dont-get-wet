@@ -10,6 +10,7 @@ signal puddle_stepped(pos: Vector3, running: bool)
 signal footstep(running: bool)
 
 enum State { WALK, STOPPED, DEFEATED, ENTERING, DONE }
+const HIT_BLAME_S := 1.5
 
 const COVER_MASK := 1 << 1
 const UMBRELLA_MASK := 1 << 3
@@ -47,7 +48,10 @@ var hurry := 0.0
 var drying := 0.0                  # current dry rate (for FX)
 var sheltered := false             # head is under fixed cover (awning/balcony)
 var gutter_on_umbrella := 0.0      # 0..1 how much of a gutter stream the umbrella is catching
-var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "dried": 0.0}
+var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_hit": 0.0, "dried": 0.0}
+var fail_cause := &"wet"         # what ended the attempt (HUD.FAIL_TITLES): wet, shot, lost, made
+var _hit_cause := &"wet"
+var _hit_t := -INF
 
 var visual: Node3D
 var umbrella: Umbrella
@@ -215,7 +219,7 @@ func _physics_process(delta: float) -> void:
 	stats["dried"] += minf(drying * delta, wet)
 	wet = clampf(wet + (gain - drying) * delta, 0.0, Tun.f("wet_max"))
 	if wet >= Tun.f("wet_max"):
-		_defeat()
+		fail(_hit_cause if level.elapsed - _hit_t < HIT_BLAME_S else &"wet")
 		return
 	_prev_x = position.x
 	if position.x >= level.end_x:
@@ -455,6 +459,25 @@ func _footsteps(delta: float) -> void:
 
 
 # --- end states -----------------------------------------------------------------------------
+
+## A burst of wetness all at once, such as a water jet that got through. If he's soaked within
+## HIT_BLAME_S of it, the attempt fails with `cause` rather than "wet".
+func soak(amount: float, cause: StringName) -> void:
+	if state == State.DEFEATED or state == State.ENTERING or state == State.DONE:
+		return
+	wet = minf(wet + amount, Tun.f("wet_max"))
+	stats["wet_hit"] += amount
+	_hit_cause = cause
+	_hit_t = level.elapsed
+
+
+## Ends the attempt for `cause` (see HUD.FAIL_TITLES): he gives up and trudges off as when soaked.
+func fail(cause: StringName) -> void:
+	if state == State.DEFEATED or state == State.ENTERING or state == State.DONE:
+		return
+	fail_cause = cause
+	_defeat()
+
 
 func _defeat() -> void:
 	state = State.DEFEATED

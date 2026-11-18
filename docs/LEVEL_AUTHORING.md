@@ -125,7 +125,11 @@ each `x` where the walker is under cover, so a player who stops to listen stays 
 
 **Street text in `levels/index.json`.** Besides `blurb` and `outro`, a node can carry `load` (one
 line under the street name on the loading card) and `fail` (an array of fail-screen lines that
-replaces the generic pool for that street).
+replaces the generic pool for that street). `fail` can instead be a dictionary keyed by fail cause
+(`wet`, `shot`, `lost`, `made`; titles in `HUD.FAIL_TITLES`), each an array of lines. A cause with no
+lines shows only its title; `wet` falls back to the generic pool. Code ends an attempt with a cause
+through `Player.fail(cause)`, or `Player.soak(amount, cause)` for a burst of wetness that is blamed
+if it soaks him within 1.5 s.
 
 **`track`** (`x0`, `x1`, `style`, `gap`; `s.track(gap=(10, 25))`) is an elevated monorail beam along the
 street, just in front of the walker's line. `s.track()` runs it from 40 m before the street to 40 m past

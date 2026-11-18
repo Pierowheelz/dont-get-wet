@@ -84,6 +84,9 @@ func _test_street_text() -> void:
 	for i in 40:
 		seen[HUD.fail_line("main_street")] = true
 	check(seen.keys().all(func(l: String) -> bool: return HUD.FAIL_LINES.has(l)), "a street without fail lines draws from the generic pool")
+	Game.nodes["_text_test"]["fail"] = {"wet": ["Damp."], "shot": ["Bang."]}
+	check(HUD.fail_line("_text_test", &"shot") == "Bang." and HUD.fail_line("_text_test") == "Damp."
+		and HUD.fail_line("_text_test", &"lost") == "", "fail lines keyed by cause: each cause draws its own, none for a cause without lines")
 	Game.nodes.erase("_text_test")
 
 
@@ -102,6 +105,31 @@ func _street_with(extra: Dictionary) -> Level:
 	lv.player.set_physics_process(false)
 	await _frames(3)
 	return lv
+
+
+## A hit that soaks him fails the attempt for its cause; plain rain stays "wet".
+func _test_fail_cause() -> void:
+	var lv := await _street_with({})
+	var p: Player = lv.player
+	_unhook_defeat(p)
+	p.wet = Tun.f("wet_max") - 1.0
+	p.soak(5.0, &"shot")
+	p._physics_process(1.0 / 60.0)
+	check(p.state == Player.State.DEFEATED and p.fail_cause == &"shot", "a jet that soaks him fails as SHOT: %s" % p.fail_cause)
+	await _drop_street(lv)
+	lv = await _street_with({})
+	p = lv.player
+	_unhook_defeat(p)
+	p.wet = Tun.f("wet_max") + 1.0
+	p._physics_process(1.0 / 60.0)
+	check(p.fail_cause == &"wet", "soaked by the weather fails as YOU GOT WET: %s" % p.fail_cause)
+	await _drop_street(lv)
+
+
+## The level quits the game on defeat under --autopilot; tests that defeat him keep it running.
+func _unhook_defeat(p: Player) -> void:
+	for c in p.defeated.get_connections():
+		p.defeated.disconnect(c["callable"])
 
 
 func _drop_street(lv: Level) -> void:
@@ -319,6 +347,7 @@ func _run() -> void:
 	await _test_checkpoints()
 	await _test_street_hints()
 	await _test_follower()
+	await _test_fail_cause()
 	await _test_viaduct()
 	_test_dynamic_resolution()
 	_run_tests()
