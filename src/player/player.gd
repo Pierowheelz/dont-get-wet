@@ -577,12 +577,18 @@ func _autopilot(delta: float) -> Array:
 	var lead := maxf(speed, Tun.f("walk_speed")) * Game.umbrella_open_time() + 0.6
 	var rd0 := rain_dir()
 	var tl0 := clampf(-atan2(rd0.x, -rd0.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
+	# Someone behind with water left: never stand resting in his line of fire (deep under an arch he
+	# can't shoot). When a jet glints, open up and tilt back.
+	var att: Node = level.get("attackers")
+	var jet_in: bool = att != null and att.incoming()
+	var deep_in_arch: bool = level.track != null and level.track.arch_at(position.x) and level.track.arch_at(position.x + lead)
+	var under_fire: bool = att != null and att.armed() and not deep_in_arch
 	# Stop is held, like a player keeping the button down until the bar is full. Deciding from the
 	# live state instead let a flicker in the cover check release it mid-rest (worse with --human's
 	# delayed replay). Rest through a light sprinkle at the cover's edge, but if a gust drives real
 	# rain in, give up the rest and don't settle again until he has moved on a little.
 	if _ap_resting:
-		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5:
+		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5 or under_fire:
 			_ap_resting = false
 			_ap_no_rest_before = position.x + 1.5
 		else:
@@ -603,6 +609,8 @@ func _autopilot(delta: float) -> Array:
 	var wash := _wash_threat(Game.umbrella_open_time() + 0.5)
 	if wash:
 		danger = true
+	if jet_in:
+		danger = true
 	_ap_hold = 0.35 if danger else maxf(0.0, _ap_hold - delta)
 	var u := 1.0 if (danger or _ap_hold > 0.0) else 0.0
 	var h := 0.0
@@ -617,8 +625,10 @@ func _autopilot(delta: float) -> Array:
 			tl = 0.0     # straighten up under a gutter stream
 	if wash:
 		tl = 0.0
+	if jet_in:
+		tl = minf(tl, -0.6)    # put the canopy between him and the jet: back far enough, not flat (that lets the rain in)
 	var stop := false
-	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before:
+	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire:
 		stop = true
 		for off in [-0.9, -0.45, 0.0, 0.45, 0.9]:
 			if _exposed_at(position.x + off) or _exposed_at(position.x + off, 0.5):

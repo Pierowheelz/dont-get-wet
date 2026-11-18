@@ -24,6 +24,8 @@ var crossings: Array = []      # [x0, x1]
 var cars: Array = []           # CarHazard nodes
 var track: Track              # the elevated monorail, or null
 var phones: Array = []         # {x, keep, line} of every ringing payphone, in prop order
+var attackers: Node            # the level's `attackers` (attackers.gd), or null
+var camera_bias := 0.0         # metres the camera eases back from its lead, so someone behind stays in shot
 
 var player: Player
 var camera: Camera3D
@@ -37,6 +39,7 @@ var _wind_curve: Array
 var _gusts := false
 var _cam_locked := false
 var _cam_x := 0.0
+var _cam_bias := 0.0
 var _t := 0.0
 
 
@@ -141,6 +144,11 @@ func _ready() -> void:
 	var peds := preload("res://src/level/pedestrians.gd").new()
 	peds.level = self
 	add_child(peds)
+	if data.has("attackers"):
+		attackers = preload("res://src/level/attackers.gd").new()
+		attackers.name = "Attackers"
+		attackers.level = self
+		add_child(attackers)
 	if data.has("follower"):
 		var follower := preload("res://src/level/follower.gd").new()
 		follower.name = "Follower"
@@ -466,7 +474,8 @@ func _update_camera(delta: float) -> void:
 	if player == null or camera == null:
 		return
 	if not _cam_locked:
-		var target := player.position.x + Tun.f("camera_lead")
+		_cam_bias = move_toward(_cam_bias, camera_bias, 1.6 * delta)
+		var target := player.position.x + Tun.f("camera_lead") + _cam_bias
 		_cam_x = lerpf(_cam_x, target, 1.0 - exp(-6.0 * delta))
 	var z := Tun.f("player_z") + Tun.f("camera_distance")
 	camera.position = Vector3(_cam_x, Tun.f("camera_height"), z)

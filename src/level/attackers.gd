@@ -1,0 +1,293 @@
+extends Node3D
+## The level's `attackers`: men in the walker's own suit, under the same umbrella, who come up behind
+## him one at a time. When the walker passes an attacker's x the warning starts: brisk footsteps panned
+## left and his long shadow, thrown ahead along the pavement by a lamp behind him, for WARN_S before
+## he walks into the frame. He closes to HOLD_GAP behind the walker (the camera eases back to keep him
+## in shot) and fires `shots` telegraphed jets (WaterJet), one every SHOT_EVERY. While the walker is
+## under a railway arch he holds his fire, but each held shot still counts. Out of water, he drops
+## back off the left. A checkpoint resume skips every attacker whose x is behind it.
+
+enum Phase { OFF, WARN, FIRE, LEAVE }
+
+const WARN_S := 2.5
+const CLOSE_IN := 1.0        # m/s faster than the walker as he comes up during the warning
+const LANE_Z := 1.25         # just behind the walker's line, so the jets run along it
+const HOLD_GAP := 5.8        # how far behind the walker he settles to fire
+const IN_FRAME := 1.3        # the camera keeps him this far inside the left edge while he's on
+const ENTER_MARGIN := 0.7    # how far outside the frame he is when the warning ends
+const OUT_MARGIN := 1.2
+const SHOT_EVERY := 2.5
+const FIRST_SHOT := 2.2      # after the warning: time to walk into the frame and close in
+const RANGE := 9.0           # further back than this he can't reach, and the shot is lost
+const MAX_SPEED := 2.8
+const AIM_TILT := 1.15       # forward tilt that points the umbrella's tip at the walker
+const SHADOW_W := 2.2         # across the pavement: the lamp is off to the kerb side, so it fans out
+const SHADOW_Z := 1.2
+const SHADOW_LEN := [3.5, 11.0]   # the lamp shadow's length as the warning starts and ends
+const SHADOW_FADE := 1.5     # it fades once he's in the frame
+const LAMP_Y := 2.9
+
+var level: Node
+var phase := Phase.OFF
+var speed := 0.0
+var index := -1              # which entry of `attackers` is (or was last) on
+var shots_left := 0
+var held := 0                # shots held because the walker was under an arch
+var jet: WaterJet            # the jet in the air, if any
+var _queue: Array = []       # [x, shots] ascending
+var _next := 0
+var _t := 0.0                # time in this phase
+var _shot_t := 0.0
+var _aim := 0.0
+var _fired := 0
+var _shadow_a := 0.0
+var _shadow_f := 0.0
+var _model: Node3D
+var _umbrella: Umbrella
+var _grip: Node3D
+var _shadow: MeshInstance3D
+var _shadow_mat: ShaderMaterial
+var _pool: SpotLight3D
+var _steps: AudioStreamPlayer3D
+var _step_phase := 0.0
+var _stride := 0.0
+
+
+func _ready() -> void:
+	for a in level.data.get("attackers", []):
+		_queue.append([float(a["x"]), int(a.get("shots", 5))])
+	_queue.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	# A checkpoint resume spawns the walker past some of them; those stay spent, and one who was on
+	# at the checkpoint doesn't come back.
+	while _next < _queue.size() and _queue[_next][0] <= level.player.position.x:
+		_next += 1
+	_model = (load(Player.CHARACTER_SCENE) as PackedScene).instantiate()
+	add_child(_model)
+	_model.call("set_wetness", 0.0)
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(0.85, 0.88, 1.0)
+	fill.light_energy = 0.7
+	fill.omni_range = 3.0
+	fill.omni_attenuation = 1.5
+	fill.position = Vector3(0.35, 1.15, 1.0)
+	fill.light_specular = 0.3
+	add_child(fill)
+	_grip = _model.call("get_grip", &"right")
+	_umbrella = Umbrella.new()     # the walker's own, so he reads as his double
+	_grip.add_child(_umbrella)
+	_umbrella._body.collision_layer = 0
+	_shadow = MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	_shadow.mesh = q
+	_shadow_mat = ShaderMaterial.new()
+	_shadow_mat.shader = load("res://src/fx/lamp_shadow.gdshader")
+	_shadow.material_override = _shadow_mat
+	_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_shadow.top_level = true
+	_shadow.visible = false
+	add_child(_shadow)
+	_pool = SpotLight3D.new()
+	_pool.light_color = Color(1.0, 0.74, 0.45)
+	_pool.spot_range = 16.0
+	_pool.spot_angle = 38.0
+	_pool.spot_attenuation = 0.7
+	_pool.light_volumetric_fog_energy = 1.2
+	_pool.shadow_enabled = false
+	_pool.top_level = true
+	_pool.light_energy = 0.0
+	add_child(_pool)
+	_steps = AudioStreamPlayer3D.new()
+	_steps.bus = &"SFX"
+	_steps.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+	_steps.panning_strength = 2.0
+	_steps.volume_db = -9.0
+	_steps.position.y = 0.2
+	add_child(_steps)
+	visible = false
+	position = Vector3(-100.0, 0.0, LANE_Z)
+
+
+## A jet is glinting or in the air: the moment to tilt back.
+func incoming() -> bool:
+	return jet != null and is_instance_valid(jet) and jet.phase != WaterJet.Phase.SPENT
+
+
+## He's on and still has water.
+func armed() -> bool:
+	return phase in [Phase.WARN, Phase.FIRE] and shots_left > 0
+
+
+## Seconds until his next glint could start (INF when he has none left): the bots open up ahead of it.
+func next_glint_in() -> float:
+	if not armed():
+		return INF
+	if incoming():
+		return 0.0
+	return (WARN_S - _t + FIRST_SHOT) if phase == Phase.WARN else maxf(_shot_t, 0.0)
+
+
+func _process(delta: float) -> void:
+	var p: Player = level.player
+	if p == null or level.camera == null:
+		return
+	_t += delta
+	var playing := p.state == Player.State.WALK or p.state == Player.State.STOPPED
+	if phase == Phase.OFF:
+		if playing and _next < _queue.size() and p.position.x >= _queue[_next][0]:
+			_begin(_next)
+			_next += 1
+		return
+	if not playing and phase != Phase.LEAVE:
+		_leave()
+	match phase:
+		Phase.WARN:
+			var target := _frame_edge() - ENTER_MARGIN - CLOSE_IN * maxf(WARN_S - _t, 0.0)
+			speed = clampf((target - position.x) / maxf(delta, 0.001), 0.0, MAX_SPEED)
+			if _t >= WARN_S:
+				_set_phase(Phase.FIRE)
+				_shot_t = FIRST_SHOT
+		Phase.FIRE:
+			var gap := p.position.x - position.x
+			speed = clampf(p.speed + clampf((gap - HOLD_GAP) * 0.8, -0.6, 1.0), 0.0, MAX_SPEED)
+			_fire_control(delta, p)
+		Phase.LEAVE:
+			speed = move_toward(speed, maxf(p.speed - 0.9, 0.0), 2.0 * delta)
+			if position.x < _frame_edge() - OUT_MARGIN:
+				_set_phase(Phase.OFF)
+				visible = false
+				speed = 0.0
+	position.x += speed * delta
+	position.y = level.ground_y(position.x)
+	_pose(delta)
+	_draw_shadow(delta)
+	_footsteps(delta)
+
+
+func _begin(i: int) -> void:
+	index = i
+	shots_left = _queue[i][1]
+	held = 0
+	_fired = 0
+	_set_phase(Phase.WARN)
+	position.x = _frame_edge() - ENTER_MARGIN - CLOSE_IN * WARN_S - 1.5
+	speed = level.player.speed + CLOSE_IN
+	visible = true
+	level.set("camera_bias", _camera_bias())
+	if i == 0:
+		_hint("Behind you.", 3.0)
+
+
+func _set_phase(ph: Phase) -> void:
+	phase = ph
+	_t = 0.0
+
+
+func _leave() -> void:
+	if jet and is_instance_valid(jet) and jet.phase == WaterJet.Phase.GLINT:
+		jet.queue_free()
+	jet = null
+	_set_phase(Phase.LEAVE)
+	level.set("camera_bias", 0.0)
+
+
+## One shot per SHOT_EVERY; a shot whose moment comes while the walker is under an arch is held and lost.
+func _fire_control(delta: float, p: Player) -> void:
+	var sheltered := _under_arch(p.position.x)
+	if jet and is_instance_valid(jet) and jet.phase == WaterJet.Phase.GLINT and sheltered:
+		jet.queue_free()      # he ducked in under the arch mid-aim
+		jet = null
+	if incoming():
+		return
+	_shot_t -= delta
+	if _shot_t > 0.0:
+		return
+	if shots_left <= 0:
+		_leave()
+		return
+	shots_left -= 1
+	_shot_t = SHOT_EVERY
+	if sheltered or p.position.x - position.x > RANGE:
+		held += 1
+		return
+	jet = WaterJet.fire(level, _muzzle)
+	_fired += 1
+	if index == 0 and _fired == 1:
+		_hint("Tilt back ({tilt}) to put the umbrella between you.", 4.0)
+
+
+func _under_arch(x: float) -> bool:
+	return level.track != null and level.track.arch_at(x)
+
+
+func _muzzle() -> Vector3:
+	return _umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0)
+
+
+func _hint(text: String, dur: float) -> void:
+	if level.hud and level.hud.has_method("hint"):
+		level.hud.hint(text, dur)
+
+
+## Open over him the whole time; tipped forward at the walker while a jet glints.
+func _pose(delta: float) -> void:
+	var aiming: bool = jet != null and is_instance_valid(jet) and jet.phase != WaterJet.Phase.SPENT
+	_aim = move_toward(_aim, AIM_TILT if aiming else 0.0, delta * 4.0)
+	_model.call("set_motion", speed, clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0))
+	_model.call("set_stopped", speed < 0.05)
+	_model.call("set_umbrella_pose", 1.0, _aim, 0.0)
+	_model.call("set_umbrella_open", 1.0)
+	_umbrella.set_state(1.0, Game.umbrella_radius(0), 0.0)
+
+
+## The lamp's throw of him along the pavement: it lengthens through the warning and fades once he's in shot.
+func _draw_shadow(delta: float) -> void:
+	if phase == Phase.WARN:
+		_shadow_a = clampf(_t / 0.6, 0.0, 1.0)
+		_shadow_f = smoothstep(0.0, 1.0, _t / WARN_S)
+	else:
+		_shadow_a = move_toward(_shadow_a, 0.0, delta / SHADOW_FADE)
+	_shadow.visible = _shadow_a > 0.01
+	_pool.light_energy = 10.0 * _shadow_a
+	if not _shadow.visible:
+		return
+	var length := lerpf(SHADOW_LEN[0], SHADOW_LEN[1], _shadow_f)
+	var ground: float = level.ground_y(position.x) + 0.015
+	_shadow.global_transform = Transform3D(Basis(Vector3.RIGHT, -PI * 0.5) * Basis.from_scale(Vector3(length, SHADOW_W, 1.0)),
+		Vector3(position.x + 0.15 + length * 0.5, ground, SHADOW_Z))
+	_shadow_mat.set_shader_parameter("alpha", 0.92 * _shadow_a)
+	_shadow_mat.set_shader_parameter("stride", _stride)
+	var lamp := Vector3(position.x - lerpf(1.0, 3.0, _shadow_f), LAMP_Y, LANE_Z + 0.3)
+	_pool.global_transform = Transform3D(Basis(Vector3.UP, -PI * 0.5) * Basis(Vector3.RIGHT, -0.42), lamp)
+
+
+## Bias for Level's camera that keeps him IN_FRAME inside the left edge when he holds HOLD_GAP back.
+func _camera_bias() -> float:
+	var cam: Camera3D = level.camera
+	var half := cam.global_position.x - _frame_edge()
+	return minf(half - HOLD_GAP - IN_FRAME - Tun.f("camera_lead"), 0.0)
+
+
+## World x of the left edge of the frame, on his lane.
+func _frame_edge() -> float:
+	var cam: Camera3D = level.camera
+	var vp := get_viewport().get_visible_rect().size
+	return cam.project_position(Vector2(0.0, vp.y * 0.6), cam.global_position.z - LANE_Z).x
+
+
+## Heels a touch quicker than the walker's, panned with him, off to the left before he's in shot.
+func _footsteps(delta: float) -> void:
+	if speed < 0.1:
+		return
+	_stride += speed * delta / 0.68 * PI
+	_step_phase += speed * delta / 0.68
+	if _step_phase < 1.0:
+		return
+	_step_phase -= 1.0
+	if phase == Phase.LEAVE and position.x < _frame_edge():
+		return
+	var s := load("res://assets/audio/footstep_run_%d.ogg" % randi_range(1, 4)) as AudioStream
+	if s:
+		_steps.stream = s
+		_steps.pitch_scale = randf_range(1.05, 1.15)
+		_steps.play()

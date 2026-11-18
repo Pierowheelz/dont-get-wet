@@ -5,6 +5,9 @@
 
 The PNG is one long strip wrapped into rows of ROW_M metres. The report derives open-sky spans
 from the JSON the way LevelBuilder.cover_map() does and exits 1 when a design rule fails.
+
+It can't simulate scripted NPCs, so `attackers` (jets from behind) are left out of the scores and
+checks: tools/preview.sh, which plays the street with both bots, is the judge of those.
 """
 import argparse
 import json

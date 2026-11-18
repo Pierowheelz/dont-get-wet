@@ -27,6 +27,7 @@ class Street:
         self.figures = []
         self.hints = []
         self.follower_appear = []
+        self.attackers = []
         self.track_rec = None
         self.viaducts = []
         self.end_x = None
@@ -86,14 +87,20 @@ class Street:
         """The follower walks in from the left edge when the walker passes x and holds there for hold s."""
         self.follower_appear.append({"x": round(x, 2), "hold": hold})
 
+    def attacker(self, x, shots=5):
+        """A pursuer who enters from the left once the walker passes x, closes in behind him and fires
+        `shots` telegraphed jets, then drops back. One at a time: a later one waits for the last to go."""
+        self.attackers.append({"x": round(x, 2), "shots": int(shots)})
+
     def track(self, gap, style="monorail", x0=None, x1=None):
-        """An elevated monorail from x0 to x1 (default: the whole street and TRACK_PAST beyond it). Trains
+        """An elevated railway (style "monorail" or "railway") from x0 to x1 (default: the whole street and TRACK_PAST beyond it). Trains
         set off from x1 a random gap = (min, max) s apart, rolled afresh each attempt, run right to left
         and shed a sheet of water behind them wherever they are."""
         self.track_rec = {"x0": x0, "x1": x1, "style": style, "gap": [float(gap[0]), float(gap[1])]}
 
     def viaduct(self, from_tag, to_tag, style="monorail"):
-        """A deck span under the track from the start of from_tag to the end of to_tag: cover."""
+        """A deck span under the track (a railway's: a run of brick arches) from the start of from_tag
+        to the end of to_tag: cover."""
         self.viaducts.append({"x0": self.start(from_tag), "x1": self.end(to_tag), "style": style})
 
     def set_piece(self, name, x0, x1, teaches):
@@ -115,6 +122,8 @@ class Street:
             rest["hints"] = sorted(self.hints, key=lambda h: h["x"])
         if self.follower_appear:
             rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"])}
+        if self.attackers:
+            rest["attackers"] = sorted(self.attackers, key=lambda a: a["x"])
         assert self.track_rec or not self.viaducts, "deck spans need s.track()"
         if self.track_rec:
             t = dict(self.track_rec)
