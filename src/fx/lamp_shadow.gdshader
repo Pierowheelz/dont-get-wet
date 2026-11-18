@@ -27,7 +27,7 @@ void fragment() {
 	// The arm up to the shaft, and the umbrella's dome beyond his head.
 	float shaft = band(v, 0.1, 0.025, blur) * smoothstep(0.6, 0.62, u) * (1.0 - smoothstep(0.84, 0.86, u));
 	float du = clamp((u - 0.8) / 0.2, 0.0, 1.0);
-	float dome_w = 0.46 * sqrt(max(1.0 - du * du, 0.0));
+	float dome_w = 0.48 * sqrt(max(1.0 - du * du, 0.0));
 	float dome = band(v, 0.06, dome_w, blur) * smoothstep(0.78, 0.81, u);
 	float shape = max(max(legs, coat), max(head, max(shaft, dome)));
 	// Darkest at his feet, thinning out toward the tip.

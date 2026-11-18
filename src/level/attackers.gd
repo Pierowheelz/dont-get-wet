@@ -21,7 +21,7 @@ const FIRST_SHOT := 2.2      # after the warning: time to walk into the frame an
 const RANGE := 9.0           # further back than this he can't reach, and the shot is lost
 const MAX_SPEED := 2.8
 const AIM_TILT := 1.15       # forward tilt that points the umbrella's tip at the walker
-const SHADOW_W := 2.2         # across the pavement: the lamp is off to the kerb side, so it fans out
+const SHADOW_W := 2.6         # across the pavement: the lamp is off to the kerb side, so it fans out
 const SHADOW_Z := 1.2
 const SHADOW_LEN := [3.5, 11.0]   # the lamp shadow's length as the warning starts and ends
 const SHADOW_FADE := 1.5     # it fades once he's in the frame
@@ -90,8 +90,8 @@ func _ready() -> void:
 	_pool = SpotLight3D.new()
 	_pool.light_color = Color(1.0, 0.74, 0.45)
 	_pool.spot_range = 16.0
-	_pool.spot_angle = 38.0
-	_pool.spot_attenuation = 0.7
+	_pool.spot_angle = 46.0
+	_pool.spot_attenuation = 0.45
 	_pool.light_volumetric_fog_energy = 1.2
 	_pool.shadow_enabled = false
 	_pool.top_level = true
@@ -248,14 +248,14 @@ func _draw_shadow(delta: float) -> void:
 	else:
 		_shadow_a = move_toward(_shadow_a, 0.0, delta / SHADOW_FADE)
 	_shadow.visible = _shadow_a > 0.01
-	_pool.light_energy = 10.0 * _shadow_a
+	_pool.light_energy = 16.0 * _shadow_a
 	if not _shadow.visible:
 		return
 	var length := lerpf(SHADOW_LEN[0], SHADOW_LEN[1], _shadow_f)
 	var ground: float = level.ground_y(position.x) + 0.015
 	_shadow.global_transform = Transform3D(Basis(Vector3.RIGHT, -PI * 0.5) * Basis.from_scale(Vector3(length, SHADOW_W, 1.0)),
 		Vector3(position.x + 0.15 + length * 0.5, ground, SHADOW_Z))
-	_shadow_mat.set_shader_parameter("alpha", 0.92 * _shadow_a)
+	_shadow_mat.set_shader_parameter("alpha", _shadow_a)
 	_shadow_mat.set_shader_parameter("stride", _stride)
 	var lamp := Vector3(position.x - lerpf(1.0, 3.0, _shadow_f), LAMP_Y, LANE_Z + 0.3)
 	_pool.global_transform = Transform3D(Basis(Vector3.UP, -PI * 0.5) * Basis(Vector3.RIGHT, -0.42), lamp)
