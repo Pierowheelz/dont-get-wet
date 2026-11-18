@@ -13,6 +13,10 @@ const GIRDER_Y := 3.12          # foot of a girder at the fascia; still above th
 const FASCIA_Y0 := 3.2
 const FASCIA_Y1 := 3.78         # just under the train's back skirt (Track.TRAIN_Y)
 const DRIP_CHUNK := 30.0        # drip emitters stay short so off-screen ones are culled
+const TRUSS_PANEL := 0.8       # one Warren panel along the open beam; its diagonals run at about 45°
+const TRUSS_CHUNK := 30.0       # one mesh per chunk so off-screen truss is culled
+const TRUSS_CHORD := 0.08
+const TRUSS_WEB := 0.045
 const BEAM_DRIP := 0.33         # the beam's drip line is light and sparse: the only drip along the viaduct
 
 var b: LevelBuilder
@@ -26,16 +30,24 @@ func build(p_builder: LevelBuilder, tr: Track) -> void:
 	chrome = b._material_res("chrome", b._mat("chrome_fb", Color(0.85, 0.86, 0.88), 0.1, 1.0))
 	var mid := (tr.x0 + tr.x1) * 0.5
 	var span := tr.x1 - tr.x0
-	# The beam in cross-section (z, y), bevelled along its underside.
+	# Over a deck the beam is solid, in cross-section (z, y) bevelled along its underside. Between
+	# decks it is an open truss, so it reads as a rail the rain falls through, not a roof.
 	var z0 := Track.BEAM_Z0
 	var z1 := Track.BEAM_Z1
-	b.root.add_child(extrude(PackedVector2Array([Vector2(z0 + 0.1, Track.BEAM_Y), Vector2(z1 - 0.1, Track.BEAM_Y),
+	var profile := PackedVector2Array([Vector2(z0 + 0.1, Track.BEAM_Y), Vector2(z1 - 0.1, Track.BEAM_Y),
 		Vector2(z1, Track.BEAM_Y + 0.12), Vector2(z1, Track.BEAM_TOP), Vector2(z0, Track.BEAM_TOP),
-		Vector2(z0, Track.BEAM_Y + 0.12)]), tr.x0, tr.x1, paint))
-	# The guide rails the bogies' side wheels run on, and a neon line along the soffit over the decks only.
+		Vector2(z0, Track.BEAM_Y + 0.12)])
+	var open_from := tr.x0
+	for d in tr.decks:
+		b.root.add_child(extrude(profile, d[0], d[1], paint))
+		b._box(Vector3(d[1] - d[0], 0.04, 0.04), Vector3((d[0] + d[1]) * 0.5, Track.BEAM_Y + 0.13, z1 + 0.015), chrome)
+		_truss(open_from, d[0])
+		open_from = d[1]
+	_truss(open_from, tr.x1)
+	# The guide rails the bogies' side wheels run on, the whole length, and a neon line along the
+	# soffit over the decks only.
 	for z in [z0 - 0.01, z1 + 0.01]:
 		b._box(Vector3(span, 0.1, 0.02), Vector3(mid, Track.RAIL_Y, z), chrome)
-	b._box(Vector3(span, 0.04, 0.04), Vector3(mid, Track.BEAM_Y + 0.13, z1 + 0.015), chrome)
 	var neon := b._neon_mat(Color(0.25, 1.0, 0.92), 2.2)
 	for d in tr.decks:
 		var tube := b._box(Vector3(d[1] - d[0], 0.03, 0.03), Vector3((d[0] + d[1]) * 0.5, Track.BEAM_Y - 0.02, (z0 + z1) * 0.5), neon)
@@ -58,6 +70,59 @@ func build(p_builder: LevelBuilder, tr: Track) -> void:
 			b._lamp_light(px, Track.BEAM_Y - 0.12, z0)
 		i += 1
 		px += PILLAR_STEP
+
+
+## The open beam from xa to xb: a Warren truss in each side face, chords top and bottom, with
+## cross struts and alternating diagonals along its underside, built as one mesh per chunk.
+func _truss(xa: float, xb: float) -> void:
+	var x := xa
+	while xb - x > 0.2:
+		var xe := minf(x + TRUSS_CHUNK, xb)
+		var n := maxi(1, roundi((xe - x) / TRUSS_PANEL))
+		var step := (xe - x) / n
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var zs := [Track.BEAM_Z0 + TRUSS_CHORD * 0.5, Track.BEAM_Z1 - TRUSS_CHORD * 0.5]
+		var lo := Track.BEAM_Y + TRUSS_CHORD * 0.5
+		var hi := Track.BEAM_TOP - TRUSS_CHORD * 0.5
+		for z: float in zs:
+			_bar(st, Vector3(x, lo, z), Vector3(xe, lo, z), TRUSS_CHORD)
+			_bar(st, Vector3(x, hi, z), Vector3(xe, hi, z), TRUSS_CHORD)
+			for end in [x, xe]:
+				_bar(st, Vector3(end, lo, z), Vector3(end, hi, z), TRUSS_WEB)
+			for k in n:
+				var ka := x + k * step
+				var km := ka + step * 0.5
+				_bar(st, Vector3(ka, lo, z), Vector3(km, hi, z), TRUSS_WEB)
+				_bar(st, Vector3(km, hi, z), Vector3(ka + step, lo, z), TRUSS_WEB)
+		for k in n + 1:
+			var kx := x + k * step
+			_bar(st, Vector3(kx, lo, zs[0]), Vector3(kx, lo, zs[1]), TRUSS_WEB)
+			_bar(st, Vector3(kx, hi, zs[0]), Vector3(kx, hi, zs[1]), TRUSS_WEB)
+			if k < n:
+				var flip := k % 2
+				_bar(st, Vector3(kx, lo, zs[flip]), Vector3(kx + step, lo, zs[1 - flip]), TRUSS_WEB)
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = paint
+		b.root.add_child(mi)
+		x = xe
+
+
+## A square bar of width w from a to c, flat-shaded, capped.
+static func _bar(st: SurfaceTool, a: Vector3, c: Vector3, w: float) -> void:
+	var d := (c - a).normalized()
+	var s := d.cross(Vector3.UP if absf(d.y) < 0.9 else Vector3.RIGHT).normalized() * (w * 0.5)
+	var u := s.cross(d).normalized() * (w * 0.5)
+	var ring := [s + u, -s + u, -s - u, s - u]
+	for i in 4:
+		var j := (i + 1) % 4
+		var nrm: Vector3 = (ring[i] + ring[j]).normalized()
+		_tri(st, a + ring[i], c + ring[i], c + ring[j], nrm)
+		_tri(st, a + ring[i], c + ring[j], a + ring[j], nrm)
+	for cap in [[a, -d], [c, d]]:
+		_tri(st, cap[0] + ring[0], cap[0] + ring[1], cap[0] + ring[2], cap[1])
+		_tri(st, cap[0] + ring[0], cap[0] + ring[2], cap[0] + ring[3], cap[1])
 
 
 ## A deck span from xa to xb, hung off the back of the beam: a solid slab with an enamel fascia,

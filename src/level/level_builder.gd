@@ -167,7 +167,6 @@ func cover_map() -> Array:
 			"canopy":
 				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, func(_z): return 3.55)
 	if track:
-		_cover_fill(img, x0, track.x0, track.x1, Track.BEAM_Z0, Track.BEAM_Z1, func(_z): return Track.BEAM_TOP)
 		for d in track.decks:
 			# Visual only: the street under a deck reads dry from the wall out to the camera.
 			_cover_fill(img, x0, d[0], d[1], 0.0, COVER_Z1, func(_z): return Track.DECK_TOP, COVER_HIDE)
