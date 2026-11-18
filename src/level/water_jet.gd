@@ -16,8 +16,8 @@ signal resolved(blocked: bool)
 enum Phase { GLINT, TRAVEL, SPENT }
 
 const GLINT_S := 0.6
-const AIM_TILT := 1.2         # rad of forward tilt a shooter holds: the shaft ~21° above level
-const MIN_ELEV := 0.3         # rad: the shaft is never held flatter than this
+const AIM_TILT := 1.36        # rad of forward tilt a shooter holds: the shaft ~12° above level
+const MIN_ELEV := 0.17        # rad: the shaft is never held flatter than this
 const MAX_ELEV := 1.15
 const GRAVITY := 9.8
 const PELLETS := 46
@@ -27,7 +27,7 @@ const TRAIL := 5              # ghost copies behind each pellet, so it reads as 
 const TRAIL_DT := 0.014
 const BLOCK_SHARE := 0.5      # weighted share of his body the canopy must shield
 const AIM_Y := 1.25           # the burst comes down on his chest
-const INCOMING_S := 0.3       # the shot is judged from this far back along its arc
+const INCOMING_S := 0.15      # the shot is judged from this far back along its arc
 
 var level: Node
 var muzzle: Callable          # () -> Transform3D: origin at the muzzle, basis.y along the shaft
@@ -90,6 +90,27 @@ static func strike(p: Player, from: Vector3, wet := -1.0, force_hit := false) ->
 	return stopped
 
 
+## [launch velocity, flight time] of the centre pellet: along `shaft` (its elevation clamped to
+## MIN_ELEV..MAX_ELEV), fast enough to come down on `aim` where a mark walking at `lead_speed` will be.
+static func solve(from: Vector3, shaft: Vector3, aim: Vector3, lead_speed := 0.0) -> Array:
+	var side := signf(shaft.x) if absf(shaft.x) > 0.05 else signf(aim.x - from.x)
+	var elev := clampf(atan2(shaft.y, absf(shaft.x)), MIN_ELEV, MAX_ELEV)
+	var sol := Vector2.ZERO
+	for i in 2:   # lead him by the flight time
+		var dx := maxf((aim.x + lead_speed * sol.y - from.x) * side, 0.8)
+		sol = ballistic(elev, dx, from.y - aim.y)
+	var v := Vector3(side * cos(elev), sin(elev), 0.0) * sol.x
+	v.z = (aim.z - from.z) / sol.y
+	return [v, sol.y]
+
+
+## Where a shot launched with `v` from `from` is INCOMING_S before it lands at `flight`: the point its
+## block is judged from.
+static func incoming_from(from: Vector3, v: Vector3, flight: float) -> Vector3:
+	var t := maxf(flight - INCOMING_S, 0.0)
+	return from + v * t + Vector3(0.0, -0.5 * GRAVITY * t * t, 0.0)
+
+
 ## Launch speed along a shaft at `elev` above level that carries a pellet `dx` metres out and `dy`
 ## metres down (negative: up) onto the mark. The arc's flight time comes back as y.
 static func ballistic(elev: float, dx: float, dy: float) -> Vector2:
@@ -140,7 +161,6 @@ func _ready() -> void:
 	_spray = _make_spray(120, 0.7, 1.8, 4.2)
 	add_child(_spray)
 	_glint.global_position = muzzle.call().origin
-	_sound("token", -10.0, 1.7)
 
 
 func _process(delta: float) -> void:
@@ -173,15 +193,9 @@ func _launch(p: Player) -> void:
 	_from = m.origin
 	var shaft := m.basis.y.normalized()
 	var aim := p.global_position + Vector3(0.0, AIM_Y, 0.0)
-	var side := signf(shaft.x) if absf(shaft.x) > 0.05 else signf(aim.x - _from.x)
-	var elev := clampf(atan2(shaft.y, absf(shaft.x)), MIN_ELEV, MAX_ELEV)
-	var sol := Vector2.ZERO
-	for i in 2:   # lead him by the flight time
-		var dx := maxf((aim.x + p.speed * sol.y - _from.x) * side, 0.8)
-		sol = ballistic(elev, dx, _from.y - aim.y)
-	_flight = sol.y
-	_v0 = Vector3(side * cos(elev), sin(elev), 0.0) * sol.x
-	_v0.z = (aim.z - _from.z) / _flight
+	var sol := solve(_from, shaft, aim, p.speed)
+	_v0 = sol[0]
+	_flight = sol[1]
 	for i in PELLETS:
 		var u := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).limit_length(1.0)
 		var dir := (_v0.normalized() + u * SPREAD).normalized()
@@ -215,7 +229,7 @@ func _resolve(p: Player) -> void:
 	phase = Phase.SPENT
 	_t = 0.0
 	_mm.multimesh.visible_instance_count = 0
-	var incoming := _pos(maxf(_flight - INCOMING_S, 0.0))
+	var incoming := incoming_from(_from, _v0, _flight)
 	blocked = strike(p, incoming, amount, always_hits)
 	var to := _pos(_flight)
 	_spray.global_position = _impact(incoming, to)

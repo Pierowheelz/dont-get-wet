@@ -5,7 +5,9 @@ extends Node3D
 ## he walks into the frame. He closes to HOLD_GAP behind the walker (the camera eases back to keep him
 ## in shot) and fires `shots` telegraphed jets (WaterJet), one every SHOT_EVERY. While the walker is
 ## under a railway arch he holds his fire, but each held shot still counts. Out of water, he drops
-## back off the left. A checkpoint resume skips every attacker whose x is behind it.
+## back off the left. Once he has closed in he walks no faster than the walker's walking pace, so
+## hurrying or running leaves him behind; out of the frame for GIVE_UP_S, he gives up for good.
+## A checkpoint resume skips every attacker whose x is behind it.
 
 enum Phase { OFF, WARN, FIRE, LEAVE }
 
@@ -19,7 +21,8 @@ const OUT_MARGIN := 1.2
 const SHOT_EVERY := 2.5
 const FIRST_SHOT := 2.2      # after the warning: time to walk into the frame and close in
 const RANGE := 9.0           # further back than this he can't reach, and the shot is lost
-const MAX_SPEED := 2.8
+const MAX_SPEED := 2.8         # coming up behind him, before he has closed in
+const GIVE_UP_S := 1.0         # out of the frame this long after the warning, he gives up
 const SHADOW_W := 2.6         # across the pavement: the lamp is off to the kerb side, so it fans out
 const SHADOW_Z := 1.2
 const SHADOW_LEN := [3.5, 11.0]   # the lamp shadow's length as the warning starts and ends
@@ -39,6 +42,8 @@ var _t := 0.0                # time in this phase
 var _shot_t := 0.0
 var _aim := 0.0
 var _fired := 0
+var _closed := false         # he has reached HOLD_GAP once: from now on, walking pace at most
+var _out_t := 0.0
 var _shadow_a := 0.0
 var _shadow_f := 0.0
 var _model: Node3D
@@ -148,8 +153,14 @@ func _process(delta: float) -> void:
 				_shot_t = FIRST_SHOT
 		Phase.FIRE:
 			var gap := p.position.x - position.x
-			speed = clampf(p.speed + clampf((gap - HOLD_GAP) * 0.8, -0.6, 1.0), 0.0, MAX_SPEED)
-			_fire_control(delta, p)
+			_closed = _closed or gap <= HOLD_GAP + 0.3
+			var cap := Tun.f("walk_speed") if _closed else MAX_SPEED
+			speed = clampf(p.speed + clampf((gap - HOLD_GAP) * 0.8, -0.6, 1.0), 0.0, cap)
+			_out_t = _out_t + delta if position.x < _frame_edge() - OUT_MARGIN else 0.0
+			if _out_t >= GIVE_UP_S:
+				_leave()     # outrun: he doesn't come back
+			else:
+				_fire_control(delta, p)
 		Phase.LEAVE:
 			speed = move_toward(speed, maxf(p.speed - 0.9, 0.0), 2.0 * delta)
 			if position.x < _frame_edge() - OUT_MARGIN:
@@ -168,6 +179,8 @@ func _begin(i: int) -> void:
 	shots_left = _queue[i][1]
 	held = 0
 	_fired = 0
+	_closed = false
+	_out_t = 0.0
 	_set_phase(Phase.WARN)
 	position.x = _frame_edge() - ENTER_MARGIN - CLOSE_IN * WARN_S - 1.5
 	speed = level.player.speed + CLOSE_IN

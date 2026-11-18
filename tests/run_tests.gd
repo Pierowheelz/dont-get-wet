@@ -651,6 +651,17 @@ func _test_viaduct_road() -> void:
 	check(not blocked and is_equal_approx(p.wet, Tun.f("wet_jet_hit")) and p.stats["wet_hit"] >= Tun.f("wet_jet_hit"),
 		"over an upright canopy it hits him: soaks %.1f (wet_jet_hit)" % p.wet)
 
+	# A real shot: flat enough that an upright canopy doesn't stop it; it has to be tilted back.
+	var shares: Array = []
+	for tl in [0.0, -0.6, -0.8]:
+		for settle in 2:
+			await _place(open_x, 1.0, tl * Tun.f("umbrella_max_tilt"))
+		var from := p.global_position + Vector3(-5.8, 1.45, -0.35)
+		var elev := PI * 0.5 - WaterJet.AIM_TILT
+		var sol: Array = WaterJet.solve(from, Vector3(cos(elev), sin(elev), 0.0), p.global_position + Vector3(0.0, WaterJet.AIM_Y, 0.0))
+		shares.append(WaterJet.block_share(p, WaterJet.incoming_from(from, sol[0], sol[1])))
+	check(shares[0] < WaterJet.BLOCK_SHARE and shares[1] >= WaterJet.BLOCK_SHARE,
+		"a shot along its real arc gets past an upright canopy (%.2f) and is blocked by one tilted back (60%%: %.2f, 80%%: %.2f)" % shares)
 	var sturdy_was: int = Game.run.upgrades[&"sturdy"]
 	var kicks: Array = []
 	for tier in [0, 3]:
@@ -691,6 +702,20 @@ func _test_viaduct_road() -> void:
 	check(att.incoming(), "out from under the arches he fires")
 	att.jet.queue_free()
 	att.jet = null
+	# Outrun: once he has closed in he walks no faster than walking pace, and off the frame he gives up.
+	att._set_phase(att.Phase.FIRE)
+	att._closed = true
+	att._out_t = 0.0
+	att.position.x = att._frame_edge() - 3.0
+	var shots_now: int = att.shots_left
+	var t_out := 0.0
+	var fastest := 0.0
+	while t_out < 2.0 and att.phase == att.Phase.FIRE:
+		await get_tree().process_frame
+		t_out += get_process_delta_time()
+		fastest = maxf(fastest, att.speed)
+	check(att.phase != att.Phase.FIRE and absf(t_out - att.GIVE_UP_S) < 0.1 and fastest <= Tun.f("walk_speed") + 0.001 and att.shots_left == shots_now,
+		"left behind out of the frame, he gives up after %.2f s (never faster than walking: %.2f m/s)" % [t_out, fastest])
 
 	# A resume from the second checkpoint: the first two men are spent, the third still comes.
 	var xs: Array = level.data["attackers"].map(func(a: Dictionary) -> float: return float(a["x"]))
