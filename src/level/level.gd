@@ -26,6 +26,7 @@ var track: Track              # the elevated monorail, or null
 var phones: Array = []         # {x, keep, line} of every ringing payphone, in prop order
 var attackers: Node            # the level's `attackers` (attackers.gd), or null
 var camera_bias := 0.0         # metres the camera eases back from its lead, so someone behind stays in shot
+var courier: Courier           # the level's scripted pedestrian to keep in frame, or null
 
 var player: Player
 var camera: Camera3D
@@ -154,6 +155,11 @@ func _ready() -> void:
 		follower.name = "Follower"
 		follower.level = self
 		add_child(follower)
+	if data.has("courier"):
+		courier = Courier.new()
+		courier.name = "Courier"
+		courier.level = self
+		add_child(courier)
 
 	var traffic := preload("res://src/level/traffic.gd").new()
 	traffic.level = self
@@ -383,6 +389,8 @@ func _take_checkpoint(i: int) -> void:
 	Game.checkpoint = {"id": level_id, "index": i, "x": float(checkpoints[i]), "wet": player.wet,
 		"stamina": player.stamina, "exhausted": player.exhausted, "elapsed": elapsed, "stats": player.stats.duplicate(),
 		"seen": _seen.duplicate(), "car_hints": _car_hints}
+	if courier:
+		Game.checkpoint["courier"] = courier.suspicion
 	_next_cp = i + 1
 
 
@@ -420,6 +428,14 @@ func _street_hints() -> void:
 		_next_hint += 1
 		if hud:
 			hud.hint(h[1], h[2])
+
+
+## A hint for a one-off event, remembered with the first-encounter hints so a resume keeps it spent.
+func hint_once(key: String, text: String, dur := 4.0) -> void:
+	if _seen.has(key) or hud == null:
+		return
+	_seen[key] = true
+	hud.hint(text, dur)
 
 
 ## One-off contextual hints the first time each mechanic shows up in a level.

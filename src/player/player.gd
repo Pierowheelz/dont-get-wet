@@ -138,6 +138,8 @@ func _physics_process(delta: float) -> void:
 	var stop_req: bool
 	if Game.autopilot:
 		var ap := _autopilot(delta)
+		if level.courier:
+			ap = level.courier.steer_bot(self, ap)
 		if Game.debug_human:
 			ap = _humanise(ap, delta)
 		if Game.debug_lazy:

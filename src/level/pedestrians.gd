@@ -117,7 +117,8 @@ func _process(delta: float) -> void:
 		# Step aside (toward the wall or the curb) while passing the walker so nobody clips.
 		var lane: float = a[2]
 		var target := lane
-		if absf(n.position.x - level.player.position.x) < 2.2:
+		if absf(n.position.x - level.player.position.x) < 2.2 \
+				or level.courier and level.courier.visible and absf(n.position.x - level.courier.position.x) < 2.2:
 			target = 0.25 if lane < 1.6 else 3.0
 		n.position.z = move_toward(n.position.z, target, 1.6 * delta)
 		if absf(n.position.x - cam_x) > 26.0:

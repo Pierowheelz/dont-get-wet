@@ -335,6 +335,15 @@ def fail_sting():
     return _seq(ev, 5.6, 0.32, 2.6)
 
 
+def glance_sting(seed=2401):
+    """Short and low: someone ahead has noticed something. A bass stab under a dark, quickly damped cluster."""
+    r = rng(seed)
+    ev = [(0.0, upright_bass(mtof(n2m("D2")), 1.1, 0.95, r), 1.0)]
+    for i, nn in enumerate(("D3", "Ab3", "Db4")):
+        ev.append((0.012 * i, rhodes(mtof(n2m(nn)), 0.9, 0.42), 0.5))
+    return _seq(ev, 1.8, 0.25, 1.6)
+
+
 def win_sting():
     r = rng(2001)
     ev = [(0.0, upright_bass(mtof(n2m("F2")), 2.5, 0.85, r), 0.9)]
@@ -464,6 +473,7 @@ SFX = {
     "ui_denied": ui_denied,
     "fail_sting": fail_sting,
     "win_sting": win_sting,
+    "glance_sting": glance_sting,
     "token": token,
     "door_open": door_open,
     "phone_ring": phone_ring,
