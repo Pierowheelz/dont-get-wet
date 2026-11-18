@@ -1374,6 +1374,50 @@ func _build_prop(p: Dictionary) -> void:
 			ViaductBuilder.new().station_stairs(self, x)
 		"bracket_lamp":
 			RailwayBuilder.bracket_lamp(self, x)
+		"atom_sign":
+			_atom_sign(x, float(p.get("y", 4.8)))
+
+
+## A neon atom on the facade: three elliptical orbits round a nucleus, facing the street.
+func _atom_sign(x: float, y: float) -> void:
+	var n := Node3D.new()
+	n.position = Vector3(x, y, 0.2)
+	root.add_child(n)
+	var tube := StandardMaterial3D.new()
+	tube.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	tube.albedo_color = Color(0.7, 1.0, 1.0)
+	tube.emission_enabled = true
+	tube.emission = Color(0.4, 0.95, 1.0)
+	tube.emission_energy_multiplier = 6.0
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.52
+	ring.outer_radius = 0.6
+	ring.rings = 48
+	ring.ring_segments = 6
+	ring.material = tube
+	for i in 3:
+		var mi := MeshInstance3D.new()
+		mi.mesh = ring
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# The torus lies in XZ: stand it up to face the street, squash it to an orbit, turn it.
+		mi.basis = Basis(Vector3(0, 0, 1), TAU * i / 3.0) * Basis.from_scale(Vector3(1.0, 0.36, 1.0)) * Basis(Vector3(1, 0, 0), PI * 0.5)
+		n.add_child(mi)
+	var core := MeshInstance3D.new()
+	var ball := SphereMesh.new()
+	ball.radius = 0.13
+	ball.height = 0.26
+	var hot := tube.duplicate() as StandardMaterial3D
+	hot.albedo_color = Color(1.0, 0.55, 0.3)
+	hot.emission = Color(1.0, 0.4, 0.2)
+	ball.material = hot
+	core.mesh = ball
+	n.add_child(core)
+	var glow := OmniLight3D.new()
+	glow.light_color = Color(0.4, 0.85, 1.0)
+	glow.light_energy = 1.2
+	glow.omni_range = 3.5
+	glow.position = Vector3(0, 0, 0.5)
+	n.add_child(glow)
 
 
 func _lamp_light(x: float, y := 5.0, z := 2.2) -> void:
