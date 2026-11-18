@@ -28,6 +28,7 @@ class Street:
         self.hints = []
         self.follower_appear = []
         self.attackers = []
+        self.courier_rec = None
         self.track_rec = None
         self.viaducts = []
         self.end_x = None
@@ -92,6 +93,12 @@ class Street:
         `shots` telegraphed jets, then drops back. One at a time: a later one waits for the last to go."""
         self.attackers.append({"x": round(x, 2), "shots": int(shots)})
 
+    def courier(self, appear_x, door_x, stops=()):
+        """A scripted pedestrian the walker must keep in frame: he steps out of a doorway at appear_x,
+        walks ahead to the door at door_x and stops at each (x, dur) in stops to look in a window."""
+        self.courier_rec = {"appear_x": round(appear_x, 2), "door_x": round(door_x, 2),
+                            "stops": [{"x": round(x, 2), "dur": float(d)} for x, d in sorted(stops)]}
+
     def track(self, gap, style="monorail", x0=None, x1=None):
         """An elevated railway (style "monorail" or "railway") from x0 to x1 (default: the whole street and TRACK_PAST beyond it). Trains
         set off from x1 a random gap = (min, max) s apart, rolled afresh each attempt, run right to left
@@ -124,6 +131,8 @@ class Street:
             rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"])}
         if self.attackers:
             rest["attackers"] = sorted(self.attackers, key=lambda a: a["x"])
+        if self.courier_rec:
+            rest["courier"] = self.courier_rec
         assert self.track_rec or not self.viaducts, "deck spans need s.track()"
         if self.track_rec:
             t = dict(self.track_rec)

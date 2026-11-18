@@ -199,7 +199,28 @@
     "telstar_parade",
     "rocket_row"
    ],
-   "soon": true
+   "blurb": "Department stores and mirrored glass. Good for window shopping. Good for watching a man's reflection.",
+   "difficulty": 6,
+   "file": "res://levels/atomic_avenue.json",
+   "outro": [
+    "He took room 9. Yours is room 8. The walls are thin.",
+    "Thorne & Sons have sent something up for your umbrella."
+   ],
+   "load": "He leaves the station at nine. Yellow umbrella.",
+   "fail": {
+    "lost": [
+     "Just another umbrella in the rain."
+    ],
+    "made": [
+     "He never even looked worried."
+    ],
+    "shot": [
+     "Right through the lapels."
+    ],
+    "wet": [
+     "Hard to follow a man with rain in your eyes."
+    ]
+   }
   },
   {
    "id": "rocket_row",

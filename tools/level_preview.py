@@ -406,6 +406,8 @@ def print_report(st, tun, rows, checks, name):
         print(f"{k:>6} {r['a']:>5.0f}-{r['b']:<5.0f} {r['open']:>5.0%} {longest:>8} {r['g']:>3} {r['p']:>3} "
               f"{r['c']:>4} {r['rain']:>5.2f} {r['wind']:>6.2f} {r['wash']:>5.0%} {r['diff']:>6.1f}")
     print(DIFF_FORMULA)
+    if st.d.get("courier"):
+        print("courier: the scripted pedestrian is not simulated here; tools/preview.sh is the judge of tailing him")
     print("longest = full length of the longest open span touching the decile (may extend past it)")
     print("checks:")
     for cid, ok, msg in checks:
@@ -676,7 +678,8 @@ def render(st, tun, traces, out, title):
 def trace_summary(label, rows, tun):
     last = rows[-1]
     s = last["stats"]
-    outcome = "SOAKED" if last["state"] == 2 else "reached the door"
+    outcome = ("reached the door" if last["state"] != 2 else
+               "SOAKED" if last["wet"] >= tun["wet_max"] - 0.01 else "FAILED dry (a scripted fail: lost, made or shot)")
     return (f"{label}: final wet {last['wet']:.1f}/{tun['wet_max']:.0f} at x={last['x']:.0f} t={last['t']:.0f}s; "
             f"rain {s['wet_rain']:.1f} gutter {s['wet_gutter']:.1f} puddle {s['wet_puddle']:.1f} "
             f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
