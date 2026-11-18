@@ -50,6 +50,10 @@ var sheltered := false             # head is under fixed cover (awning/balcony)
 var gutter_on_umbrella := 0.0      # 0..1 how much of a gutter stream the umbrella is catching
 var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_hit": 0.0, "dried": 0.0}
 var fail_cause := &"wet"         # what ended the attempt (HUD.FAIL_TITLES): wet, shot, lost, made
+var jet_kick := 0.0                # 0..1: a blocked jet has knocked the canopy aside (WaterJet); decays
+const JET_KICK_S := 0.7            # a full shove takes this long to recover from
+const JET_KICK_TILT := 0.6         # rad the canopy is knocked forward by a full shove
+const JET_KICK_DROOP := 0.7        # and how far it sags (as when exhausted)
 var _hit_cause := &"wet"
 var _hit_t := -INF
 
@@ -179,6 +183,7 @@ func _physics_process(delta: float) -> void:
 	elif exhausted and stamina >= Tun.f("exhausted_recover") * smax:
 		exhausted = false
 	droop = move_toward(droop, 1.0 if (exhausted and open > 0.0) else 0.0, 1.5 * delta)
+	jet_kick = move_toward(jet_kick, 0.0, delta / JET_KICK_S)
 
 	# --- speed ------------------------------------------------------------------------------
 	var target := lerpf(Tun.f("walk_speed"), Tun.f("walk_speed_umbrella"), open)
@@ -234,7 +239,7 @@ func _process(delta: float) -> void:
 		position.y = level.ground_y(position.x)
 	visual.set_motion(speed, run_amount)
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
-	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt, droop)
+	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt + jet_kick * JET_KICK_TILT, maxf(droop, jet_kick * JET_KICK_DROOP))
 	if visual.has_method("set_umbrella_open"):
 		visual.set_umbrella_open(open if not _dropped_umbrella else 0.0)
 	visual.set_wetness(wet / Tun.f("wet_max"))
@@ -264,7 +269,13 @@ func _update_umbrella() -> void:
 	var grip: Node3D = visual.get_grip(hand)
 	if grip:
 		umbrella.global_transform = grip.global_transform
-	umbrella.set_state(open, Game.umbrella_radius(), droop)
+	umbrella.set_state(open, Game.umbrella_radius(), maxf(droop, jet_kick * JET_KICK_DROOP))
+
+
+## A blocked jet knocks the canopy aside for a moment, letting the rain in. `amount` 0..1 is the
+## shove after Sturdy Frame (Game.jet_shove_mult).
+func jet_shove(amount: float) -> void:
+	jet_kick = maxf(jet_kick, clampf(amount, 0.0, 1.0))
 
 
 # --- exposure -------------------------------------------------------------------------------

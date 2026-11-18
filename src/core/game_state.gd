@@ -301,6 +301,11 @@ func umbrella_radius(level := -1) -> float:
 	return Tun.f("umbrella_radius") + float(Tun.arr("upgrade_wide_radius_add")[_lvl(&"wide", level)])
 
 
+## Share of a blocked jet's shove the canopy still takes (Sturdy Frame resists it).
+func jet_shove_mult(level := -1) -> float:
+	return float(Tun.arr("upgrade_sturdy_jet_shove")[_lvl(&"sturdy", level)])
+
+
 func umbrella_open_time(level := -1) -> float:
 	return Tun.f("umbrella_open_time") * float(Tun.arr("upgrade_light_time_mult")[_lvl(&"light", level)])
 
