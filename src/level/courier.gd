@@ -12,7 +12,7 @@ extends Node3D
 ## - 1: glances from a metre further, and checks the shop-window reflection at every stop
 ## - 2: walks at PACE_UNEASY and cuts his window stops short
 ## - 3: his free hand goes inside his coat on every glance
-## - the 4th gain: he turns, aims the umbrella and fires (the attempt fails as `shot`)
+## - the 4th gain: he turns, aims the umbrella and fires twice (the attempt fails as `shot`)
 ## He fails the attempt as `made` if the walker comes within MADE_DIST of him (or passes him), and as
 ## `lost` once he has been off the right edge of the frame for LOST_S.
 
@@ -26,14 +26,14 @@ const SUIT_TINT := Color(1.35, 1.02, 0.66)   # a plain brown suit over the walke
 const PACE := 1.15
 const PACE_UNEASY := 1.25
 const ACCEL := 1.8
-const GLANCE_DIST := 4.0
+const GLANCE_DIST := 5.0
 const GLANCE_DIST_UNEASY := 1.0   # added from suspicion 1
 const GLANCE_PACE := 0.35         # he dawdles while he looks back
-const SLOW_S := 0.5
-const TURN_S := 1.0
+const SLOW_S := 0.4
+const TURN_S := 1.6               # 2 s from the first slowing to the full look back: time to react
 const LOOK_S := 0.35              # at full turn before he turns forward again
 const GAIN_HOLD_S := 0.6
-const BACK_S := 0.6
+const BACK_S := 0.8
 const GLANCE_COOLDOWN := 5.0      # from the end of one glance to the start of the next
 const SEE_EXTRA := 3.0            # a completed turn catches a face up to this far past glance_dist()
 const FULL_FORWARD := 0.9         # tilt, as a fraction of umbrella_max_tilt, that hides the face...
@@ -54,6 +54,9 @@ const TWIST := 1.9                # rad of upper-body turn at full glance (plus 
 const HIP_TURN := 0.5
 const WINDOW_TWIST := 0.9
 const AIM_TURN_S := 0.5
+const BOT_ROOM := 2.5              # the bots keep at least this much frame ahead of him
+const SECOND_SHOT_S := 0.25        # glint before his second barrel, right after the first lands
+const SHOT_FAIL_S := 0.5          # after the second lands, the attempt fails
 
 var level: Node
 var phase := Phase.WAIT
@@ -76,8 +79,10 @@ var _open := 0.0
 var _hand := 0.0
 var _yaw := 0.0                # root yaw: 0 faces up the street (+X)
 var _aim_fired := false
+var _shots_landed := 0
 var _pace_override := -1.0     # --courier-pace=M (testing)
 var _resume_gap := RESUME_GAP  # --courier-gap=M (testing)
+var _aim_at := -1.0            # --courier-aim=S: he is made at S s on the level clock (testing)
 
 var _model: Node3D
 var _umbrella: Umbrella
@@ -100,6 +105,8 @@ func _ready() -> void:
 			_pace_override = float(a.substr(15))
 		if a.begins_with("--courier-gap="):
 			_resume_gap = float(a.substr(14))
+		if a.begins_with("--courier-aim="):
+			_aim_at = float(a.substr(14))
 	_build_model()
 	_build_fx()
 	var px: float = level.player.position.x
@@ -194,23 +201,27 @@ static func face_hidden(p: Player) -> bool:
 	return p.open >= FULL_OPEN and p.tilt >= FULL_FORWARD * Tun.f("umbrella_max_tilt")
 
 
-## The autopilots tail him: hold stop to stay glance_dist() + 1 m back, but never let him walk out
-## of frame (hurry if he nears its right edge), and tilt the open umbrella fully forward while he
-## glances. Takes and returns the bot's [umbrella, hurry, tilt, stop].
+## The autopilots tail him: hold stop to stay glance_dist() + 1 m back where the frame allows it
+## (BOT_ROOM ahead of him), never let him walk out of frame (hurry if he nears its right edge),
+## never wait under a gutter, and tilt the open umbrella fully forward while he glances. Takes and returns the bot's [umbrella, hurry, tilt, stop].
 func steer_bot(p: Player, ap: Array) -> Array:
 	if not tailing() or p.state == Player.State.DEFEATED:
 		return ap
 	var out := ap.duplicate()
 	var gap := position.x - p.position.x
 	var room := frame_right() - (position.x + 0.3)
-	var keep := glance_dist() + 1.2
+	# Out of his glance if the frame allows; past that, hang back as far as it does and hide the face.
+	var keep := minf(glance_dist() + 1.2, gap + room - BOT_ROOM)
 	if position.x >= door_x - FINAL_M:
 		keep = 0.0   # he's going in; follow him to the door
-	if room < 1.5:
+	var in_stream: bool = level.gutters.any(func(g: float) -> bool: return absf(p.position.x - g) < 0.9)
+	if room < 1.0:
 		out[3] = false
 		out[1] = 0.5
 		p._ap_resting = false
-	elif gap < keep or (p.state == Player.State.STOPPED and gap < keep + 0.6 and room > 2.5):
+	elif in_stream:
+		out[3] = false   # never wait under a gutter's stream: walk on through it, umbrella up
+	elif gap < keep or (p.state == Player.State.STOPPED and gap < keep + 0.6 and room > BOT_ROOM):
 		out[3] = true
 		out[1] = 0.0
 	elif gap < keep + 3.0:
@@ -254,6 +265,10 @@ func _process(delta: float) -> void:
 			_door(delta, p)
 		Phase.AIM:
 			_aim(delta, p)
+	if _aim_at >= 0.0 and tailing() and level.elapsed >= _aim_at:
+		_aim_at = -1.0
+		suspicion = SHOT_AT - 1
+		_gain()
 	if live and tailing():
 		_check_fails(delta, p)
 	_pose(delta)
@@ -405,19 +420,36 @@ func _door(delta: float, p: Player) -> void:
 		visible = false
 
 
-## The 4th gain: he turns right round, levels the umbrella at the walker and fires a WaterJet.
+## The 4th gain: he turns right round, points the umbrella at the walker and fires.
 func _aim(delta: float, p: Player) -> void:
 	speed = move_toward(speed, 0.0, 3.0 * delta)
 	position.x += speed * delta
-	_yaw = move_toward(_yaw, -PI, PI / AIM_TURN_S * delta)
+	var face := -PI if p.position.x < position.x else 0.0   # round to face the walker, wherever he is
+	_yaw = move_toward(_yaw, face, PI / AIM_TURN_S * delta)
 	_hand = move_toward(_hand, 0.0, 3.0 * delta)
 	if _phase_t >= AIM_TURN_S and not _aim_fired:
 		_aim_fired = true
-		# The same telegraphed jet the pursuers fire. Blocked or not, he's been made: the attempt
-		# fails as SHOT once it lands.
-		var jet := WaterJet.fire(level, func() -> Vector3:
-			return _umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0))
-		jet.resolved.connect(func(_blocked: bool) -> void: p.fail(&"shot"))
+		_shoot(p, WaterJet.GLINT_S)
+
+
+## Both barrels, each soaking like a car's splash whatever the canopy does: he's been made, so the
+## attempt fails as SHOT once the second has landed.
+func _shoot(p: Player, glint: float) -> void:
+	var jet := WaterJet.fire(level, _muzzle, Tun.f("wet_car_splash"), glint)
+	jet.always_hits = true
+	jet.resolved.connect(func(_blocked: bool) -> void:
+		_shots_landed += 1
+		if _shots_landed == 1:
+			_shoot(p, SECOND_SHOT_S)
+		else:
+			get_tree().create_timer(SHOT_FAIL_S, false).timeout.connect(func() -> void:
+				if is_instance_valid(p):
+					p.fail(&"shot")))
+
+
+func _muzzle() -> Transform3D:
+	var t := _umbrella.global_transform
+	return Transform3D(t.basis, t * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0))
 
 
 # --- the look ---------------------------------------------------------------------------------
@@ -443,7 +475,7 @@ func _pose(delta: float) -> void:
 	var raise := Umbrella.arm_raise(_open)
 	var tilt := 0.0
 	if phase == Phase.AIM:
-		tilt = Tun.f("umbrella_max_tilt") * smoothstep(0.0, AIM_TURN_S, _phase_t)
+		tilt = WaterJet.AIM_TILT * smoothstep(0.0, AIM_TURN_S, _phase_t)
 	_model.call("set_umbrella_pose", raise, tilt, 0.0)
 	_model.call("set_umbrella_open", _open)
 	# Furled, it hangs from the fist like a cane, tip down and a little ahead (as the follower's).

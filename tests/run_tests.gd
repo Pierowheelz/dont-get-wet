@@ -363,8 +363,10 @@ func _test_courier() -> void:
 	c.suspicion = 3
 	await _tail(lv, 8.0, 3.5, 0.0, 0.0, func() -> bool: return c.phase == c.Phase.AIM)
 	check(c.phase == c.Phase.AIM and p.state != Player.State.DEFEATED, "the 4th gain: he turns to aim")
-	await _tail(lv, 3.0, 0.0, 0.0, 0.0, func() -> bool: return p.state == Player.State.DEFEATED)
-	check(p.fail_cause == &"shot", "... and fires: the attempt fails as SHOT (%s)" % p.fail_cause)
+	p.wet = 0.0
+	await _tail(lv, 6.0, 0.0, 0.0, 0.0, func() -> bool: return p.state == Player.State.DEFEATED)
+	check(p.fail_cause == &"shot" and p.wet >= 2.0 * Tun.f("wet_car_splash") - 0.5,
+		"... and fires twice, each soaking like a car's splash (wet %.1f), then the attempt fails as SHOT (%s)" % [p.wet, p.fail_cause])
 	await _drop_street(lv)
 
 	# A checkpoint resume past his doorway puts him on his way just ahead, past the stops behind it.

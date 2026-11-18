@@ -20,7 +20,6 @@ const SHOT_EVERY := 2.5
 const FIRST_SHOT := 2.2      # after the warning: time to walk into the frame and close in
 const RANGE := 9.0           # further back than this he can't reach, and the shot is lost
 const MAX_SPEED := 2.8
-const AIM_TILT := 1.15       # forward tilt that points the umbrella's tip at the walker
 const SHADOW_W := 2.6         # across the pavement: the lamp is off to the kerb side, so it fans out
 const SHADOW_Z := 1.2
 const SHADOW_LEN := [3.5, 11.0]   # the lamp shadow's length as the warning starts and ends
@@ -220,8 +219,9 @@ func _under_arch(x: float) -> bool:
 	return level.track != null and level.track.arch_at(x)
 
 
-func _muzzle() -> Vector3:
-	return _umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0)
+func _muzzle() -> Transform3D:
+	var t := _umbrella.global_transform
+	return Transform3D(t.basis, t * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0))
 
 
 func _hint(text: String, dur: float) -> void:
@@ -232,7 +232,7 @@ func _hint(text: String, dur: float) -> void:
 ## Open over him the whole time; tipped forward at the walker while a jet glints.
 func _pose(delta: float) -> void:
 	var aiming: bool = jet != null and is_instance_valid(jet) and jet.phase != WaterJet.Phase.SPENT
-	_aim = move_toward(_aim, AIM_TILT if aiming else 0.0, delta * 4.0)
+	_aim = move_toward(_aim, WaterJet.AIM_TILT if aiming else 0.0, delta * 4.0)
 	_model.call("set_motion", speed, clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0))
 	_model.call("set_stopped", speed < 0.05)
 	_model.call("set_umbrella_pose", 1.0, _aim, 0.0)

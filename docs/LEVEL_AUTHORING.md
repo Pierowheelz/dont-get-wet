@@ -130,28 +130,31 @@ behind the walker's once the walker is 8 m from it, opening the umbrella as he g
 so he needs no cover. He walks at 1.15 m/s to `door_x` (the inn door) and goes in ahead of the walker.
 At each stop `x` he faces the shop window for `dur` seconds. The rules, all in `src/level/courier.gd`:
 
-- **Glance.** When the walker is within 4 m behind him he slows for 0.5 s, then turns his head and
-  shoulders back over 1 s, holds, and turns forward again; at most one glance every 5 s. As the turn
+- **Glance.** When the walker is within 5 m behind him he slows for 0.4 s, then turns his head and
+  shoulders back over 1.6 s (2 s in all, time to react), holds, and turns forward again; at most one glance every 5 s. As the turn
   completes, if the walker's umbrella is not open and tilted fully forward (90% of the maximum
   tilt, the tilt that blocks a car's splash), his suspicion goes up by one.
 - **Suspicion shows only in what he does.** Each gain: he holds the look 0.6 s longer and a low sting
-  plays (`glance_sting`). At 1 he glances from 5 m, and at every window stop he checks the reflection
+  plays (`glance_sting`). At 1 he glances from 6 m, and at every window stop he checks the reflection
   (a glance while facing the glass). At 2 he walks at 1.25 m/s and window stops are 40% shorter. At 3
-  his free hand goes inside his coat on every glance. The 4th gain: he turns round, aims the umbrella,
-  a glint for 0.6 s, a jet, and the attempt fails as `shot`.
+  his free hand goes inside his coat on every glance. The 4th gain: he turns to face the walker, aims the
+  umbrella and fires twice (`WaterJet`, 0.6 s glint, then 0.25 s for the second barrel). Each shot
+  soaks like a car's splash (`wet_car_splash`) whatever the canopy does; 0.5 s after the second
+  lands, the attempt fails as `shot`.
 - **Fails.** `made` when the walker comes within 1.2 m of him or passes him; `lost` when he has been
   off the right edge of the frame (taken as at least 16:9) for 2 s. Neither applies in the last 6 m
   before his door.
 - **Hints** are event-driven, once per attempt: when he steps out, at his first glance, and the first
   time the walker is within 5 m of him at a window stop.
-- **The bots** hold stop to stay his glance distance + 1.2 m back, hurry if he is about to leave the
-  frame, and open the umbrella tilted fully forward while he glances. The human bot reacts late as
+- **The bots** hold stop to stay his glance distance + 1.2 m back where the frame allows (keeping
+  2.5 m of frame ahead of him), hurry if he is about to leave the frame, never wait under a gutter, and open the umbrella tilted fully forward while he glances. The human bot reacts late as
   usual. `level_preview.py` ignores him (`tools/preview.sh` is the judge); the street's `par_speed`
   has to allow for his pace and stops (Atomic Avenue uses 1.25).
 - **Checkpoints.** A resume (or `--start-x`) past his doorway puts him 6.5 m ahead and already walking,
   with the stops behind spent and his suspicion as it was at the checkpoint.
 - **Testing flags:** `--courier-suspicion=N` starts him at suspicion N, `--courier-pace=M` makes him
-  walk at M m/s (to test `lost`), and `--courier-gap=M` changes the 6.5 m resume gap.
+  walk at M m/s (to test `lost`), `--courier-gap=M` changes the 6.5 m resume gap, and
+  `--courier-aim=S` has him fire at S s on the level clock (to see the shot).
 
 Put stops in front of lit windows, and give the walker somewhere to wait about 5 m short of each.
 
@@ -236,9 +239,12 @@ has gone). When the walker passes `x`:
   about 9 m before `x` so the lamp is there.
 - **Then** he walks in from the left and holds 5.8 m behind the walker; the camera eases back
   (`Level.camera_bias`) to keep him 1.3 m inside the left edge.
-- **Every 2.5 s** he fires a telegraphed jet (`WaterJet`): a 0.6 s glint at his umbrella's tip, then a
-  stream at 16 m/s. An open canopy that hides at least half the walker's body from the muzzle (tilted
-  back toward him; about 30 degrees back is enough, flat back lets the rain in) blocks it and is shoved
+- **Every 2.5 s** he fires a telegraphed shot (`WaterJet`): a 0.6 s glint at his umbrella's tip, then
+  a shotgun burst of pellets along the shaft. Shooters hold the umbrella `WaterJet.AIM_TILT` forward
+  (the shaft about 35 degrees above level; it is never held flatter than 20), so the burst arcs up
+  and comes down on the walker, its speed set to land on his chest where he'll be. An open canopy
+  that hides at least half his body from the burst's last 0.3 s of arc (tilted back toward the
+  shooter; about 30 degrees back is enough, flat back lets the rain in) blocks it and is shoved
   aside for 0.7 s (tilt and droop, `jet_shove`, less with Sturdy Frame: `upgrade_sturdy_jet_shove`).
   Otherwise it soaks him by `wet_jet_hit` (7) through `Player.soak(amount, &"shot")`, so a jet that
   soaks him fails the attempt as SHOT.
