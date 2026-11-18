@@ -175,7 +175,51 @@ drops the sheet along the whole track at once. The bots open the umbrella uprigh
 on bare pavement on their path within the opening time plus 0.5 s, and never rest where it can land.
 They read every train perfectly and almost never get washed, so a track costs them stamina, time and a
 little slanted rain while they stand upright; Telstar Parade sets `par_speed` 1.4 for that reason.
-`style` is `"monorail"`; other styles are accepted but not built yet.
+`style` is `"monorail"` or `"railway"` (below).
+
+**Railway** (`s.track(gap, style="railway")`, `s.viaduct(from_tag, to_tag, style="railway")`) is a low
+brick viaduct standing over the pavement instead of a beam in front of it, on the same schedule and the
+same sheet of water. Its `viaducts` are runs of brick arches: piers at the kerb every 5.4 m or so, a
+vault over the pavement from 3.1 m (above every awning) to the deck at 3.5 m, and that vault is cover
+from the rain **and** from the sheet, which falls from the carriages (3.95 m) onto the deck. Lots under
+the arches take `cover: "none"`; an arch hides the facade above 3.1 m, so their signs drop to the
+lintel (2.8 m), and an awning lot's sign is left off. Between the arches the line crosses on open
+lattice girder spans with cast-iron columns under long ones: rain and the sheet fall through them onto
+the pavement, so a girder span plays like open track and an awning beneath it keeps both off. A lantern
+hangs from the girders where each span meets the arches and on every column; `s.prop("bracket_lamp", x)`
+hangs another anywhere. Lamp posts, balconies and arcades still fail track-clearance. The trains are
+two carriages of country stock, seen over the parapet from about 3.9 m up. level_preview counts the
+arches as cover and leaves them out of the wash. `Track.arch_at(x)` is true under a railway's arches.
+
+**`idling_sedan`** (`s.prop("idling_sedan", x)`, x inside a crossing without `car`) stops a black
+sedan nose-out in that side street with its engine running: wipers, exhaust, headlamps and a hat
+behind the wheel. Scenery only.
+
+**`attackers`** (`[{"x", "shots"}]`; `s.attacker(x, shots=5)`) are scripted pursuers on the walker's
+own model, suit and umbrella, who come up behind him one at a time (a later one waits until the last
+has gone). When the walker passes `x`:
+
+- **Warning, 2.5 s:** brisk footsteps panned left, and his long shadow thrown ahead of him along the
+  pavement by a lamp behind him, growing as he comes, before he is in shot. Author a `bracket_lamp`
+  about 9 m before `x` so the lamp is there.
+- **Then** he walks in from the left and holds 5.8 m behind the walker; the camera eases back
+  (`Level.camera_bias`) to keep him 1.3 m inside the left edge.
+- **Every 2.5 s** he fires a telegraphed jet (`WaterJet`): a 0.6 s glint at his umbrella's tip, then a
+  stream at 16 m/s. An open canopy that hides at least half the walker's body from the muzzle (tilted
+  back toward him; about 30 degrees back is enough, flat back lets the rain in) blocks it and is shoved
+  aside for 0.7 s (tilt and droop, `jet_shove`, less with Sturdy Frame: `upgrade_sturdy_jet_shove`).
+  Otherwise it soaks him by `wet_jet_hit` (7) through `Player.soak(amount, &"shot")`, so a jet that
+  soaks him fails the attempt as SHOT.
+- **Under a railway arch** he holds his fire, but the held shot still counts, as does one he can't
+  reach from more than 9 m back. After `shots` he drops back out of the left of the frame.
+
+The first one shows "Behind you." as the warning starts and a tilt-back hint at his first glint. A
+checkpoint resume skips every pursuer whose `x` is behind it, so one who was on at the checkpoint
+doesn't come back. The bots open up and tilt back (60% of full tilt) when a jet glints, with the human
+bot's reaction delay, and never stop to rest in his line of fire. level_preview can't simulate them and
+ignores them: `tools/preview.sh` is the judge. Bring each in some 15 m short of a run of arches, so a
+few shots come in the open and the rest are held, and keep the human bot's minimum stamina above 10:
+the umbrella stays up through every shot.
 
 **`set_pieces`** (`name`, `x0`, `x1`, `teaches`) is a top-level list the game ignores. Fill it in so
 the next person can see the intent without replaying the street.
