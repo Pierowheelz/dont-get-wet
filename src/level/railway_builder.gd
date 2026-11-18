@@ -13,6 +13,7 @@ const BACK_Z1 := 0.5            # back pier blocks, against the shopfronts
 const FACE_Z0 := 3.1            # the front wall (spandrels and parapet) is FACE_Z0..Track.RAIL_Z1 thick
 const SPRING_Y := 2.15          # each arch springs from its piers here and rises to just under the soffit
 const CROWN_Y := 3.0
+const END_LAP := 0.3           # the vault's cover reaches this far past each end of a run
 const RING_W := 0.26            # the arch ring of headers round each opening
 const ARCH_STRIPS := 14
 const GIRDER_TOP := 4.15        # through girders: the carriages run between them, below their top chord
@@ -68,7 +69,9 @@ func _arches(xa: float, xb: float) -> void:
 	var piers: Array = []
 	for i in n + 1:
 		piers.append(xa + PIER_W * 0.5 + i * step)
-	b._cover_box(Vector3(w, Track.RAIL_BED - Track.RAIL_SOFFIT, Track.RAIL_Z1 - Track.RAIL_Z0),
+	# The deck runs on over the end piers, where the girders bear on them: rain slanting in where a run
+	# meets an awning (lower than the vault) would otherwise find a sliver of sky between the two.
+	b._cover_box(Vector3(w + 2.0 * END_LAP, Track.RAIL_BED - Track.RAIL_SOFFIT, Track.RAIL_Z1 - Track.RAIL_Z0),
 		Transform3D(Basis(), Vector3((xa + xb) * 0.5, (Track.RAIL_SOFFIT + Track.RAIL_BED) * 0.5, (Track.RAIL_Z0 + Track.RAIL_Z1) * 0.5)))
 	var face := SurfaceTool.new()
 	face.begin(Mesh.PRIMITIVE_TRIANGLES)
