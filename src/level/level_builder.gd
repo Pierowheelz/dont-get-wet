@@ -1324,6 +1324,14 @@ func _build_backdrop() -> void:
 func _build_prop(p: Dictionary) -> void:
 	var id: String = p["id"]
 	var x: float = p["x"]
+	if id == "idling_sedan":
+		# Nose out of a side street toward the camera, stopped short of the pavement's line.
+		var car := Node3D.new()
+		car.set_script(load("res://src/level/idling_car.gd"))
+		car.position = Vector3(x, ROAD_Y, 0.55 - 2.82)
+		car.rotation.y = -PI * 0.5
+		root.add_child(car)
+		return
 	for c in data.get("crossings", []):
 		if x > float(c["x"]) - 0.4 and x < float(c["x"]) + float(c["w"]) + 0.4:
 			return     # never in the roadway
