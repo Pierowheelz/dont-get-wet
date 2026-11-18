@@ -430,6 +430,31 @@ func _test_checkpoints() -> void:
 	await _frames(10)
 	check(is_equal_approx(p.wet, 12.5) and p.stats["puddles"] == 3, "the first steps after a resume stay dry (wet %.2f, puddles %d)" % [p.wet, p.stats["puddles"]])
 	check(not Game.resuming, "the resume request is spent")
+
+	# Checkpoint restarts: wetness capped at 80%, extra relief past the second resume of a segment.
+	var wmax := Tun.f("wet_max")
+	var soaked := {"id": "main_street", "index": 1, "x": x2, "wet": wmax * 0.96, "stamina": 61.0, "exhausted": false,
+		"elapsed": 33.0, "stats": p.stats.duplicate(), "seen": {}, "car_hints": 0}
+	for c in [[1, 0.8], [2, 0.8], [3, 0.75], [4, 0.7]]:
+		Game.checkpoint = soaked.duplicate(true)
+		Game.checkpoint["restarts"] = c[0]
+		level._restore_checkpoint()
+		check(is_equal_approx(p.wet, wmax * c[1]), "a 96%%-wet checkpoint on resume %d starts %d%% wet (got %.1f%%)"
+			% [c[0], int(c[1] * 100.0), p.wet / wmax * 100.0])
+	Game.checkpoint = soaked.duplicate(true)
+	Game.checkpoint["wet"] = wmax * 0.06
+	Game.checkpoint["restarts"] = 5
+	level._restore_checkpoint()
+	check(is_equal_approx(p.wet, 0.0), "relief never makes him less than dry (%.2f)" % p.wet)
+	Game.checkpoint["wet"] = wmax * 0.3
+	Game.checkpoint["restarts"] = 2
+	level._restore_checkpoint()
+	check(is_equal_approx(p.wet, wmax * 0.3), "a damp checkpoint resumes as it was until the third resume (%.2f)" % p.wet)
+	p.position.x = float(cps[2]) + 0.2
+	p.state = Player.State.WALK
+	level._check_checkpoints()
+	check(Game.checkpoint.get("index", -1) == 2 and not Game.checkpoint.has("restarts"),
+		"reaching the next checkpoint starts its segment's restart count over")
 	Game.checkpoint = {}
 
 
@@ -861,6 +886,15 @@ func _run_tests() -> void:
 		"old save back on the start migrates to the side with more streets walked: %s" % [Game.runs.keys()])
 	legacy.call(start, [start])
 	check(Game.runs.keys() == [""], "old save with only the start migrates to an undecided run")
+
+	# Each checkpoint restart takes 5% off the level score, additively; a full restart clears the count.
+	Game.reset_progress()
+	Game.new_run("")
+	Game.checkpoint_restarts = 3
+	var pen := Game.finish_level(start, 0.0, 10.0, 10.0)
+	check(int(pen["score"]) == 850 and int(pen["penalty"]) == 150 and int(pen["restarts"]) == 3,
+		"three checkpoint restarts score 85%% of a perfect run: %s" % [pen])
+	Game.checkpoint_restarts = 0
 
 	Game.reset_progress()
 	Game.new_run("left")

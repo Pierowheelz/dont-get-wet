@@ -517,12 +517,18 @@ func show_result(r: Dictionary) -> void:
 	# Score breakdown.
 	var dry := clampf(1.0 - float(r["wet"]) / 100.0, 0.0, 1.0)   # r["wet"] is a percentage
 	var dry_pts := int(round(Tun.f("score_dry_weight") * dry))
-	var time_pts := int(r["score"]) - dry_pts
+	var penalty := int(r.get("penalty", 0))
+	var time_pts := int(r["score"]) + penalty - dry_pts
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 6)
 	v.add_child(rows)
 	var row_a := _result_row(rows, "DRYNESS", "%d%% wet" % int(round(float(r["wet"]))), dry_pts)
 	var row_b := _result_row(rows, "TIME", "%s   (par %s)" % [UIStyle.fmt_time(float(r["time"])), UIStyle.fmt_time(float(r["par"]))], time_pts)
+	var restarts := int(r.get("restarts", 0))
+	var row_c: Control = null
+	if restarts > 0:
+		row_c = _result_row(rows, "RESTARTS", "%d from a checkpoint   (−%d%%)" % [restarts,
+			int(round(restarts * Tun.f("checkpoint_score_penalty") * 100.0))], -penalty)
 	v.add_child(HSeparator.new())
 	var total := HBoxContainer.new()
 	v.add_child(total)
@@ -583,6 +589,9 @@ func show_result(r: Dictionary) -> void:
 	tw.tween_interval(0.35)
 	tw.tween_callback(func() -> void: _reveal(row_b))
 	tw.tween_interval(0.35)
+	if row_c:
+		tw.tween_callback(func() -> void: _reveal(row_c))
+		tw.tween_interval(0.35)
 	var count_time := 1.3
 	tw.tween_method(func(x: float) -> void:
 		var shown := int(round(x))
@@ -634,7 +643,7 @@ func _result_row(parent: Container, title: String, detail: String, pts: int) -> 
 	var d := UIStyle.label(detail, &"BodyLabel", 26)
 	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(d)
-	var p := UIStyle.label("+%d" % pts, &"StatLabel", 30, Color(C_TEXT, 0.9))
+	var p := UIStyle.label(("+%d" % pts) if pts >= 0 else ("−%d" % -pts), &"StatLabel", 30, Color(C_TEXT, 0.9))
 	p.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	h.add_child(p)
 	h.modulate.a = 0.0

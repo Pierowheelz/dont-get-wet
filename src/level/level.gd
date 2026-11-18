@@ -397,7 +397,11 @@ func _take_checkpoint(i: int) -> void:
 ## Restores the walker's state from `Game.checkpoint`; _ready already spawned him at its x.
 func _restore_checkpoint() -> void:
 	var cp := Game.checkpoint
-	player.wet = cp["wet"]
+	# A resume never starts more than 80% wet; past the second resume of the same segment each one
+	# takes another 5% off, so a bad snapshot can't trap a stubborn player.
+	var wet_max := Tun.f("wet_max")
+	var relief_steps := maxi(0, int(cp.get("restarts", 0)) - int(Tun.f("checkpoint_relief_after")))
+	player.wet = maxf(0.0, minf(cp["wet"], wet_max * Tun.f("checkpoint_wet_cap")) - relief_steps * Tun.f("checkpoint_relief") * wet_max)
 	player.stamina = cp["stamina"]
 	player.exhausted = cp["exhausted"]
 	player.stats = cp["stats"].duplicate()

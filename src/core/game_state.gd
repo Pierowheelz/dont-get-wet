@@ -31,6 +31,7 @@ var debug_resume_cp := -1          # --resume-checkpoint=N starts the level resu
 var last_result: Dictionary = {}
 var checkpoint: Dictionary = {}     # latest checkpoint of the level being played (Level._take_checkpoint); memory only, never saved
 var resuming := false               # play_level(id, true) asked the next Level to restore `checkpoint`
+var checkpoint_restarts := 0        # checkpoint resumes since the level was last started over; each costs score
 var settings := {"painterly": true, "music": 0.7, "sfx": 1.0, "touch_controls": false, "low_quality": false, "fullscreen": true,
 		"graphics_checked": false}   # graphics_checked: GraphicsCheck has run, or the player set Low graphics
 
@@ -329,7 +330,10 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	var wet_pct := clampf(wetness / Tun.f("wet_max") * 100.0, 0.0, 100.0)   # stored/displayed as %
 	var dry := 1.0 - wet_pct / 100.0
 	var time_ratio := clampf(par / maxf(time, 0.01), 0.0, 1.0)
-	var score := int(round(Tun.f("score_dry_weight") * dry + Tun.f("score_time_weight") * time_ratio))
+	var raw := Tun.f("score_dry_weight") * dry + Tun.f("score_time_weight") * time_ratio
+	# Each checkpoint resume this attempt takes a flat share off the score (additive, not compounding).
+	var keep := maxf(0.0, 1.0 - checkpoint_restarts * Tun.f("checkpoint_score_penalty"))
+	var score := int(round(raw * keep))
 	var prev: Dictionary = run.best.get(id, {})
 	var prev_score: int = int(prev.get("score", 0))
 	# Tokens scale with score, paid only for improving on your best score for this street.
@@ -344,7 +348,8 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	run.current_node = id
 	checkpoint = {}
 	last_result = {"id": id, "score": score, "wet": wet_pct, "time": time, "par": par,
-		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score}
+		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score,
+		"restarts": checkpoint_restarts, "penalty": int(round(raw)) - score}
 	save_game()
 	tokens_changed.emit(run.tokens)
 	return last_result
@@ -435,8 +440,12 @@ func play_level(id: String, from_checkpoint := false) -> void:
 	if _building:
 		return
 	resuming = from_checkpoint and checkpoint.get("id", "") == id
-	if not resuming:
+	if resuming:
+		checkpoint_restarts += 1
+		checkpoint["restarts"] = int(checkpoint.get("restarts", 0)) + 1   # this segment's; a new snapshot starts at 0
+	else:
 		checkpoint = {}
+		checkpoint_restarts = 0
 	_building = true
 	# Closing the window mid-build must wait: shutting the engine down under the build / loader
 	# threads crashes or deadlocks it. _notification defers the quit until they finish.

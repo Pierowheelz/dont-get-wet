@@ -73,7 +73,10 @@ Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger
   On the early streets none sits in the final third.
 - Resets between levels (the character spends the night at the inn).
 - Reaching 100 → **fail sequence**: drop umbrella, scrolling stops, sad walk off the left of the
-  screen, "You got wet" screen with Restart / Map / Menu. Full level restart, no checkpoints.
+  screen, "You got wet" screen with Checkpoint / Restart / Map / Menu.
+- Checkpoints at ~25/50/75%. A checkpoint resume starts at most 80 wet and costs 5% of the level
+  score (additive per resume; a full restart clears the count). From the third resume of the same
+  segment, each resume starts another 5 wet drier; reaching the next checkpoint resets that count.
 
 ## 5. Rain & exposure model
 
