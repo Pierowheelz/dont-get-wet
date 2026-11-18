@@ -50,7 +50,23 @@
     "the_bypass",
     "kiln_street"
    ],
-   "soon": true
+   "blurb": "Under the railway arches. The trains still run, though nobody gets on.",
+   "difficulty": 5,
+   "file": "res://levels/viaduct_road.json",
+   "outro": [
+    "He sat up all night with the umbrella across his knees.",
+    "Thorne & Sons don't ask who's paying."
+   ],
+   "load": "They'll send one first. They always send one first.",
+   "fail": {
+    "shot": [
+     "One man. That's all they sent."
+    ],
+    "wet": [
+     "He's walking back to the city now.",
+     "He won't make the city limits like this."
+    ]
+   }
   },
   {
    "id": "kiln_street",
