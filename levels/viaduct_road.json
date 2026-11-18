@@ -84,8 +84,8 @@
   {"x": 375.5, "w": 10.0, "style": "vacant", "cover": "none", "floors": 0},
   {"x": 385.5, "w": 6.0, "style": "boarded", "cover": "awning", "floors": 2, "awning_color": "brown", "awning_style": "tin", "tears": [[1.5, 2.7]]},
   {"x": 391.5, "w": 1.5, "style": "wall", "cover": "none", "floors": 2},
-  {"x": 393.0, "w": 6.0, "style": "shop_dark", "cover": "awning", "floors": 2, "awning_color": "green", "awning_style": "waterfall"},
-  {"x": 399.0, "w": 11.0, "style": "vacant", "cover": "none", "floors": 0},
+  {"x": 393.0, "w": 8.0, "style": "shop_dark", "cover": "awning", "floors": 2, "awning_color": "green", "awning_style": "waterfall"},
+  {"x": 401.0, "w": 9.0, "style": "vacant", "cover": "none", "floors": 0},
   {"x": 410.0, "w": 6.0, "style": "shuttered", "cover": "awning", "floors": 2, "awning_color": "blue", "awning_style": "pennant"},
   {"x": 416.0, "w": 5.0, "style": "doorway", "cover": "awning", "floors": 2, "awning_color": "red", "awning_style": "tin"},
   {"x": 430.0, "w": 6.0, "style": "shuttered", "cover": "awning", "floors": 2, "awning_color": "brown", "awning_style": "tin"},
@@ -120,7 +120,7 @@
   {"type": "puddle", "x": 379.5, "w": 1.2},
   {"type": "gutter", "x": 387.6},
   {"type": "gutter", "x": 392.25},
-  {"type": "puddle", "x": 404.5, "w": 1.4},
+  {"type": "puddle", "x": 405.5, "w": 1.4},
   {"type": "puddle", "x": 422.2, "w": 1.4, "deep": true}
  ],
  "props": [
@@ -156,7 +156,7 @@
   {"id": "crates", "x": 338.0},
   {"id": "trash_bags", "x": 364.5},
   {"id": "chainlink_fence_4", "x": 381.5},
-  {"id": "trash_bags", "x": 401.5},
+  {"id": "trash_bags", "x": 402.5},
   {"id": "mailbox", "x": 420.0},
   {"id": "street_sign", "x": 420.4},
   {"id": "hydrant", "x": 430.8},
