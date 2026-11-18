@@ -41,7 +41,8 @@ stamina; the bots stop under cover once stamina falls to 24.
 Wetness runs from 0 to 50 (the HUD shows a percentage). Open sky adds 9/s x rain intensity x the
 exposed fraction of the body, so one bare second in the rain costs about 9 (18%). Only sun breaks,
 vents and fire barrels dry the walker, at their full rate only above 90% wet. Below that the rate
-halves for every 7 points drier (`dry_falloff` 10), so at 50% it is about 2% of full. Drying
+halves for every 7 points drier (`dry_falloff` 10), so at 60% it is about 5% of full, but never
+slower than 1% every 5 s (`dry_min_rate` 0.1/s). Drying
 rescues a near-soaked run; it never pays back the time spent standing in it. On the early streets
 every sun break, vent and fire barrel ends before two thirds of `end_x`, so drying can save a bad
 start but never the finish.

@@ -37,6 +37,7 @@
   "dry_vent_rate": 4.5,
   "dry_full_above": 0.9,
   "dry_falloff": 10.0,
+  "dry_min_rate": 0.1,
 
   "camera_distance": 7.2,
   "camera_height": 2.6,

@@ -54,8 +54,13 @@ func _test_sun_drying() -> void:
 	var shut: float = level.dry_rate(x, 0.0)
 	check(shut > 0.0, "sun break, umbrella closed: dries at %.2f/s" % shut)
 	check(level.dry_rate(x, 1.0) == 0.0, "sun break, umbrella open: the canopy shades him, no drying")
-	check(Player.dry_factor(0.95) == 1.0 and Player.dry_factor(0.5) < 0.05,
-		"drying runs at full rate when soaked and almost stops when fairly dry (%.3f at 50%%)" % Player.dry_factor(0.5))
+	var floor_rate: float = Tun.f("wet_max") * 0.01 / 5.0
+	check(Player.dry_speed(shut, 0.95) == shut and Player.dry_speed(shut, 0.6) < shut * 0.1,
+		"drying runs at full rate when soaked and slows sharply when fairly dry (%.3f/s at 60%%)" % Player.dry_speed(shut, 0.6))
+	check(is_equal_approx(Player.dry_speed(shut, 0.0), floor_rate),
+		"drying never drops below 1%% per 5 s (%.3f/s when bone dry)" % Player.dry_speed(shut, 0.0))
+	check(Player.dry_speed(0.0, 0.0) == 0.0 and Player.dry_speed(0.05, 0.0) == 0.05,
+		"the floor never dries him outside a warm spot or faster than the spot itself")
 	check(not level.player._exposed_at(x), "autopilot treats the sunlit lot as safe, so it closes the umbrella")
 
 
