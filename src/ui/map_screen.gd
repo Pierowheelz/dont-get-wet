@@ -5,9 +5,12 @@ const Canvas := preload("res://src/ui/city_map_canvas.gd")
 const NodeButton := preload("res://src/ui/map_node_button.gd")
 const SHOP_W := 520.0
 const MARGIN := 64.0
-## The map is a strip this many map-widths long (about five streets on screen); it scrolls to
-## keep the focused street in view.
+## The map is a strip this many map-widths long (about five streets on screen). It only moves on
+## a deliberate input: keyboard / pad focus brings the street into view, and the mouse pans it by
+## dragging, the wheel, or the arrows at its ends. Hovering a street never moves it.
 const MAP_SPAN := 3.0
+const WHEEL_STEP := 90.0      # px panned per wheel notch
+const ARROW_STEP := 0.6       # map-widths panned per arrow click
 
 const UPGRADE_INFO := {
 	&"sturdy": ["Sturdy frame", "Less stamina drain, less wind load."],
@@ -27,6 +30,9 @@ var _map: Control             # visible map area; clips the strip
 var _world: Control           # the whole map strip (canvas + routes + nodes), scrolled inside _map
 var _scroll := 0.0
 var _scroll_target := 0.0
+var _dragging := false
+var _hover_focus := false     # focus is arriving from the mouse pointer: show the card, don't scroll
+var _pan_arrows: Array[Button] = []   # [left, right]
 var _canvas: Control
 var _routes: DrawBox
 var _buttons := {}            # id -> NodeButton
@@ -80,6 +86,12 @@ func _ready() -> void:
 	_map.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_map.clip_contents = true
 	add_child(_map)
+	# Empty map behind the streets: drag it to pan.
+	var drag := Control.new()
+	drag.set_anchors_preset(Control.PRESET_FULL_RECT)
+	drag.mouse_default_cursor_shape = Control.CURSOR_DRAG
+	drag.gui_input.connect(_drag_input)
+	_map.add_child(drag)
 	_world = Control.new()
 	_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_map.add_child(_world)
@@ -92,6 +104,8 @@ func _ready() -> void:
 	var edges := DrawBox.new(_draw_edges, Vector2.ZERO, true)
 	edges.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_map.add_child(edges)
+	for dir in [-1, 1]:
+		_pan_arrows.append(_make_pan_arrow(dir))
 	# Captions under the map (outside it, since the map clips its strip).
 	var legends := Control.new()
 	_legends = legends
@@ -142,6 +156,10 @@ func _process(delta: float) -> void:
 	_t += delta
 	_scroll = lerpf(_scroll, _scroll_target, 1.0 - exp(-8.0 * delta))
 	_world.position.x = -_scroll
+	_pan_arrows[0].visible = _scroll_target > 4.0
+	_pan_arrows[1].visible = _scroll_target < _max_scroll() - 4.0
+	if _card_id != "":
+		_card.position.x = _card_x(_card_id, _scroll)  # rides along with the strip
 
 
 # --- map --------------------------------------------------------------------------------------
@@ -151,12 +169,62 @@ func _map_point(id: String) -> Vector2:
 	return Vector2(float(p[0]), float(p[1])) * _world.size
 
 
+func _max_scroll() -> float:
+	return maxf(_world.size.x - _map.size.x, 0.0)
+
+
 ## Scrolls the strip so `id` sits mid-map (clamped to the strip's ends).
 func _scroll_to(id: String, animate := true) -> void:
-	_scroll_target = clampf(_map_point(id).x - _map.size.x * 0.5, 0.0, maxf(_world.size.x - _map.size.x, 0.0))
+	_scroll_target = clampf(_map_point(id).x - _map.size.x * 0.5, 0.0, _max_scroll())
 	if not animate:
 		_scroll = _scroll_target
 		_world.position.x = -_scroll
+
+
+## Pans by `dx` pixels; `instant` follows the pointer 1:1 (dragging), otherwise it glides.
+func _pan(dx: float, instant := false) -> void:
+	_scroll_target = clampf(_scroll_target + dx, 0.0, _max_scroll())
+	if instant:
+		_scroll = _scroll_target
+		_world.position.x = -_scroll
+
+
+func _drag_input(event: InputEvent) -> void:
+	var mb := event as InputEventMouseButton
+	if mb and mb.button_index == MOUSE_BUTTON_LEFT:
+		_dragging = mb.pressed
+	elif event is InputEventMouseMotion and _dragging:
+		_pan(-(event as InputEventMouseMotion).relative.x, true)
+
+
+## Round arrow buttons at the map's ends; each shows while there's more road that way.
+func _make_pan_arrow(dir: int) -> Button:
+	var b := Button.new()
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.set_anchors_preset(Control.PRESET_CENTER_LEFT if dir < 0 else Control.PRESET_CENTER_RIGHT)
+	b.custom_minimum_size = Vector2(56, 56)
+	b.offset_top = -28
+	b.offset_bottom = 28
+	b.offset_left = 12.0 if dir < 0 else -68.0
+	b.offset_right = b.offset_left + 56.0
+	b.pressed.connect(func() -> void:
+		_sound.play(&"ui_move")
+		_pan(dir * _map.size.x * ARROW_STEP))
+	var icon := DrawBox.new(func(ci: Control) -> void:
+		var c := ci.size * 0.5
+		var hot := b.is_hovered()
+		ci.draw_circle(c, 26.0, Color(UIStyle.INK, 0.85))
+		ci.draw_arc(c, 26.0, 0.0, TAU, 40, Color(UIStyle.AMBER if hot else UIStyle.CREAM, 0.9 if hot else 0.45), 2.0, true)
+		var col := UIStyle.AMBER if hot else UIStyle.CREAM
+		var d := float(dir)
+		ci.draw_polyline(PackedVector2Array([c + Vector2(-5 * d, -10), c + Vector2(5 * d, 0), c + Vector2(-5 * d, 10)]), col, 4.0, true),
+		Vector2.ZERO, true)
+	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+	b.add_child(icon)
+	_map.add_child(b)
+	return b
 
 
 func _build_nodes() -> void:
@@ -171,7 +239,12 @@ func _build_nodes() -> void:
 			_last_map = b
 			_set_active(&"map")
 			_show_card(id))
-		b.mouse_entered.connect(func() -> void: b.grab_focus())
+		b.mouse_entered.connect(func() -> void:
+			if _dragging:
+				return
+			_hover_focus = true
+			b.grab_focus()
+			_hover_focus = false)
 		_buttons[id] = b
 		if Game.can_select(id) and (focus_btn == null or (id != Game.run.current_node and not Game.run.completed.has(id))):
 			focus_btn = b
@@ -321,7 +394,8 @@ func _build_card() -> void:
 
 func _show_card(id: String) -> void:
 	_card_id = id
-	_scroll_to(id)
+	if not _hover_focus:
+		_scroll_to(id)
 	for c in _card.get_children():
 		_card.remove_child(c)
 		c.queue_free()
@@ -419,24 +493,28 @@ func _stat(parent: Container, title: String, value: String) -> Label:
 	return l
 
 
-## The card docks along the top of the map (where there are no streets) above the focused node,
+## The card docks along the top of the map (where there are no streets) above the focused node
+## (and follows it while the map pans),
 ## with a leader line down to it, so it never hides a neighbouring street.
 func _place_card(id: String, animate: bool) -> void:
 	_card.reset_size()
-	var cs := _card.get_combined_minimum_size()
-	var p := _map.position + _map_point(id) - Vector2(_scroll_target, 0.0)
-	var target := Vector2(p.x - cs.x * 0.5, _map.position.y + 18.0)
-	target.x = clampf(target.x, _map.position.x + 18.0, _map.position.x + _map.size.x - cs.x - 18.0)
+	var target := Vector2(_card_x(id, _scroll), _map.position.y + 18.0)
 	if _card_tween and _card_tween.is_valid():
 		_card_tween.kill()
 	if animate:
 		_card.position = target + Vector2(0, -10)
 		_card.modulate.a = 0.0 if _card.modulate.a < 0.5 else _card.modulate.a
 		_card_tween = create_tween().set_parallel()
-		_card_tween.tween_property(_card, "position", target, 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_card_tween.tween_property(_card, "position:y", target.y, 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		_card_tween.tween_property(_card, "modulate:a", 1.0, 0.16)
 	else:
 		_card.position = target
+
+
+## The card's x above street `id` with the strip scrolled to `scroll`, kept inside the map.
+func _card_x(id: String, scroll: float) -> float:
+	var x := _map.position.x + _map_point(id).x - scroll - _card.size.x * 0.5
+	return clampf(x, _map.position.x + 18.0, _map.position.x + _map.size.x - _card.size.x - 18.0)
 
 
 func _hide_card() -> void:
@@ -672,6 +750,18 @@ func _set_active(which: StringName) -> void:
 func _input(event: InputEvent) -> void:
 	if _busy or _dialog != null:
 		return
+	var mb := event as InputEventMouseButton
+	if mb and mb.pressed and _map.get_global_rect().has_point(mb.position):
+		var dir := 0
+		match mb.button_index:
+			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_LEFT:
+				dir = -1
+			MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_RIGHT:
+				dir = 1
+		if dir != 0:
+			get_viewport().set_input_as_handled()
+			_pan(dir * WHEEL_STEP * (mb.factor if mb.factor > 0.0 else 1.0))
+			return
 	var target: Button = null
 	if event.is_action_pressed(&"panel_map"):
 		target = _last_map if _last_map else _buttons.get(Game.run.current_node)
