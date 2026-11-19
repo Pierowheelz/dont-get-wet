@@ -151,9 +151,41 @@ def chainlink_fence(pid, L=4.0):
 
 
 def gas_pump(pid):
+    """60s forecourt pump on its island: enamel cabinet with a cream dial head, chrome trim, a lit
+    brand globe and the nozzle holstered on the side with its hose looped to the ground."""
     B = Builder(pid)
     B.box(-0.5, 0.5, 0.0, 0.18, -0.3, 0.3, "concrete", 0.03)
-    retro.pump(B, 0.0, 0.18, 0.0, "enamel_coral")
+    y0, w, d = 0.18, 0.56, 0.4
+    body, head = "enamel_coral", "enamel_cream"
+    B.box(-w / 2 - 0.02, w / 2 + 0.02, y0, y0 + 0.1, -d / 2 - 0.02, d / 2 + 0.02, "steel_dark", 0.015)    # plinth
+    B.box(-w / 2, w / 2, y0 + 0.1, y0 + 0.98, -d / 2, d / 2, body, 0.04)                                  # cabinet
+    B.box(-w / 2 - 0.012, w / 2 + 0.012, y0 + 0.96, y0 + 1.0, -d / 2 - 0.012, d / 2 + 0.012, "chrome", 0.01)
+    B.box(-w / 2 + 0.01, w / 2 - 0.01, y0 + 1.0, y0 + 1.5, -d / 2 + 0.01, d / 2 - 0.01, head, 0.06)       # dial head
+    B.box(-w / 2 + 0.04, w / 2 - 0.04, y0 + 1.5, y0 + 1.56, -d / 2 + 0.04, d / 2 - 0.04, "chrome", 0.025)
+    for sgn in (1, -1):  # both faces: dial glass with the sale / gallons / price windows
+        z = sgn * (d / 2 - 0.01)
+        B.box(-0.2, 0.2, y0 + 1.08, y0 + 1.42, min(z, z + sgn * 0.012), max(z, z + sgn * 0.012), "trim_white", 0.006)
+        for (yy, ww) in ((1.33, 0.26), (1.23, 0.26), (1.13, 0.16)):
+            B.box(-ww / 2, ww / 2, y0 + yy - 0.03, y0 + yy + 0.03, min(z + sgn * 0.012, z + sgn * 0.015), max(z + sgn * 0.012, z + sgn * 0.015), "metal_dark", 0.0)
+        zc = sgn * d / 2
+        B.box(-0.16, 0.16, y0 + 0.3, y0 + 0.8, min(zc, zc + sgn * 0.01), max(zc, zc + sgn * 0.01), body, 0.02)   # access door
+        for k in range(3):  # chrome speed lines across it
+            B.box(-w / 2 + 0.03, w / 2 - 0.03, y0 + 0.5 + k * 0.07, y0 + 0.525 + k * 0.07, min(zc + sgn * 0.01, zc + sgn * 0.016), max(zc + sgn * 0.01, zc + sgn * 0.016), "chrome", 0.004)
+    # brand globe on a short neck
+    B.tube((0.0, y0 + 1.56, 0.0), (0.0, y0 + 1.62, 0.0), 0.05, "chrome", segs=12)
+    with xf_push(B, T(0.0, y0 + 1.82, 0.0) @ R("X", 90)):
+        B.lathe([(0.0, -0.07), (0.17, -0.07), (0.2, -0.03), (0.2, 0.03), (0.17, 0.07), (0.0, 0.07)], 0, 0, "lamp_bulb", segs=24)
+        B.lathe([(0.195, -0.045), (0.215, -0.045), (0.215, 0.045), (0.195, 0.045)], 0, 0, "chrome", segs=24)
+    # nozzle in its holster on the right flank, hose looping down and back up into the cabinet
+    x = w / 2
+    B.box(x, x + 0.05, y0 + 1.0, y0 + 1.2, -0.06, 0.06, "chrome", 0.012)
+    B.tube((x + 0.03, y0 + 1.08, 0.0), (x + 0.13, y0 + 0.92, 0.0), 0.022, "chrome", segs=8)
+    B.tube((x + 0.13, y0 + 0.92, 0.0), (x + 0.13, y0 + 0.8, 0.0), 0.028, "rubber", segs=8)
+    pts = [(x + 0.13, y0 + 0.8, 0.0), (x + 0.2, y0 + 0.45, 0.04), (x + 0.16, y0 + 0.14, 0.08), (x + 0.07, y0 + 0.1, 0.1),
+           (x + 0.03, y0 + 0.3, 0.08), (x, y0 + 0.45, 0.06)]
+    for a, b in zip(pts[:-1], pts[1:]):
+        B.tube(a, b, 0.017, "rubber", segs=6)
+    B.box(-x - 0.03, -x, y0 + 1.1, y0 + 1.18, -0.02, 0.02, "chrome", 0.006)                               # crank on the other
     pm.export(B, pid)
     reg(pid, "curb", (1.0, 0.6), ["outskirts", "light"], era="60s", height=2.0)
 
