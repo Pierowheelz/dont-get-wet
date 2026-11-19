@@ -484,11 +484,12 @@ def car_sedan(pid, paint, roof=None):
         if f.normal.z < -0.45:      # blender Z = game up: underside + wheel well ceilings
             f.material_index = B.mi("metal_dark")
     B.mark_sharp(B.new_faces(m), 50)
-    # ---- tail fins (subtle 60s blades on the rear deck) ----
+    # ---- tail fins: blades that rise from the rear doors to a canted tip (their chrome crest and
+    # lens come last, below: idling_car.gd and drive_by.gd address this mesh's surfaces by index,
+    # which follows the order materials are first used here) ----
     for side in (-1, 1):
-        z = side * (HW - 0.06)
-        with xf_push(B, T(0, 0, z)):
-            B.sweep([(-0.06, 0.93), (0.06, 0.93), (0.05, 0.985), (0.0, 1.0), (-0.05, 0.985)], -2.62, -1.3, paint, sharp_deg=70)
+        z = side * (HW - 0.055)
+        B.prism_z([(-1.15, 0.93), (-2.74, 0.9), (-2.8, 1.17), (-2.6, 1.15)], z - 0.05, z + 0.05, paint, bevel=0.02)
     # ---- cabin / greenhouse ----
     yb, yt = 0.94, 1.42
     bw, tw = 0.9, 0.76          # half widths at belt / roof
@@ -599,7 +600,13 @@ def car_sedan(pid, paint, roof=None):
     for side in (-1, 1):  # bumper wrap ends
         B.box(2.52, 2.74, 0.31, 0.48, side * 0.98 - 0.04, side * 0.98 + 0.04, "chrome", 0.03)
         B.box(-2.76, -2.5, 0.34, 0.51, side * 0.98 - 0.04, side * 0.98 + 0.04, "chrome", 0.03)
-    B.box(2.2, 2.3, 0.94, 0.98, -0.02, 0.02, "chrome", 0.01)                      # hood ornament
+    B.box(1.05, 2.55, 0.925, 0.945, -0.012, 0.012, "chrome", 0.005)               # hood spear...
+    B.prism_z([(2.2, 0.94), (2.42, 0.94), (2.3, 0.99), (2.18, 1.0)], -0.012, 0.012, "chrome", bevel=0.004)   # ...and its ornament
+    for side in (-1, 1):  # peaked fender crowns running forward into brows over the lamps
+        z = side * (HW - 0.2)
+        B.prism_z([(0.95, 0.93), (2.6, 0.9), (2.7, 0.93), (2.69, 0.98), (2.45, 0.985)], z - 0.17, z + 0.17, paint, bevel=0.03)
+        B.box(2.63, 2.705, 0.95, 0.968, z - 0.15, z + 0.15, "chrome", 0.006)
+    B.box(-2.3, -1.75, 0.955, 0.972, -0.012, 0.012, "chrome", 0.005)              # boot spear
     # ---- rear: round tail lights, plate, trunk lock ----
     for side in (-1, 1):
         for zc in (0.55, 0.8):
@@ -617,6 +624,11 @@ def car_sedan(pid, paint, roof=None):
     for x in (fx, rx):
         for side in (-1, 1):
             wheel(B, x, side * (HW - 0.12), side)
+    for side in (-1, 1):  # fin trim: chrome along the crest, a red lens set in the trailing edge
+        z = side * (HW - 0.055)
+        B.tube((-1.2, 0.955, z), (-2.6, 1.165, z), 0.013, "chrome", segs=6)
+        B.tube((-2.6, 1.165, z), (-2.795, 1.185, z), 0.013, "chrome", segs=6)
+        B.box(-2.8, -2.765, 0.95, 1.13, z - 0.03, z + 0.03, "tail_light", 0.008)
     # tyre-on-ground contact shadow helper (dark quad under the car)
     B.rect_y(-2.6, 2.6, -0.9, 0.9, 0.005, "metal_dark", facing=1)
     export(B, pid)
