@@ -105,6 +105,10 @@ passes it. Two optional fields change that:
 - `"line": "..."` is shown as a hint when he holds stop within 1.5 m of the booth for 0.6 s while it
   rings, once per attempt. That answers it and the ringing stops.
 
+`revolving_door` (`s.prop("revolving_door", x)`) is a hotel's glass drum set into the facade at `x`
+(radius 0.95 m, standing 1.2 m out onto the pavement), its four leaves turning slowly, with a brass top
+and warm light inside. Dressing only; keep figures and henchmen 1.3 m clear of it.
+
 `station_stairs` (`s.prop("station_stairs", x)`) is a stair flight against the shopfronts from the
 pavement at `x + 6` up to a deck span at `x`. It is dressing only and only makes sense under a deck;
 the space under its high end (`x` to about `x + 2`) fits a phone booth.
@@ -273,6 +277,47 @@ bot's reaction delay, and never stop to rest in his line of fire. level_preview 
 ignores them: `tools/preview.sh` is the judge. Bring each in some 15 m short of a run of arches, so a
 few shots come in the open and the rest are held, and keep the human bot's minimum stamina above 10:
 the umbrella stays up through every shot.
+
+**`henchmen`** (`[{"x"}]`; `s.henchman(x)`) are men on the walker's own model, suit and umbrella,
+each standing under cover at `x` (lane z 0.75, by the shopfronts) with the umbrella furled, facing back
+down the street like the `figures` around them. The rules, all in `src/level/henchmen.gd`:
+
+- **In range.** When the walker is within 7.5 m of one (`RANGE`, ahead or behind) and the man is in the
+  frame (taken as at least 16:9, `Level.in_frame`), he opens the umbrella (0.9 s) and fires a telegraphed
+  `WaterJet` at him 0.5 s later: a 0.6 s glint, then the burst. A jet that lands in full wets the walker
+  8 (`HIT`, cause `shot`); a canopy tilted toward him stops what it meets and is shoved as usual.
+- **Timer.** The gap from one jet landing to the next glint cycles through `INTERVALS` (2.4, 3.1, 2.7,
+  3.4 s; each man starts at a different place in the table), each nudged by up to 0.2 s at random.
+- **Canopy.** Between shots he holds it overhead, so the walker's shot reaches his chest; from the glint
+  until his jet has landed it is brought down at the walker and stops the shot (40 of 40 droplets in
+  the tests). The opening is the 2 to 3 s between his shots.
+- **Passed.** Once the walker is 0.35 m past him he turns round (0.6 s) and keeps firing from behind
+  while the walker is in range and in the frame.
+- **Soaked.** Each is an `NpcBody`: two clean hits of the walker's shot soak him and he plays the defeat
+  walk. A man is *dealt with* when he is soaked or the walker comes within 1 m of him (`dealt_with`).
+- **Hint.** The first man to open up shows "He's looking for a face..." once per attempt.
+- **Checkpoints.** A resume leaves out every man more than 7.5 m behind it. Put each checkpoint at
+  least 12 m short of the next man, so a resume starts out of range (`s.checkpoints` by hand if the
+  solver lands too close), and put refill gutters outside every man's range: the bots never refill
+  under fire.
+- **The bots** open up ahead of each glint, tilt toward the man while his jet glints and flies (85% of
+  full tilt: forward for one ahead, back for one behind), never rest in range of one, and fire only
+  when the line from the umbrella to his chest is clear of his canopy. `level_preview.py` ignores them;
+  `tools/preview.sh` is the judge.
+
+**`pickup`** (`{"x", "after"}`; `s.pickup(xing_tag, after)`) stops a black sedan in the side street at
+the crossing starting at `x` (one without `car`), headlights off, with a man in a yellow slicker
+(`RaincoatFigure`, smoking, watching) waiting at the corner under the last canopy before it. He is
+scenery: no water reaches him. While the walker is within 22 m short of the crossing the camera eases
+2.5 m ahead (`Level.camera_bias`) to keep him in shot, and the first time he is in the frame the hint
+"Raincoat. Of course he wore a raincoat." shows. When henchman number `after` (0-based, in x order) is
+dealt with, the engine turns over and the headlights come on (the car warning and its hint) while he
+walks round the corner and gets in. Then, at least 1.3 s after the engine started, the car pulls out
+across the pavement and throws the usual car splash (`CarHazard`) as soon as the walker is 3.5 to
+6 m short of the crossing. It waits while he is closer or in the road, and once he is across it
+leaves behind him. A resume past the crossing leaves the car out; one past the man `after` starts
+with him boarding. Place the crossing about 6.5 m past that man, with the man inside the last
+canopy.
 
 **The walker's shot (armed streets).** From the sixth street out from Main Street on either side
 (`Game.GUN_FROM`; the number is the street's place on the map, `Game.street_number`), the walker can

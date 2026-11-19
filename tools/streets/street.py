@@ -28,6 +28,8 @@ class Street:
         self.hints = []
         self.follower_appear = []
         self.attackers = []
+        self.henchmen = []
+        self.pickup_rec = None
         self.courier_rec = None
         self.track_rec = None
         self.viaducts = []
@@ -93,6 +95,17 @@ class Street:
         `shots` telegraphed jets, then drops back. One at a time: a later one waits for the last to go."""
         self.attackers.append({"x": round(x, 2), "shots": int(shots)})
 
+    def henchman(self, x):
+        """A man waiting under cover at x who fires telegraphed jets at the walker on a timer while he
+        is in range: from ahead as he comes, then from behind once he has passed."""
+        self.henchmen.append({"x": round(x, 2)})
+
+    def pickup(self, xing_tag, after):
+        """A car idling in the side street xing_tag (a crossing without `car`) and a man in a slicker
+        waiting at its corner. Once henchman number `after` (0-based, in x order) is soaked or passed,
+        he gets in and the car pulls out through the puddle at the walker."""
+        self.pickup_rec = {"x": self.start(xing_tag), "after": int(after)}
+
     def courier(self, appear_x, door_x, stops=()):
         """A scripted pedestrian the walker must keep in frame: he steps out of a doorway at appear_x,
         walks ahead to the door at door_x and stops at each (x, dur) in stops to look in a window."""
@@ -133,6 +146,10 @@ class Street:
             rest["attackers"] = sorted(self.attackers, key=lambda a: a["x"])
         if self.courier_rec:
             rest["courier"] = self.courier_rec
+        if self.henchmen:
+            rest["henchmen"] = sorted(self.henchmen, key=lambda h: h["x"])
+        if self.pickup_rec:
+            rest["pickup"] = self.pickup_rec
         assert self.track_rec or not self.viaducts, "deck spans need s.track()"
         if self.track_rec:
             t = dict(self.track_rec)

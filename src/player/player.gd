@@ -531,12 +531,14 @@ func _autopilot(delta: float) -> Array:
 	var lead := maxf(speed, Tun.f("walk_speed")) * Game.umbrella_open_time() + 0.6
 	var rd0 := rain_dir()
 	var tl0 := clampf(-atan2(rd0.x, -rd0.y) / Tun.f("umbrella_max_tilt"), -1.0, 1.0)
-	# Someone behind with water left: never stand resting in his line of fire (deep under an arch he
-	# can't shoot). When a jet glints, open up and tilt back.
+	# Someone behind with water left, or a man in range ahead or behind: never stand resting in his
+	# line of fire (deep under an arch a pursuer can't shoot). When a jet glints, open up and tilt toward it.
 	var att: Node = level.get("attackers")
-	var jet_in: bool = att != null and att.incoming()
+	var hm: Node = level.get("henchmen")
+	var jet_in: bool = att != null and att.incoming() or hm != null and hm.incoming()
 	var deep_in_arch: bool = level.track != null and level.track.arch_at(position.x) and level.track.arch_at(position.x + lead)
-	var under_fire: bool = att != null and att.armed() and not deep_in_arch
+	var under_fire: bool = att != null and att.armed() and not deep_in_arch or hm != null and hm.armed()
+	var next_glint: float = minf(att.next_glint_in() if att else INF, hm.next_glint_in() if hm else INF)
 	# Stop is held, like a player keeping the button down until the bar is full. Deciding from the
 	# live state instead let a flicker in the cover check release it mid-rest (worse with --human's
 	# delayed replay). Rest through a light sprinkle at the cover's edge, but if a gust drives real
@@ -571,7 +573,7 @@ func _autopilot(delta: float) -> Array:
 		danger = true
 	# The canopy takes umbrella_open_time to open and a shot lands about a second after its glint:
 	# have it up before his next one.
-	if under_fire and att.next_glint_in() < Game.umbrella_open_time() + 0.2:
+	if under_fire and next_glint < Game.umbrella_open_time() + 0.2:
 		danger = true
 	_ap_hold = 0.35 if danger else maxf(0.0, _ap_hold - delta)
 	var u := 1.0 if (danger or _ap_hold > 0.0) else 0.0
@@ -587,8 +589,6 @@ func _autopilot(delta: float) -> Array:
 			tl = 0.0     # straighten up under a gutter stream
 	if wash:
 		tl = 0.0
-	if att != null and att.brace():
-		tl = minf(tl, -0.85)   # put the canopy between him and the jet: well back, not quite flat (that lets the rain in)
 	var stop := false
 	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire and not car_ahead:
 		stop = true
@@ -610,12 +610,25 @@ func _autopilot(delta: float) -> Array:
 			tl = minf(tl, -0.6) if open > 0.0 else -1.0
 		elif ahead:
 			tl = maxf(tl, 0.0) if open > 0.0 else 1.0
+	# Put the canopy between him and the jet: well over, not quite flat (that lets the rain in).
+	var brace: float = hm.brace_side() if hm else 0.0
+	if att != null and att.brace() or brace < 0.0:
+		tl = minf(tl, -0.85)
+	elif brace > 0.0:
+		tl = maxf(tl, 0.85)
 	return [u, h, tl, stop]
 
 
-## Fires whenever a man in shot is in range on the side it aims.
+## Fires whenever a man in shot is in range on the side it aims and his canopy isn't in the way, but
+## never while a jet is coming: the recoil would knock the canopy off it.
 func _autopilot_fire() -> bool:
-	return gun.armed and gun.shots >= 1.0 and _ap_mark(gun.aim_sign()) != null
+	if not gun.armed or gun.shots < 1.0:
+		return false
+	for shooter: Node in [level.get("attackers"), level.get("henchmen")]:
+		if shooter and shooter.incoming():
+			return false
+	var m := _ap_mark(gun.aim_sign())
+	return m != null and not _cast(gun.muzzle(), m.global_position + Vector3(0.0, WaterGun.AIM_Y, 0.0), m.canopy_mask())
 
 
 ## The man the shot would aim at on `side`, if the player could see him.

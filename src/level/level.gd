@@ -25,8 +25,9 @@ var cars: Array = []           # CarHazard nodes
 var track: Track              # the elevated monorail, or null
 var phones: Array = []         # {x, keep, line} of every ringing payphone, in prop order
 var attackers: Node            # the level's `attackers` (attackers.gd), or null
-var camera_bias := 0.0         # metres the camera eases back from its lead, so someone behind stays in shot
+var camera_bias := 0.0         # metres the camera eases from its lead: back (<0) so someone behind stays in shot, or ahead
 var courier: Courier           # the level's scripted pedestrian to keep in frame, or null
+var henchmen: Node             # the level's `henchmen` (henchmen.gd), or null
 
 var player: Player
 var camera: Camera3D
@@ -150,6 +151,22 @@ func _ready() -> void:
 		attackers.name = "Attackers"
 		attackers.level = self
 		add_child(attackers)
+	if data.has("henchmen"):
+		henchmen = preload("res://src/level/henchmen.gd").new()
+		henchmen.name = "Henchmen"
+		henchmen.level = self
+		add_child(henchmen)
+	if data.has("pickup"):
+		var pk := PickupCar.new()
+		pk.level = self
+		pk.crossing_x = float(data["pickup"]["x"])
+		pk.after = int(data["pickup"].get("after", 0))
+		for c in data.get("crossings", []):
+			if absf(float(c["x"]) - pk.crossing_x) < 0.01:
+				pk.crossing_w = float(c["w"])
+		world.add_child(pk)
+		cars.append(pk)
+		pk.approaching.connect(_on_car_approaching)
 	if data.has("follower"):
 		var follower := preload("res://src/level/follower.gd").new()
 		follower.name = "Follower"
@@ -267,6 +284,15 @@ func dry_rate(x: float, umbrella_open: float) -> float:
 		if x > z[0] and x < z[1]:
 			r += z[2] * (1.0 - umbrella_open if z[3] else 1.0)
 	return r
+
+
+## Whether world x on lane z is inside the frame (with `margin` to spare). The frame is taken as at
+## least 16:9, since a headless run's window is square, so the bots see what a player would.
+func in_frame(x: float, z: float, margin := 0.3) -> bool:
+	var vp := get_viewport().get_visible_rect().size
+	var aspect := maxf(vp.x / maxf(vp.y, 1.0), 16.0 / 9.0)
+	var half := (camera.global_position.z - z) * tan(deg_to_rad(camera.fov) * 0.5) * aspect
+	return absf(x - camera.global_position.x) < half - margin
 
 
 func ground_y(x: float) -> float:

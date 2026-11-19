@@ -36,11 +36,7 @@ var splash_v := [5.5, 10.0]                   # ...at these speeds (m/s)
 func _ready() -> void:
 	position = Vector3(crossing_x + 1.7, LevelBuilder.ROAD_Y, START_Z)
 	rotation.y = -PI * 0.5
-	var car_path := CarHazard.pick_car(level)
-	if ResourceLoader.exists(car_path):
-		_body = load(car_path).instantiate()
-	else:
-		_body = greybox_car()
+	_body = _make_body()
 	add_child(_body)
 	for side in [-0.65, 0.65]:
 		var sl := SpotLight3D.new()
@@ -69,6 +65,11 @@ func _ready() -> void:
 	_beacon.visible = false
 	add_child(_beacon)
 	_beacon.global_position = Vector3(crossing_x + 0.3, 2.9, 2.2)
+
+
+func _make_body() -> Node3D:
+	var car_path := CarHazard.pick_car(level)
+	return load(car_path).instantiate() if ResourceLoader.exists(car_path) else greybox_car()
 
 
 ## A car model suited to the level: retro hover-cars appear with probability = neon.
