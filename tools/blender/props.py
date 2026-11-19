@@ -168,13 +168,17 @@ def mailbox():
             B.box(sx * 0.2 - 0.025, sx * 0.2 + 0.025, 0.0, 0.16, sz * 0.17 - 0.025, sz * 0.17 + 0.025, "metal_dark", 0.006)
     B.box(-0.26, 0.26, 0.14, 0.95, -0.23, 0.23, m, 0.025)
     # rounded top built from a tube along Z, clipped by the body below (lower half hidden inside)
-    B.tube((0, 0.95, -0.23), (0, 0.95, 0.23), 0.26, m, segs=32)
+    B.tube((0, 0.95, -0.23), (0, 0.95, 0.23), 0.26, "paint_red", segs=32)       # red cap of the 60s livery
+    B.box(-0.265, 0.265, 0.9, 0.955, -0.235, 0.235, "paint_red", 0.008)
     B.box(-0.27, 0.27, 0.14, 0.2, -0.24, 0.24, m, 0.01)
     # pull-down chute door + handle
     with xf_push(B, T(0, 1.02, 0.21) @ R("X", -12)):
-        B.box(-0.18, 0.18, -0.07, 0.12, 0.0, 0.03, m, 0.012)
+        B.box(-0.18, 0.18, -0.07, 0.12, 0.0, 0.03, "paint_red", 0.012)
         B.box(-0.1, 0.1, -0.06, -0.035, 0.03, 0.05, "chrome", 0.006)
-    B.box(-0.16, 0.16, 0.55, 0.66, 0.23, 0.24, "trim_white", 0.004)   # blank info plate
+    B.box(-0.2, 0.2, 0.7, 0.8, 0.23, 0.238, "trim_white", 0.004)      # lettering band
+    for k in range(7):                                                # ...and its seven letters
+        B.box(-0.165 + k * 0.05, -0.135 + k * 0.05, 0.725, 0.775, 0.238, 0.241, m, 0.0)
+    B.box(-0.09, 0.09, 0.5, 0.6, 0.23, 0.238, "trim_white", 0.004)    # collection times card
     B.box(-0.12, 0.12, 0.3, 0.42, 0.23, 0.245, m, 0.008)              # collection door
     export(B, "mailbox")
     register("mailbox", "curb", (0.6, 0.5), [], height=1.22)
