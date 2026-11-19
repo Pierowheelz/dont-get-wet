@@ -22,6 +22,7 @@ var run := 0.0         # gait position: 0 walk .. 0.5 brisk .. 1 jog
 var stride := 1.0      # leg swing amplitude kept (walker.gd shortens the cycle to match)
 var umbrella_left := false
 var carry := 0.0       # 0..1 the furled umbrella carried at the hip like a rifle, tip forward
+var aim := 0.0         # 0..1 the furled umbrella shouldered and aimed along `tilt` (see _aim_grip)
 @export var hip_back := 0.0      # rad the pelvis is pitched back (legs counter-rotated: no)
 @export var pelvis_tilt := 0.16   # rad of posterior pelvic tilt (tucks the backside under)
 @export_range(0.0, 1.0) var posture_fix := 0.0   # per-frame torso straightening (0 = trust the clip)
@@ -58,6 +59,23 @@ const CARRY_PITCH := 0.1
 const CARRY_TOE_IN := 0.06
 const CARRY_FINGER_DIR := Vector3(0.45, -1.0, 0.0)
 const CARRY_POLE := Vector3(-0.7, -1.0, 0.3)       # elbow back, down and a little out
+
+# Aimed like a rifle (furled, `aim`): the crook sits in the pocket of the shoulder, the fist a hand's
+# length up the shaft from it and the other hand under the ridged sleeve. Aimed behind, he twists
+# round toward the camera, looks back over that shoulder and points it one-handed at arm's length.
+const AIM_BUTT := Vector3(0.05, -0.05, -0.05)   # where the crook rests, from the shoulder joint
+const AIM_BUTT_LEN := 0.15                      # fist to the crook's end, along the shaft
+const AIM_BACK_REACH := 0.36                    # aimed behind: the fist this far along the shaft's line from the shoulder
+const AIM_BACK_HAND := Vector3(0.0, -0.1, 0.1) # ...and offset so, out toward the camera
+const AIM_ROLL := 0.45                          # rad either side of upright over which the shaft rolls over
+const AIM_SUPPORT := 0.3                        # the other hand this far up the shaft from the fist
+const AIM_TWIST_FWD := 0.3                      # rad the chest turns toward the camera, leading shoulder forward
+const AIM_TWIST_BACK := 0.6                     # rad it turns to aim behind
+const AIM_LOOK_BACK := 1.5                      # rad the neck and head turn further to look back
+const AIM_SIGHT := 0.12                         # rad the head comes down to the shaft, aimed ahead
+const AIM_POLE := Vector3(-0.2, -1.0, 0.5)      # trigger elbow down and out
+const AIM_POLE_BACK := Vector3(0.2, -1.0, 0.3)
+const AIM_POLE_SUPPORT := Vector3(0.1, -1.0, -0.3)
 
 var grip_r_offset := Transform3D.IDENTITY  # grip frame expressed in RightHand bone space
 var grip_l_offset := Transform3D.IDENTITY  # grip frame expressed in LeftHand bone space
@@ -233,11 +251,19 @@ func _process_modification_with_delta(_delta: float) -> void:
 	# --- Right arm umbrella IK ---------------------------------------------------------------
 	var w := clampf(raise, 0.0, 1.0)
 	w = w * w * (3.0 - 2.0 * w)
+	var am := smoothstep(0.0, 1.0, clampf(aim, 0.0, 1.0))
+	var behind := _aim_behind()
+	if am > 0.001:
+		_aim_stance(skel, skel_from_char, right_axis, am, behind)
 	if w > 0.001:
-		_solve_umbrella_arm(skel, skel_from_char, w)
+		_solve_umbrella_arm(skel, skel_from_char, w, am, behind)
 	# --- Left hand works the runner while the umbrella opens / closes ----------------------------
 	if fid > 0.001 and w > 0.001:
 		_solve_runner_arm(skel, skel_from_char, fid * w)
+	# ...or steadies the shaft while he aims it ahead.
+	var support := am * (1.0 - behind) * (1.0 - fid)
+	if support > 0.001:
+		_solve_support_arm(skel, skel_from_char, support)
 	var c := clampf(carry, 0.0, 1.0) * (1.0 - w)
 	if c > 0.001:
 		_solve_carry_arm(skel, skel_from_char, c)
@@ -286,7 +312,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 		_rot_global(skel, ft, right_axis, -corr)
 
 	# --- Free arm: swing back behind the hip as the same-side leg comes forward ----------------
-	var held_r := fid * w if umbrella_left else maxf(w, c)   # the right hand is on the shaft
+	var held_r := maxf(fid * w, support) if umbrella_left else maxf(w, c)   # the right hand is on the shaft
 	if held_r < 0.5:
 		_swing(skel, "Right", right_axis, free_arm_swing * (1.0 - 2.0 * held_r) * (1.0 - 0.7 * sad), 0.4)
 
@@ -295,7 +321,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 	_curl_hand(skel, "Right", lerpf(0.35 + 0.25 * run, 1.0, held_r))
 
 
-func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float) -> void:
+func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float, am := 0.0, behind := 0.0) -> void:
 	var m := _mirror()
 	var side := "Left" if umbrella_left else "Right"
 	var sway_a := (sin(time * 2.3) * 0.22 + sin(time * 3.9 + 1.0) * 0.07) * droop
@@ -332,9 +358,69 @@ func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float
 	x_c = (x_c - y_c * x_c.dot(y_c)).normalized()
 	var z_c := x_c.cross(y_c).normalized()
 	var grip_c := Transform3D(Basis(x_c, y_c, z_c), p)
+	var pole := ELBOW_POLE
+	if am > 0.0:
+		var aimed := _aim_grip(skel, side, tilt_total, behind)
+		grip_c = Transform3D(grip_c.basis.slerp(aimed.basis, am), grip_c.origin.lerp(aimed.origin, am))
+		pole = pole.lerp(AIM_POLE.lerp(AIM_POLE_BACK, behind), am)
 	var hand_s := skel_from_char * grip_c * _hold_grip().affine_inverse()
 
-	_ik_arm(skel, skel_from_char, side, hand_s, ELBOW_POLE * Vector3(1, 1, m), w)
+	_ik_arm(skel, skel_from_char, side, hand_s, pole * Vector3(1, 1, m), w)
+
+
+## 0..1 the furled shaft is aimed behind him rather than ahead or up.
+func _aim_behind() -> float:
+	return smoothstep(0.1, 0.6, -tilt)
+
+
+## The fist's grip frame (character frame) with the furled shaft aimed along `a` rad from upright:
+## shouldered ahead and up, held out at arm's length behind. The crook (the grip's -X) hangs under it.
+func _aim_grip(skel: Skeleton3D, side: String, a: float, behind: float) -> Transform3D:
+	var m := _mirror()
+	var shoulder_c := char_from_skel * skel.get_bone_global_pose(_b[side + "UpperArm"]).origin
+	var y_c := Vector3(sin(a), cos(a), 0.0)
+	var shouldered := shoulder_c + AIM_BUTT * Vector3(1, 1, m) + y_c * AIM_BUTT_LEN
+	var out := shoulder_c + AIM_BACK_HAND * Vector3(1, 1, m) + y_c * AIM_BACK_REACH
+	# The crook hangs under a level shaft either way he aims it, so the shaft rolls half a turn as it
+	# passes upright, crook toward the camera on the way over.
+	var roll := PI * smoothstep(AIM_ROLL, -AIM_ROLL, a)
+	var x_c := Vector3(-cos(a), sin(a), 0.0) * cos(roll) - Vector3(0.0, 0.0, m) * sin(roll)
+	return Transform3D(Basis(x_c, y_c, x_c.cross(y_c).normalized()), shouldered.lerp(out, behind))
+
+
+## Squares him up to the shot: the chest turned toward the camera with the far shoulder leading and
+## the head down to the shaft; aimed behind, the chest twisted round and the head turned to look back.
+func _aim_stance(skel: Skeleton3D, skel_from_char: Transform3D, right_axis: Vector3, am: float, behind: float) -> void:
+	var up_axis := (skel_from_char.basis * Vector3.UP).normalized()
+	var turn := -_mirror() * am   # toward his umbrella side
+	var twist := lerpf(AIM_TWIST_FWD, AIM_TWIST_BACK, behind) * turn
+	_rot_global(skel, _b["Spine"], up_axis, twist * 0.3)
+	_rot_global(skel, _b["Chest"], up_axis, twist * 0.3)
+	_rot_global(skel, _b["UpperChest"], up_axis, twist * 0.4)
+	# The head stays on the mark: turned back against the chest aimed ahead, on round aimed behind.
+	var look := lerpf(-AIM_TWIST_FWD * 0.8, AIM_LOOK_BACK, behind) * turn
+	_rot_global(skel, _b["Neck"], up_axis, look * 0.4)
+	_rot_global(skel, _b["Head"], up_axis, look * 0.6)
+	_rot_global(skel, _b["Head"], right_axis, -AIM_SIGHT * am * (1.0 - behind) * smoothstep(0.5, 1.2, tilt))
+
+
+## The other hand under the shaft's sleeve, steadying the aim. The shaft frame comes from the umbrella
+## hand as just posed.
+func _solve_support_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float) -> void:
+	var m := _mirror()
+	var hold := "Left" if umbrella_left else "Right"
+	var other := "Right" if umbrella_left else "Left"
+	var grip_h := skel.get_bone_global_pose(_b[hold + "Hand"]) * _hold_grip()
+	var y_s := grip_h.basis.y.normalized()
+	# Cupped from below: the fist's knuckles point across under the shaft, away from the camera.
+	var x_s := (skel_from_char.basis * Vector3(0.0, 0.45, m)).normalized()
+	x_s = (x_s - y_s * x_s.dot(y_s)).normalized()
+	var grip_o := Transform3D(Basis(x_s, y_s, x_s.cross(y_s).normalized()), grip_h.origin + y_s * AIM_SUPPORT)
+	var target := grip_o * (grip_r_offset if umbrella_left else grip_lf_offset).affine_inverse()
+	var anim := skel.get_bone_global_pose(_b[other + "Hand"])
+	var hand_s := Transform3D(anim.basis.orthonormalized().slerp(target.basis.orthonormalized(), w),
+			anim.origin.lerp(target.origin, w))
+	_ik_arm(skel, skel_from_char, other, hand_s, AIM_POLE_SUPPORT * Vector3(1, 1, m), clampf(w * 3.0, 0.0, 1.0))
 
 
 ## The umbrella hand at the hip, the shaft forward like a rifle's barrel. Placed from the shoulder as

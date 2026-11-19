@@ -34,6 +34,7 @@ var _spread := 0.0
 var _tilt := 0.0
 var _droop := 0.0
 var _carry := 0.0
+var _aim := 0.0
 var _wet := 0.0
 var _t := 0.0
 
@@ -202,6 +203,7 @@ func _apply_params(delta: float) -> void:
 	_mod.tilt = _tilt
 	_mod.droop = _droop
 	_mod.carry = _carry
+	_mod.aim = _aim
 	_mod.sad = _sad_s * (1.0 - _run_s)
 	_model.position.y = foot_lift   # straighter knees (pose modifier) make the legs a little longer
 	_mod.breath = _breath_s
@@ -234,6 +236,12 @@ func set_umbrella_pose(raise: float, tilt: float, droop: float) -> void:
 ## grip's +Y runs along the shaft toward the tip). An umbrella pose takes over as it rises.
 func set_carry(amount: float) -> void:
 	_carry = clampf(amount, 0.0, 1.0)
+
+
+## 0..1 the furled umbrella shouldered and aimed like a rifle along the umbrella pose's tilt (the
+## pose's raise brings the arm up; this picks the hold). Aimed behind, he twists round to look.
+func set_aim(amount: float) -> void:
+	_aim = clampf(amount, 0.0, 1.0)
 
 
 ## Umbrella open amount 0..1 (left hand pushes the runner up / pulls it down while it changes).

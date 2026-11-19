@@ -502,6 +502,9 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
 - **`--slicker=X[,stand|watch|walk[,1|-1[,smoke[,Z]]]]`** places a man in a yellow slicker
   (`src/level/raincoat_figure.gd`) at x X, lane z Z (default 0.8), for screenshots only;
   `--slicker-close` frames the first one with a close camera.
+- **`--aim=-1..1`** (with `--armed` below street six) holds the furled umbrella raised and pointed that
+  share of `umbrella_max_tilt` from a second in, `--fire` holds the shot down, and `--player-close`
+  frames the walker with a close camera. Screenshots only.
 - **The title screen shows Main Street from 4 to 60 m.** Keep that stretch good-looking.
 - **Colonnade columns hide sign letters.** Use short signs on `arcade` lots, or accept the
   partial word.

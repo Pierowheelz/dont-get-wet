@@ -13,6 +13,11 @@ const ANGLE_CLOSED := deg_to_rad(174.0)
 const UMBRELLA_LAYER := 1 << 3
 const NPC_UMBRELLA_LAYER := 1 << 4   # NPCs' canopies: they stop shots, never the rain on the walker
 const HUB_R := 0.031          # canopy fabric starts on a ring just outside the shaft
+const FURL_UNTIL := 0.3       # canopy spread by which the furled wrap has let go of the cloth
+const FURL_SWELL := 0.021     # m the rolled cloth swells out from the hub, fattest two fifths of the way down
+const FURL_PLEAT := 0.007     # m its folds stand in and out
+const FURL_TWIST := 1.1       # rad the folds wind round the shaft from the apex to the hem
+const STRAP_Y := 0.36         # the tie that keeps it rolled, this far up the shaft
 
 @export var canopy_color := Color(0.58, 0.1, 0.09)   # oxblood: reads against dark streets
 
@@ -26,6 +31,7 @@ var _sway_t := 0.0
 var _rim_r := 0.0
 
 var _canopy: MeshInstance3D
+var _strap: MeshInstance3D
 var _shaft: MeshInstance3D
 var _handle: MeshInstance3D
 var _body: StaticBody3D
@@ -119,6 +125,24 @@ func _ready() -> void:
 	_pivot.add_child(stock_root)
 	_handle = _part(stock, matte, Vector3.ZERO, Vector3.ZERO, stock_root)
 	_handle.scale = Vector3(1.25, 1.0, 0.8)
+
+	# The strap that ties the rolled cloth, with its press stud.
+	var band := CylinderMesh.new()
+	band.top_radius = HUB_R + FURL_SWELL + 0.005
+	band.bottom_radius = HUB_R + FURL_SWELL + 0.006
+	band.height = 0.022
+	band.radial_segments = 16
+	band.rings = 1
+	var strap_mat := StandardMaterial3D.new()
+	strap_mat.albedo_color = Color(0.06, 0.055, 0.06)
+	strap_mat.roughness = 0.8
+	_strap = _part(band, strap_mat, Vector3(0, STRAP_Y, 0))
+	var stud := SphereMesh.new()
+	stud.radius = 0.008
+	stud.height = 0.012
+	stud.radial_segments = 8
+	stud.rings = 4
+	_part(stud, metal, Vector3(0, 0, band.top_radius), Vector3(PI * 0.5, 0, 0), _strap)
 
 	_body = StaticBody3D.new()
 	_body.collision_layer = layer
@@ -269,14 +293,33 @@ func _rebuild() -> void:
 			row.append(q)
 		_rim_r = maxf(_rim_r, Vector2(p.x, p.z).length())
 		rows.append(row)
+	# The cloth, furled: the folded ribs alone would draw a cone as wide as a megaphone at the hand, so
+	# the mesh (never the collider, which is off this far closed) is rolled in to a slim wrap, twisted
+	# round the shaft with a pleat between each pair of ribs.
+	var furl := 1.0 - smoothstep(0.0, FURL_UNTIL, open)
+	var cloth := rows
+	if furl > 0.0:
+		cloth = []
+		for s in segs + 1:
+			var pleat := -cos(TAU * fmod(float(s), 3.0) / 3.0)   # -1 on a rib, out to +0.5 between ribs
+			var wrapped: Array = []
+			for r in RING_STEPS + 1:
+				var q: Vector3 = rows[s][r]
+				var u := float(r) / RING_STEPS
+				var flat := Vector2(q.x, q.z)
+				var want := HUB_R + 0.004 + FURL_SWELL * sin(PI * pow(u, 0.7)) + FURL_PLEAT * pleat * sin(PI * minf(u * 1.6, 1.0) * 0.5)
+				flat = (flat.normalized() * lerpf(flat.length(), want, furl)).rotated(FURL_TWIST * u * furl)
+				wrapped.append(Vector3(flat.x, q.y, flat.y))
+			cloth.append(wrapped)
+	_strap.visible = furl > 0.5
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for s in segs:
 		for r in RING_STEPS:
-			var a: Vector3 = rows[s][r]
-			var b: Vector3 = rows[s + 1][r]
-			var c: Vector3 = rows[s + 1][r + 1]
-			var d2: Vector3 = rows[s][r + 1]
+			var a: Vector3 = cloth[s][r]
+			var b: Vector3 = cloth[s + 1][r]
+			var c: Vector3 = cloth[s + 1][r + 1]
+			var d2: Vector3 = cloth[s][r + 1]
 			var edge := 1.0 if r == RING_STEPS - 1 else 0.0
 			st.set_color(Color(0.72, 0.72, 0.72).lerp(Color(1.0, 0.95, 0.9), edge))
 			st.set_uv(Vector2(float(s) / segs, float(r) / RING_STEPS))

@@ -28,6 +28,11 @@ func set_mood(mood: StringName) -> void                        # &"normal" or &"
 func get_grip(hand: StringName) -> Node3D                      # &"right" (raised, open) / &"left" (carried, closed)
 ```
 
+Optional (the player calls it if the visual has it): `set_aim(amount: float)`, 0..1 the furled umbrella
+shouldered and aimed along the pose's `tilt` while `raise` brings the arm up. Ahead and overhead the
+crook sits at the shoulder with the other hand under the shaft; aimed behind, he twists toward the
+camera, looks back and points it one-handed. The grip's +Y still runs along the shaft toward the tip.
+
 - Feet at origin, facing **+X**, height ≈ 1.78 m. No root motion — the player script moves the root.
 - `get_grip()` returns a Node3D that follows the hand bone. Its origin is in the palm; its local **+Y**
   points from the handle toward the canopy. For `&"right"` with `raise = 1, tilt = 0`, +Y is world-up

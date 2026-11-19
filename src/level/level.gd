@@ -118,6 +118,12 @@ func _ready() -> void:
 	_cam_x = player.position.x + Tun.f("camera_lead")
 	_update_camera(1.0)
 	camera.make_current()
+	if OS.get_cmdline_user_args().has("--player-close"):   # screenshot aid: a close camera on the walker
+		var close := Camera3D.new()
+		close.fov = 30.0
+		player.add_child(close)
+		close.position = Vector3(0.2, 1.05, 4.6)
+		close.make_current.call_deferred()
 
 	add_child(DynamicResolution.new())
 

@@ -24,6 +24,7 @@ var state := State.WALK
 var run_amount := 0.0
 var open := 0.0
 var tilt := 0.0                    # rad the shaft leans from upright (+ ahead): the open canopy's tilt, or the raised furled shaft's aim
+var _debug_t := 0.0
 var aim := 0.0                     # 0..1 the furled shaft raised to aim (armed streets only)
 var droop := 0.0
 var stamina := 100.0
@@ -42,6 +43,7 @@ const JET_KICK_TILT := 0.6         # rad the canopy is knocked forward by a full
 const JET_KICK_DROOP := 0.7        # and how far it sags (as when exhausted)
 const RECOIL_TILT := 0.22          # rad the canopy kicks away from a shot as it fires
 const AIM_RAISE_S := 0.2           # s to bring the furled shaft up from his side to aim, or back down
+const AIM_SWING := 0.8              # share of the raise over which the furled umbrella changes hands
 const AIM_READY := 0.9             # how far up the furled shaft must be before it fires
 var _hit_cause := &"wet"
 var _hit_t := -INF
@@ -157,6 +159,11 @@ func _physics_process(delta: float) -> void:
 
 	if not is_nan(Game.debug_tilt):
 		u = 1.0; tl = Game.debug_tilt
+	_debug_t += delta
+	if not is_nan(Game.debug_aim) and _debug_t > 1.0:
+		u = 0.0; aim_in = Game.debug_aim * max_tilt
+	if Game.debug_fire:
+		fire_req = true
 
 	var smax := Tun.f("stamina_max")
 	# --- umbrella open/close: same speed both ways, reverses from wherever it is ---------------
@@ -256,6 +263,8 @@ func _process(delta: float) -> void:
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
 	var kick := jet_kick * JET_KICK_TILT - gun.recoil * RECOIL_TILT * gun.aim_sign()
 	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt + kick, maxf(droop, jet_kick * JET_KICK_DROOP))
+	if visual.has_method("set_aim"):
+		visual.set_aim(aim if open <= 0.0 and not _dropped_umbrella else 0.0)
 	if visual.has_method("set_umbrella_open"):
 		visual.set_umbrella_open(open if not _dropped_umbrella else 0.0)
 	visual.set_wetness(wet / Tun.f("wet_max"))
@@ -286,6 +295,13 @@ func _update_umbrella() -> void:
 	var grip: Node3D = visual.get_grip(hand)
 	if grip:
 		umbrella.global_transform = grip.global_transform
+		# Brought up to aim, it swings from the hand it hangs in to the one that aims it rather than
+		# jumping there; it is all the way across before it can fire (AIM_READY).
+		var swing := smoothstep(0.0, AIM_SWING, aim)
+		if open <= 0.0 and swing < 1.0:
+			var from: Transform3D = visual.get_grip(&"left").global_transform
+			umbrella.global_transform = Transform3D(from.basis.orthonormalized().slerp(grip.global_basis.orthonormalized(), swing),
+					from.origin.lerp(grip.global_position, swing))
 	umbrella.set_state(open, Game.umbrella_radius(), maxf(droop, jet_kick * JET_KICK_DROOP))
 
 

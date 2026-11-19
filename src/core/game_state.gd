@@ -29,6 +29,8 @@ var debug_clock := 0.0              # --clock=S starts the level clock at S, whi
 var debug_train_seed := -1          # --train-seed=N rolls the same train departures every attempt (testing)
 var debug_wash_always := false      # --wash-always: a train's sheet falls everywhere on the track at once (testing)
 var debug_resume_cp := -1          # --resume-checkpoint=N starts the level resumed from its checkpoint N (testing; --wet= sets the wetness)
+var debug_aim := NAN               # --aim=-1..1 holds the furled umbrella raised and pointed there (testing)
+var debug_fire := false             # --fire: the umbrella's shot held down (testing)
 var debug_armed := false            # --armed: the umbrella shot works on any street (testing)
 var last_result: Dictionary = {}
 var checkpoint: Dictionary = {}     # latest checkpoint of the level being played (Level._take_checkpoint); memory only, never saved
@@ -48,6 +50,7 @@ func _ready() -> void:
 	debug_wash_always = args.has("--wash-always")
 	debug_auto_continue = args.has("--auto-continue")
 	debug_armed = args.has("--armed")
+	debug_fire = args.has("--fire")
 	if args.has("--low"):
 		settings["low_quality"] = true
 	for a in args:
@@ -63,6 +66,8 @@ func _ready() -> void:
 			debug_confirm_upgrade = StringName(a.substr(18))
 		if a.begins_with("--tilt="):
 			debug_tilt = float(a.substr(7))
+		if a.begins_with("--aim="):
+			debug_aim = float(a.substr(6))
 		if a.begins_with("--resume-checkpoint="):
 			debug_resume_cp = int(a.substr(20))
 		if a.begins_with("--wet="):
