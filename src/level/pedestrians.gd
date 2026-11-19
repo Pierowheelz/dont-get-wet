@@ -14,6 +14,9 @@ var _active: Array = []        # [node, speed]
 var _figures: Array = []       # [visual, umbrella]: men in the walker's own suit, standing still
 var _next := 6.0
 var _rng := RandomNumberGenerator.new()
+var _only := ""                # --ped=ID: only this pedestrian from peds.json is used (testing)
+var _every := 0.0              # --ped-every=S: a passer-by every S seconds, in turn, even while the walker stands (testing)
+var _turn := 0
 
 
 func _ready() -> void:
@@ -22,7 +25,15 @@ func _ready() -> void:
 	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(MANIFEST))
 	if not d is Array:
 		return
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--ped="):
+			_only = a.substr(6)
+		if a.begins_with("--ped-every="):
+			_every = float(a.substr(12))
+			_next = 0.5
 	for p in d:
+		if _only != "" and p["id"] != _only:
+			continue
 		if not ResourceLoader.exists(p["scene"]):
 			continue
 		(_walkers if p["kind"] == "walker" else _standers).append(load(p["scene"]))
@@ -107,7 +118,7 @@ func _process(delta: float) -> void:
 		return
 	_next -= delta
 	if _next <= 0.0:
-		_next = _rng.randf_range(14.0, 30.0)
+		_next = _every if _every > 0.0 else _rng.randf_range(14.0, 30.0)
 		_spawn_walker()
 	var cam_x: float = level.camera.position.x
 	for a in _active.duplicate():
@@ -128,9 +139,13 @@ func _process(delta: float) -> void:
 
 func _spawn_walker() -> void:
 	var p: Player = level.player
-	if p == null or p.state != Player.State.WALK:
+	if p == null or (p.state != Player.State.WALK and _every <= 0.0):
 		return
-	var n: Node3D = _walkers[_rng.randi() % _walkers.size()].instantiate()
+	var pick := _rng.randi() % _walkers.size()
+	if _every > 0.0:
+		pick = _turn % _walkers.size()
+		_turn += 1
+	var n: Node3D = _walkers[pick].instantiate()
 	var speed: float = n.get("suggested_speed") if n.get("suggested_speed") != null else 1.2
 	var oncoming := true   # never overtake the walker
 	var front := _rng.randf() < 0.25
