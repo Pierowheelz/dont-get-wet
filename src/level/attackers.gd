@@ -50,6 +50,7 @@ var held := 0                # shots held because the walker was under an arch
 var jet: WaterJet            # the jet in the air, if any
 var _queue: Array = []       # [x, shots, gap, wait (-1: comes from behind), hint] ascending
 var posted := false          # the next man is standing at his `wait` post
+var _jet_x := 0.0            # where the shot in the air was fired from (the next man may be posted since)
 var _next := 0
 var _t := 0.0                # time in this phase
 var _shot_t := 0.0
@@ -239,9 +240,11 @@ func hold_gap() -> float:
 	return float(_queue[index][2]) if index >= 0 else HOLD_GAP
 
 
-## +1 when the man on now fires from ahead of the walker, -1 from behind: the way to tilt to block him.
+## +1 when the shot in the air (or the man on now) comes from ahead of the walker, -1 from behind:
+## the way to tilt to block it.
 func side() -> float:
-	return 1.0 if position.x > level.player.position.x else -1.0
+	var from := _jet_x if incoming() else position.x
+	return 1.0 if from > level.player.position.x else -1.0
 
 
 ## Stands the next man at his post (an entry with `wait`) once nobody else is on, facing back down
@@ -303,6 +306,7 @@ func _fire_control(delta: float, p: Player) -> void:
 		return
 	jet = WaterJet.fire(level, _muzzle)
 	jet.shooter = man
+	_jet_x = position.x
 	_fired += 1
 	if index == 0 and _fired == 1 and _queue[0][4] == null:
 		_hint("Tilt back ({tilt}) to put the umbrella between you.", 4.0)
