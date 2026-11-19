@@ -27,6 +27,9 @@ const Loco := preload("res://assets/characters/walker/locomotion.gd")
 ## city and navy to the man in the long coat: a passer-by never carries any of them.
 @export var umbrella_colors: Array[Color] = [Color(0.06, 0.065, 0.08), Color(0.06, 0.065, 0.08),
 		Color(0.2, 0.21, 0.23), Color(0.07, 0.19, 0.13), Color(0.2, 0.13, 0.08), Color(0.25, 0.2, 0.27)]
+## Repainted cloth: mesh-name substring -> Texture2D used as that mesh's albedo instead of the
+## model's own (source/period_textures.py).
+@export var albedo_overrides: Dictionary = {}
 ## Speed (m/s) suggested to the spawner for this pedestrian.
 @export var suggested_speed := 1.25
 
@@ -177,6 +180,9 @@ func _setup_materials() -> void:
 			d.cull_mode = BaseMaterial3D.CULL_BACK
 			d.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 			d.roughness = 0.85
+			for key in albedo_overrides:
+				if n.contains(String(key)):
+					d.albedo_texture = albedo_overrides[key]
 			if is_hair:
 				d.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 				d.alpha_scissor_threshold = 0.45

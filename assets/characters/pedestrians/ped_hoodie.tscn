@@ -1,14 +1,17 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://assets/characters/pedestrians/ped.gd" id="1"]
 [ext_resource type="PackedScene" path="res://assets/characters/pedestrians/models/ped_hoodie.glb" id="2"]
+[ext_resource type="Texture2D" path="res://assets/characters/pedestrians/textures/hoodie_trousers.webp" id="t0"]
+[ext_resource type="Texture2D" path="res://assets/characters/pedestrians/textures/hoodie_shoes.webp" id="t1"]
 
 [node name="Ped_hoodie" type="Node3D"]
 script = ExtResource("1")
 kind = &"walker"
 umbrella = false
 hunch = 1
-tint_options = {"short04": [Color(0.35, 0.33, 0.32, 1)], "hooded": [Color(0.55, 0.55, 0.6, 1), Color(0.9, 0.3, 0.25, 1), Color(0.35, 0.5, 0.8, 1), Color(0.4, 0.6, 0.4, 1)]}
+tint_options = {"short04": [Color(0.35, 0.33, 0.32, 1)], "hooded": [Color(2.4, 2.4, 2.5, 1), Color(3, 2.2, 1.4, 1), Color(1.7, 2.3, 1.6, 1), Color(1.5, 1.8, 2.6, 1)], "casualsuit01": [Color(0.7, 0.67, 0.64, 1), Color(0.8, 0.66, 0.5, 1), Color(0.5, 0.52, 0.6, 1)]}
+albedo_overrides = {"casualsuit01": ExtResource("t0"), "shoes05": ExtResource("t1")}
 suggested_speed = 2.4
 
 [node name="Model" parent="." instance=ExtResource("2")]

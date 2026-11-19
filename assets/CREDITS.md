@@ -82,6 +82,7 @@ All fonts from **Google Fonts** (https://github.com/google/fonts), licence **SIL
 ## Pedestrians — `assets/characters/pedestrians/`
 
 Models `models/ped_*.glb` built with **MPFB2 2.0.18** (rebuild: `source/build_ped.py` + `source/peds_spec.json`).
+`textures/*.webp` are repaints of the models' own clothing textures (`source/period_textures.py`).
 Animations reuse the walker's CMU motion-capture clips (credited above).
 
 - MakeHuman **system assets** (base mesh, skins, eyes, eyebrows, lashes, `short01/02/04` hair, `fedora01`,
