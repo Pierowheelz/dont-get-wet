@@ -1349,24 +1349,54 @@ func _place_side(m: Dictionary, x: float, y: float, z: float, facing: float, fit
 	root.add_child(n)
 
 
+## A three-lens signal head on a post at the far corner, flashing amber as signals did overnight.
 func _traffic_light(x: float) -> void:
 	var pole := _mat("pole", Color(0.12, 0.13, 0.12), 0.5, 0.8)
-	_box(Vector3(0.12, 3.6, 0.12), Vector3(x, 1.8, -0.6), pole)
-	_box(Vector3(0.32, 0.9, 0.3), Vector3(x, 3.4, -0.6), _mat("tl_box", Color(0.18, 0.17, 0.08), 0.6, 0.3))
-	var lamp := StandardMaterial3D.new()
+	var z := -0.6
+	_box(Vector3(0.2, 0.5, 0.2), Vector3(x, 0.25, z), pole)
+	_box(Vector3(0.1, 3.0, 0.1), Vector3(x, 1.5, z), pole)
+	var head := _mat("tl_box", Color(0.16, 0.15, 0.07), 0.6, 0.3)
+	_box(Vector3(0.34, 1.06, 0.24), Vector3(x, 3.5, z), head)
+	_box(Vector3(0.5, 1.22, 0.02), Vector3(x, 3.5, z - 0.1), _mat("tl_back", Color(0.05, 0.05, 0.05), 0.7))
 	var amber := Color(1.0, 0.6, 0.1)
-	lamp.albedo_color = amber
-	lamp.emission_enabled = true
-	lamp.emission = amber
-	lamp.emission_energy_multiplier = 4.0
-	_box(Vector3(0.16, 0.16, 0.05), Vector3(x, 3.4, -0.44), lamp)
+	var lit := StandardMaterial3D.new()
+	lit.albedo_color = amber
+	lit.emission_enabled = true
+	lit.emission = amber
+	lit.emission_energy_multiplier = 4.0
+	var lens := CylinderMesh.new()
+	lens.top_radius = 0.1
+	lens.bottom_radius = 0.1
+	lens.height = 0.03
+	lens.radial_segments = 12
+	lens.rings = 1
 	var ol := OmniLight3D.new()
 	ol.light_color = amber
 	ol.light_energy = 0.8
 	ol.omni_range = 3.0
-	ol.position = Vector3(x, 3.4, -0.2)
+	ol.position = Vector3(x, 3.5, z + 0.4)
 	ol.set_script(load("res://src/fx/blink.gd"))
 	root.add_child(ol)
+	var dull := [Color(0.22, 0.03, 0.03), Color(0.25, 0.14, 0.03), Color(0.03, 0.16, 0.09)]
+	for i in 3:
+		var y := 3.83 - i * 0.33
+		var mi := MeshInstance3D.new()
+		mi.mesh = lens
+		mi.material_override = _mat("tl_lens_%d" % i, dull[i], 0.25)
+		mi.rotation.x = PI * 0.5
+		mi.position = Vector3(x, y, z + 0.12)
+		root.add_child(mi)
+		# A visor over each lens.
+		_box(Vector3(0.24, 0.02, 0.16), Vector3(x, y + 0.12, z + 0.2), head)
+		if i == 1:
+			var glow := MeshInstance3D.new()
+			glow.mesh = lens
+			glow.material_override = lit
+			glow.rotation.x = PI * 0.5
+			glow.position = Vector3(x, y, z + 0.125)
+			glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(glow)
+			ol.lens = glow
 
 
 func _build_backdrop() -> void:
