@@ -29,6 +29,7 @@ COVER_COLORS = {
     "awning": (196, 74, 64),
     "balcony": (140, 98, 62),
     "arcade": (128, 96, 168),
+    "walkway": (176, 150, 96),
     "canopy": (46, 148, 150),
     "deck": (92, 104, 122),
 }
@@ -103,7 +104,7 @@ class Street:
                             nxt.append((max(t1, a), b))
                     segs = nxt
                 out += [(lx + a, lx + b, kind) for a, b in segs if b > a]
-            elif kind in ("balcony", "arcade"):
+            elif kind in ("balcony", "arcade", "walkway"):
                 out.append((lx, lx + lw, kind))
             elif kind == "canopy":
                 out.append((lx + 0.15, lx + lw - 0.15, kind))

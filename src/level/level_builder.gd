@@ -170,6 +170,8 @@ func cover_map() -> Array:
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.4, func(_z): return BALCONY_Y)
 			"arcade":
 				_cover_fill(img, x0, lx, lx + lw, 0.0, 2.9, func(_z): return ARCADE_Y)
+			"walkway":
+				_cover_fill(img, x0, lx, lx + lw, 0.0, RoadsideBuilder.WALK_DEPTH, func(_z): return RoadsideBuilder.WALK_Y)
 			"canopy":
 				_cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -0.2, 3.3, func(_z): return 3.55)
 	if track and track.railway():
@@ -421,6 +423,10 @@ func _build_lot(lot: Dictionary) -> void:
 	var floors: int = int(lot.get("floors", 2))
 	if style == "vacant":
 		_build_vacant(x, w)
+	elif style == "forecourt":
+		RoadsideBuilder.forecourt(self, x, w, lot)
+	elif style == "motel":
+		RoadsideBuilder.motel(self, x, w, floors)
 	else:
 		_build_facade(x, w, style, floors, lot)
 	match lot.get("cover", "none"):
@@ -433,12 +439,14 @@ func _build_lot(lot: Dictionary) -> void:
 			_build_slab(x, w, BALCONY_Y, 2.4, false)
 		"arcade":
 			_build_slab(x, w, ARCADE_Y, 2.9, true)
+		"walkway":
+			RoadsideBuilder.walkway(self, x, w)
 		"canopy":
 			# Gas-station canopy (the kit module draws it; we add the collider).
 			_cover_box(Vector3(w - 0.3, 0.4, 3.5), Transform3D(Basis(), Vector3(x + w * 0.5, 3.75, 1.55)))
 			_drips(x + 0.15, x + w - 0.15, 3.5, 3.32)
 	var under_viaduct: bool = track != null and track.railway() and lot.get("cover", "none") == "awning"
-	if lot.has("sign") and style != "vacant" and not under_viaduct:   # a railway viaduct hides an awning lot's sign
+	if lot.has("sign") and style not in ["vacant", "forecourt", "motel"] and not under_viaduct:   # a railway viaduct hides an awning lot's sign
 		_build_sign(x, w, String(lot["sign"]), style, bool(lot.get("neon", false)))
 	if style != "vacant" and rng.randf() < float(data.get("neon", 0.0)) * 0.45:
 		_build_holo(x, w, floors)
@@ -1416,6 +1424,10 @@ func _build_prop(p: Dictionary) -> void:
 			ViaductBuilder.new().station_stairs(self, x)
 		"bracket_lamp":
 			RailwayBuilder.bracket_lamp(self, x)
+		"billboard":
+			RoadsideBuilder.billboard(self, x, String(p.get("text", "")))
+		"pylon_sign":
+			RoadsideBuilder.pylon_sign(self, x, String(p.get("text", "")))
 		"atom_sign":
 			_atom_sign(x, float(p.get("y", 4.8)))
 		"revolving_door":
