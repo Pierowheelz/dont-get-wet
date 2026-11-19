@@ -21,10 +21,12 @@ const SET_BACK := 10.0       # how far behind the lot line a forecourt's buildin
 static func motel(b: LevelBuilder, x: float, w: float, floors: int) -> void:
 	var storeys := maxi(floors, 0) + 1
 	var h := storeys * STOREY + 0.5
-	var wall := b._mat("motel_wall", Color(0.74, 0.69, 0.58), 0.85)
-	b._box(Vector3(w, h, 8.0), Vector3(x + w * 0.5, h * 0.5, -4.0), wall)
+	b._box(Vector3(w, h, 8.0), Vector3(x + w * 0.5, h * 0.5, -4.0), b._mat("motel_wall", Color(0.74, 0.69, 0.58), 0.85))
+	_wall_face(b, _textured(b, "motel_stucco", "plaster", Color(0.98, 0.9, 0.75)), x, x + w, 0.0, h, 0.004)
+	var sts := {}
 	var trim := b._mat("motel_trim", Color(0.86, 0.84, 0.78), 0.6)
-	b._box(Vector3(w + 0.1, 0.4, 0.5), Vector3(x + w * 0.5, h - 0.2, 0.1), trim)
+	_add(sts, trim, x - 0.05, x + w + 0.05, h - 0.4, h, -0.15, 0.35)
+	_add(sts, b._mat("motel_base", Color(0.4, 0.36, 0.31), 0.8), x, x + w, 0.0, 0.32, 0.0, 0.03)
 	var n := maxi(1, roundi(w / ROOM_W))
 	var rw := w / n
 	var door_col: Color = DOOR_COLORS[b._lot_hash(x, "motel") % DOOR_COLORS.size()]
@@ -34,8 +36,13 @@ static func motel(b: LevelBuilder, x: float, w: float, floors: int) -> void:
 		var y0 := s * STOREY + (WALK_Y - STOREY + 0.11 if s > 0 else 0.0)
 		for i in n:
 			var rx := x + i * rw
-			_room(b, rx, rw, y0, door, number)
+			_room(b, sts, rx, rw, y0, door, number)
 			number += 1
+		# A shallow pier on each party wall, so the row reads as rooms and not one long wall.
+		for i in n + 1:
+			var px := clampf(x + i * rw, x + 0.09, x + w - 0.09)
+			_add(sts, trim, px - 0.09, px + 0.09, y0, y0 + STOREY - 0.2, 0.0, 0.05)
+	_commit(b, sts)
 
 
 ## The walkway along a motel's rooms: the upper floor's slab (railing on top) roofs the lower walkway
@@ -49,11 +56,21 @@ static func walkway(b: LevelBuilder, x: float, w: float) -> void:
 		b._box(Vector3(0.1, WALK_Y, 0.1), Vector3(px, WALK_Y * 0.5, WALK_DEPTH - 0.18), steel)
 
 
-## One room: a coloured door with its number, and a window whose curtains are lit or drawn dark.
-static func _room(b: LevelBuilder, rx: float, rw: float, y0: float, door: Material, number: int) -> void:
+## One room: a framed door with its number, stepped lights and a kick plate, a bulkhead lamp beside
+## it, and a sliding window whose curtains hang in folds, lit or drawn dark, over a wall air conditioner.
+static func _room(b: LevelBuilder, sts: Dictionary, rx: float, rw: float, y0: float, door: Material, number: int) -> void:
+	var trim := b._mat("motel_trim", Color(0.86, 0.84, 0.78), 0.6)
+	var alu := b._mat("motel_alu", Color(0.55, 0.56, 0.58), 0.35, 0.8)
+	var dark := b._mat("motel_dark", Color(0.05, 0.05, 0.055), 0.4, 0.3)
 	var dx := rx + rw * 0.28
-	b._box(Vector3(0.92, 2.1, 0.08), Vector3(dx, y0 + 1.05, 0.04), door)
-	b._box(Vector3(0.06, 0.06, 0.06), Vector3(dx + 0.34, y0 + 1.0, 0.1), b._mat("brass", Color(0.7, 0.55, 0.25), 0.3, 0.8))
+	_add(sts, trim, dx - 0.54, dx + 0.54, y0, y0 + 2.2, 0.0, 0.05)
+	_add(sts, door, dx - 0.46, dx + 0.46, y0 + 0.02, y0 + 2.12, 0.0, 0.085)
+	_add(sts, alu, dx - 0.42, dx + 0.42, y0 + 0.06, y0 + 0.26, 0.085, 0.092)
+	_add(sts, b._mat("brass", Color(0.7, 0.55, 0.25), 0.3, 0.8), dx + 0.31, dx + 0.37, y0 + 0.97, y0 + 1.03, 0.085, 0.14)
+	for k in 3:   # three small lights stepped down the door
+		var lx := dx - 0.22 + k * 0.17
+		var ly := y0 + 1.72 - k * 0.2
+		_add(sts, dark, lx - 0.06, lx + 0.06, ly - 0.06, ly + 0.06, 0.085, 0.09)
 	var lbl := Label3D.new()
 	lbl.text = str(number)
 	lbl.font_size = 64
@@ -61,25 +78,32 @@ static func _room(b: LevelBuilder, rx: float, rw: float, y0: float, door: Materi
 	if b.sign_font:
 		lbl.font = b.sign_font
 	lbl.modulate = Color(0.85, 0.8, 0.6)
-	lbl.position = Vector3(dx, y0 + 2.32, 0.03)
+	lbl.position = Vector3(dx, y0 + 2.4, 0.03)
 	lbl.double_sided = false
 	b.root.add_child(lbl)
 	var lit := b.rng.randf() < 0.3
 	var wx := rx + rw * 0.68
-	var glass: StandardMaterial3D
+	var folds: Array
 	if lit:
-		glass = b._mat("curtain_lit", Color(0.95, 0.72, 0.42), 0.6)
-		glass.emission_enabled = true
-		glass.emission = Color(1.0, 0.66, 0.34)
-		glass.emission_energy_multiplier = 1.1
+		folds = [_glow(b, "curtain_lit", Color(1.0, 0.68, 0.36), 1.0), _glow(b, "curtain_lit_fold", Color(1.0, 0.63, 0.31), 0.8)]
 	else:
-		glass = b._mat("curtain_dark", Color(0.18, 0.13, 0.1), 0.7)
-	b._box(Vector3(1.4, 1.1, 0.06), Vector3(wx, y0 + 1.55, 0.03), glass)
-	b._box(Vector3(1.55, 0.08, 0.14), Vector3(wx, y0 + 0.98, 0.06), b._mat("motel_trim", Color(0.86, 0.84, 0.78), 0.6))
-	# A door light under the walkway, a bare bulb in a cage.
-	var bulb := b._neon_mat(Color(1.0, 0.82, 0.55), 1.4)
-	var bm := b._box(Vector3(0.12, 0.12, 0.1), Vector3(dx + 0.75, y0 + 2.45, 0.08), bulb)
-	bm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		folds = [b._mat("curtain_dark", Color(0.18, 0.13, 0.1), 0.7), b._mat("curtain_dark_fold", Color(0.11, 0.08, 0.065), 0.7)]
+	_add(sts, alu, wx - 0.77, wx + 0.77, y0 + 0.98, y0 + 2.14, 0.0, 0.05)
+	var fx := wx - 0.7
+	var k := 0
+	while fx < wx + 0.7 - 0.001:
+		_add(sts, folds[k % 2], fx, fx + 0.1, y0 + 1.04, y0 + 2.08, 0.0, 0.058 if k % 2 == 0 else 0.054)
+		fx += 0.1
+		k += 1
+	_add(sts, alu, wx - 0.025, wx + 0.025, y0 + 1.04, y0 + 2.08, 0.0, 0.07)
+	_add(sts, trim, wx - 0.84, wx + 0.84, y0 + 0.92, y0 + 0.99, 0.0, 0.13)
+	# The air conditioner through the wall under the window.
+	_add(sts, alu, wx - 0.34, wx + 0.34, y0 + 0.36, y0 + 0.78, 0.0, 0.16)
+	for g in 5:
+		_add(sts, dark, wx - 0.28, wx + 0.28, y0 + 0.42 + g * 0.065, y0 + 0.455 + g * 0.065, 0.16, 0.165)
+	# A bulkhead lamp by the door, under the walkway.
+	_add(sts, dark, dx + 0.66, dx + 0.84, y0 + 2.32, y0 + 2.5, 0.0, 0.05)
+	_add(sts, b._neon_mat(Color(1.0, 0.82, 0.55), 1.4), dx + 0.69, dx + 0.81, y0 + 2.35, y0 + 2.47, 0.05, 0.12)
 	if lit:
 		b.lit_windows.append([Vector3(wx, y0 + 1.6, -0.8), Color(1.0, 0.68, 0.38)])
 
@@ -216,3 +240,61 @@ static func pylon_sign(b: LevelBuilder, x: float, text: String, z := -1.2) -> vo
 	glow.omni_range = 5.0
 	glow.position = Vector3(x, top - sh * 0.5, z + 1.2)
 	b.root.add_child(glow)
+
+
+# --- helpers --------------------------------------------------------------------------------------
+# Detail is merged into one mesh per material (a motel is a few hundred small boxes otherwise).
+
+## A box from x0..x1, y0..y1, z0..z1 added to the surface for `mat`.
+static func _add(sts: Dictionary, mat: Material, x0: float, x1: float, y0: float, y1: float, z0: float, z1: float) -> void:
+	RailwayBuilder._box(sts, mat, x0, x1, z0, z1, y0, y1)
+
+
+static func _commit(b: LevelBuilder, sts: Dictionary) -> void:
+	for mat: Material in sts:
+		var mi := MeshInstance3D.new()
+		mi.mesh = (sts[mat] as SurfaceTool).commit()
+		mi.material_override = mat
+		var sm := mat as StandardMaterial3D
+		if sm and sm.emission_enabled:
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		b.root.add_child(mi)
+
+
+## The kit's textured material `res` in another colour. Falls back to the flat colour if it is missing.
+static func _textured(b: LevelBuilder, key: String, res: String, tint: Color) -> Material:
+	if b._mats.has(key):
+		return b._mats[key]
+	var src := b._material_res(res, null) as StandardMaterial3D
+	if src == null:
+		return b._mat(key, tint * 0.75)
+	var m: StandardMaterial3D = src.duplicate()
+	m.albedo_color = tint
+	b._mats[key] = m
+	return m
+
+
+## A wall's street face as one quad with UVs in metres, as the kit's walls have, so a kit material
+## tiles across it at the scale it does on the buildings either side.
+static func _wall_face(b: LevelBuilder, mat: Material, x0: float, x1: float, y0: float, y1: float, z: float) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for p: Vector2 in [Vector2(x0, y0), Vector2(x0, y1), Vector2(x1, y1), Vector2(x0, y0), Vector2(x1, y1), Vector2(x1, y0)]:
+		st.set_normal(Vector3.BACK)
+		st.set_tangent(Plane(1.0, 0.0, 0.0, 1.0))
+		st.set_uv(Vector2(p.x, -p.y))
+		st.add_vertex(Vector3(p.x, p.y, z))
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	b.root.add_child(mi)
+
+
+## A lit, shaded surface: it glows but still takes the street's light.
+static func _glow(b: LevelBuilder, key: String, col: Color, energy: float) -> StandardMaterial3D:
+	var m := b._mat(key, col, 0.7)
+	m.emission_enabled = true
+	m.emission = col
+	m.emission_energy_multiplier = energy
+	return m
