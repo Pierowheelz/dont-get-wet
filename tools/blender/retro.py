@@ -790,10 +790,24 @@ def gas_station(mid, W):
     B.rect_z(a, b, c, d, zk - 0.08, "glass_lit")
     bk.frame_ring(B, a, b, c, d, zk - 0.1, zk - 0.02, 0.05, "aluminium")
     bk.interior_box(B, kx0 + 0.02, kx1 - 0.02, 0.0, 3.0, zk - 0.12, -2.8, "interior_newsstand", "interior_cool", "terrazzo", "interior_cool")
+    bk.side_dress(B, kx0 + 0.02, 1, -2.8, zk - 0.12, "enamel_teal", rail="aluminium")
+    bk.side_dress(B, kx1 - 0.02, -1, -2.8, zk - 0.12, "enamel_teal", rail="aluminium", frames=((0.45, 0.7, 0.5),))
+    # till counter and an oil-can display behind the glass
+    B.box(kx0 + 0.3, kx1 - 1.5, 0.0, 0.95, -1.9, -1.4, "enamel_coral", 0.02)
+    B.box(kx0 + 0.25, kx1 - 1.45, 0.95, 1.0, -1.95, -1.35, "enamel_cream", 0.01)
+    B.box(kx0 + 0.5, kx0 + 0.9, 1.0, 1.3, -1.8, -1.5, "metal_dark", 0.03)
+    for k in range(3):
+        B.box(kx0 + 0.35, kx0 + 1.35, 0.62 + k * 0.3, 0.65 + k * 0.3, -0.75, -0.5, "aluminium", 0.004)
+        for j in range(5 - k):
+            cx = kx0 + 0.47 + j * 0.19
+            B.tube((cx, 0.65 + k * 0.3, -0.62), (cx, 0.83 + k * 0.3, -0.62), 0.06,
+                   ["enamel_coral", "enamel_teal", "enamel_cream"][(j + k) % 3], segs=10)
     a, b, c, d = ops[1]
     bk.frame_ring(B, a, b, 0.0, d, zk - 0.1, zk - 0.02, 0.05, "aluminium", bottom=False)
-    B.rect_z(a + 0.05, b - 0.05, 0.05, d - 0.05, zk - 0.07, "glass_lit")
-    B.box(a + 0.08, b - 0.08, 1.0, 1.06, zk - 0.05, zk - 0.02, "aluminium", 0.005)
+    bk.frame_ring(B, a + 0.05, b - 0.05, 0.02, d - 0.05, zk - 0.08, zk - 0.04, 0.08, "aluminium")
+    B.box(a + 0.13, b - 0.13, 0.1, 0.4, zk - 0.075, zk - 0.045, "aluminium", 0.004)
+    B.rect_z(a + 0.13, b - 0.13, 0.4, d - 0.13, zk - 0.06, "glass_lit")
+    B.box(a + 0.1, b - 0.1, 1.0, 1.06, zk - 0.04, zk - 0.01, "chrome", 0.005)
     B.marker("door", ((a + b) / 2, 0.0, zk - 0.07))
     B.marker("omni_cool", ((kx0 + kx1) / 2, 2.6, -1.2))
     # service bay with roll-up door to the right, bare forecourt beyond
