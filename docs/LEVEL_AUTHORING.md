@@ -280,7 +280,10 @@ has gone). When the walker passes `x`:
   comes as if he had dropped back. He holds 5.8 m back, past the base range of the shot (4 m), so
   on an armed street only Long Barrel reaches him there unless the walker stops and lets him close in.
 
-Optional fields per entry (`s.attacker(x, shots, gap=, wait=, hint=)`):
+Optional fields per entry (`s.attacker(x, shots, gap=, wait=, hint=, hit=)`):
+
+- **`hit`** replaces `wet_jet_hit` (12) as the wetness of one of his shots landing in full. The
+  Bypass uses 8, like Rocket Row's waiting men, since the walker fights back there.
 
 - **`gap`** replaces the 5.8 m he holds back (`hold_gap()`); the camera's ease-back follows it. At
   3.6 m he is inside the shot's base range.
@@ -386,7 +389,7 @@ testing.
   stick by its direction (left behind, right ahead, up overhead, within `umbrella_max_tilt` of
   upright), Q / E, the mouse and the touch slider by how far they're pushed. At rest it hangs at his
   side; firing from rest swings it up toward the side it last fired, and it stays up 0.6 s after a
-  shot. A body whose chest is within 30° of the shaft's line (`WaterGun.ASSIST`) pulls the shot onto
+  shot. A body whose chest is within 40° of the shaft's line (`WaterGun.ASSIST`) pulls the shot onto
   it.
 - **The burst:** 40 droplets (`WaterGun`, a `DropletBurst` with cause `shot`) at 15 m/s from the
   umbrella's tip, fanned ±0.08 rad up and down. Droplets are spent at the range, `gun_range` 4 m plus

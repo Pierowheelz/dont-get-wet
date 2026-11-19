@@ -21,7 +21,7 @@ const HIT_FULL := 0.45         # share of a body (DropletBurst.exposure) a shot 
 const HIT_PER_POINT := 2.0
 const AIM_Y := 1.25            # aimed at the chest
 const BACK_TILT := 0.3         # share of the full tilt back past which it fires behind
-const ASSIST := 0.52           # rad either side of the shaft's line within which a body pulls the shot onto its chest
+const ASSIST := 0.7            # rad either side of the shaft's line within which a body pulls the shot onto its chest
 const TIP := 0.09              # m past the end of the shaft the water leaves
 const HOLD_S := 0.6            # s the furled shaft stays up after a shot
 const STREAM_SHARE := 0.5      # how much of a stream the canopy must catch to refill from it
@@ -68,6 +68,11 @@ func refill_rate() -> float:
 		return 0.0
 	var top := player.umbrella.canopy_center()
 	return 0.0 if player._cast(top, top - player.rain_dir() * 30.0, Player.COVER_MASK) else Tun.f("gun_refill_rain")
+
+
+## True when a shot can go now: water in it and the last one cleared.
+func ready() -> bool:
+	return armed and shots >= 1.0 and _cool <= 0.0
 
 
 ## True for a moment after a shot: the furled shaft stays up between quick shots.

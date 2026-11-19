@@ -48,7 +48,7 @@ var index := -1              # which entry of `attackers` is (or was last) on
 var shots_left := 0
 var held := 0                # shots held because the walker was under an arch
 var jet: WaterJet            # the jet in the air, if any
-var _queue: Array = []       # [x, shots, gap, wait (-1: comes from behind), hint] ascending
+var _queue: Array = []       # [x, shots, gap, wait (-1: comes from behind), hint, hit (-1: wet_jet_hit)] ascending
 var posted := false          # the next man is standing at his `wait` post
 var _jet_x := 0.0            # where the shot in the air was fired from (the next man may be posted since)
 var _next := 0
@@ -72,7 +72,7 @@ var _stride := 0.0
 func _ready() -> void:
 	for a in level.data.get("attackers", []):
 		_queue.append([float(a["x"]), int(a.get("shots", 5)), float(a.get("gap", HOLD_GAP)),
-			float(a.get("wait", -1.0)), a.get("hint", null)])
+			float(a.get("wait", -1.0)), a.get("hint", null), float(a.get("hit", -1.0))])
 	_queue.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	# A checkpoint resume spawns the walker past some of them; those stay spent, and one who was on
 	# at the checkpoint doesn't come back.
@@ -304,7 +304,7 @@ func _fire_control(delta: float, p: Player) -> void:
 	if sheltered or absf(p.position.x - position.x) > RANGE:
 		held += 1
 		return
-	jet = WaterJet.fire(level, _muzzle)
+	jet = WaterJet.fire(level, _muzzle, float(_queue[index][5]))
 	jet.shooter = man
 	_jet_x = position.x
 	_fired += 1

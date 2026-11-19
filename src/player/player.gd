@@ -623,14 +623,10 @@ func _autopilot(delta: float) -> Array:
 			if level.track and level.track.on_track(position.x + off) and not _under_lot_cover(position.x + off):
 				stop = false
 	_ap_resting = stop
-	if gun.armed and gun.shots >= 1.0:
-		# Turn the shot toward the nearest man in range: tilt back for one behind, not back for one ahead.
-		var ahead := _ap_mark(1.0)
-		var behind := _ap_mark(-1.0)
-		if behind and not ahead:
-			tl = minf(tl, -0.85) if open > 0.0 else -1.0
-		elif ahead:
-			tl = maxf(tl, 0.85) if open > 0.0 else 1.0
+	# Swing the shaft onto a man only when a shot can go: tilted that far, the canopy lets the rain in.
+	var shot_side := _ap_shot_side()
+	if shot_side != 0.0:
+		tl = (minf(tl, -0.85) if shot_side < 0.0 else maxf(tl, 0.85)) if open > 0.0 else shot_side
 	# Put the canopy between him and the jet: well over toward it, not quite flat (that lets the rain in).
 	var brace: float = hm.brace_side() if hm else 0.0
 	if att != null and att.brace():
@@ -658,6 +654,23 @@ func _autopilot_fire(tl := 0.0) -> bool:
 	if m == null or open > 0.0 and not gun.on_line(m):
 		return false   # furled, the shaft swings up onto him before it fires
 	return not _cast(gun.muzzle(), m.global_position + Vector3(0.0, WaterGun.AIM_Y, 0.0), m.canopy_mask())
+
+
+## The side (+1 ahead, -1 behind) of a man the bot could shoot right now: one in range and in shot,
+## water in the barrel, no jet coming and his canopy not in the way. 0 if none.
+func _ap_shot_side() -> float:
+	if not gun.ready():
+		return 0.0
+	for shooter: Node in [level.get("attackers"), level.get("henchmen")]:
+		if shooter and shooter.incoming():
+			return 0.0
+	var ahead := _ap_mark(1.0)
+	var m := ahead if ahead else _ap_mark(-1.0)
+	if m == null:
+		return 0.0
+	var side := 1.0 if ahead else -1.0
+	var from := global_position + Vector3(side * 0.6, 1.5, 0.15)
+	return 0.0 if _cast(from, m.global_position + Vector3(0.0, WaterGun.AIM_Y, 0.0), m.canopy_mask()) else side
 
 
 ## The man the shot would aim at on `side`, if the player could see him.

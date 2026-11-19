@@ -98,9 +98,9 @@ s.feature("puddle", s.mid("clear1"), w=1.2)
 s.feature("puddle", s.mid("pool"), w=1.0)
 
 # The first man comes up behind as the yards end: tilt back to put the shot behind you.
-s.attacker(s.start("gap3") + 2.0, shots=4, gap=3.6, hint="Tilt back to aim behind you.")
+s.attacker(s.start("gap3") + 2.0, shots=4, gap=3.6, hint="Tilt back to aim behind you.", hit=8)
 # The second waits under the petrol canopy beside the drainpipe: he fires as the walker comes up.
-s.attacker(s.mid("pipe") - 9.0, shots=4, gap=3.6, wait=s.start("petrol1") + 1.6)
+s.attacker(s.mid("pipe") - 9.0, shots=4, gap=3.6, wait=s.start("petrol1") + 1.6, hit=8)
 # Cars from behind across the diner's car park, the stock agent's yard and the motel's: each splashes
 # him out in the open and fires from ahead just as he comes in under cover.
 for t in ["bait", "panel", "rooms1"]:

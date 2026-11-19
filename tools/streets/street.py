@@ -93,11 +93,12 @@ class Street:
         """The follower walks in from the left edge when the walker passes x and holds there for hold s."""
         self.follower_appear.append({"x": round(x, 2), "hold": hold})
 
-    def attacker(self, x, shots=5, gap=None, wait=None, hint=None):
+    def attacker(self, x, shots=5, gap=None, wait=None, hint=None, hit=None):
         """A pursuer who enters from the left once the walker passes x, closes in behind him and fires
         `shots` telegraphed jets, then drops back. One at a time: a later one waits for the last to go.
         gap: how far behind he holds (default 5.8 m). wait: he stands posted at that x under cover from
-        the start and fires from there once the walker reaches x, then follows. hint: shown as he comes."""
+        the start and fires from there once the walker reaches x, then follows. hint: shown as he comes.
+        hit: wetness of one of his shots landing in full (default wet_jet_hit)."""
         a = {"x": round(x, 2), "shots": int(shots)}
         if gap is not None:
             a["gap"] = float(gap)
@@ -105,6 +106,8 @@ class Street:
             a["wait"] = round(wait, 2)
         if hint is not None:
             a["hint"] = hint
+        if hit is not None:
+            a["hit"] = float(hit)
         self.attackers.append(a)
 
     def drive_by(self, x):

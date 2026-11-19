@@ -137,8 +137,8 @@
   {"x": 368.5, "text": "He came dressed for it.", "dur": 4.0}
  ],
  "attackers": [
-  {"x": 70.0, "shots": 4, "gap": 3.6, "hint": "Tilt back to aim behind you."},
-  {"x": 152.75, "shots": 4, "gap": 3.6, "wait": 164.1}
+  {"x": 70.0, "shots": 4, "gap": 3.6, "hint": "Tilt back to aim behind you.", "hit": 8.0},
+  {"x": 152.75, "shots": 4, "gap": 3.6, "wait": 164.1, "hit": 8.0}
  ],
  "drive_bys": [
   {"x": 139.5},
