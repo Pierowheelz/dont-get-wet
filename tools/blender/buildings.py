@@ -115,6 +115,22 @@ def interior_box(B, x0, x1, y0, y1, z_front, z_back, back_mat, side_mat, floor_m
     B.rect_y(x0, x1, z_back, z_front, y1, ceil_mat, facing=-1)
 
 
+def side_dress(B, x, f, z_back, z_front, dado, rail="wood_dark", frames=((0.3, 0.52, 0.4), (0.66, 0.36, 0.5))):
+    """Dress a lit interior's side wall (at x, facing f = +1/-1 into the room) so it isn't one flat
+    glowing plane when seen through the glass at an angle: wainscot, chair rail, framed pictures.
+    frames: (position along the depth 0..1, width, height)."""
+    def slab(t, y0, y1, za, zb, mat, bevel=0.0):
+        B.box(min(x, x + t * f), max(x, x + t * f), y0, y1, za, zb, mat, bevel)
+    slab(0.025, 0.0, 1.0, z_back, z_front, dado)
+    slab(0.045, 1.0, 1.07, z_back, z_front, rail, 0.008)
+    slab(0.04, 0.0, 0.12, z_back, z_front, rail)
+    d = z_front - z_back
+    for (t, fw, fh) in frames:
+        zc = z_back + d * t
+        slab(0.03, 1.55, 1.55 + fh, zc - fw / 2, zc + fw / 2, rail, 0.006)
+        slab(0.034, 1.6, 1.5 + fh, zc - fw / 2 + 0.05, zc + fw / 2 - 0.05, "trim_cream")
+
+
 # ------------------------------------------------------------------------------------------------
 # ground storey frame: wall, piers, fascia (awning mount y=3.0), sign band 3.1-3.9, string course
 # ------------------------------------------------------------------------------------------------
@@ -146,7 +162,8 @@ def ground_frame(B, W, wall, trim, opening_list, pier_mat="stone_trim", sign_mat
 # ------------------------------------------------------------------------------------------------
 
 def shopfront(B, x0, x1, lit, back_img, frame, bulk, door="center", rng=None, broken=0,
-              posters_n=0, furniture=None, glass=None, zg=-0.2, door_w=1.0, recess=0.9, side_mat=None):
+              posters_n=0, furniture=None, glass=None, zg=-0.2, door_w=1.0, recess=0.9, side_mat=None,
+              dado=None):
     rng = rng or B.rng
     glass = glass or ("glass_lit" if lit else "glass_dirty")
     side = side_mat or ("interior_warm" if lit else "interior_dark")
@@ -154,6 +171,9 @@ def shopfront(B, x0, x1, lit, back_img, frame, bulk, door="center", rng=None, br
     z_back = -2.7
     interior_box(B, x0, x1, 0.0, 3.0, zg - 0.02, z_back, back_img, side, floor, side,
                  u_off=rng.uniform(0, 0.3))
+    if dado:
+        side_dress(B, x0, 1, z_back, zg - 0.02, dado)
+        side_dress(B, x1, -1, z_back, zg - 0.02, dado, frames=((0.42, 0.6, 0.45),))
     # ceiling lights
     if lit:
         for k in range(max(1, int((x1 - x0) / 2.2))):
@@ -306,20 +326,21 @@ def furn_news(B, x0, x1, rng):
 # ground module types
 # ------------------------------------------------------------------------------------------------
 
+# back image, furniture, frame, bulkhead, wainscot on the side walls
 LIT_SHOPS = {
-    "diner": ("interior_diner", furn_diner, "trim_red", "terrazzo"),
-    "laundromat": ("interior_laundromat", furn_laundromat, "aluminium", "terrazzo_green"),
-    "pawn": ("interior_pawn", furn_pawn, "trim_dark", "brick_dark"),
-    "barber": ("interior_barber", furn_barber, "trim_white", "terrazzo"),
-    "newsstand": ("interior_newsstand", furn_news, "trim_green", "wood_dark"),
+    "diner": ("interior_diner", furn_diner, "trim_red", "terrazzo", "trim_red"),
+    "laundromat": ("interior_laundromat", furn_laundromat, "aluminium", "terrazzo_green", "terrazzo_green"),
+    "pawn": ("interior_pawn", furn_pawn, "trim_dark", "brick_dark", "wood_dark"),
+    "barber": ("interior_barber", furn_barber, "trim_white", "terrazzo", "trim_blue"),
+    "newsstand": ("interior_newsstand", furn_news, "trim_green", "wood_dark", "trim_green"),
 }
 
 
 def gm_shop_lit(mid, W, shop, wall, door="center"):
-    img, furn, frame, bulk = LIT_SHOPS[shop]
+    img, furn, frame, bulk, dado = LIT_SHOPS[shop]
     B = Builder(mid)
     sign = ground_frame(B, W, wall, frame if frame != "aluminium" else "trim_dark", [(PIER, W - PIER, 0.0, 2.95)])
-    shopfront(B, PIER, W - PIER, True, img, frame, bulk, door=door, furniture=furn)
+    shopfront(B, PIER, W - PIER, True, img, frame, bulk, door=door, furniture=furn, dado=dado)
     export(B, mid)
     register(mid, "ground", W, GH, "shop_lit", ["lit", shop], sign_rect=list(sign))
 
@@ -584,8 +605,8 @@ def gm_inn(mid, W, wall):
         B.box(a - 0.03, b + 0.03, 0.0, 0.42, -0.25, 0.14, "stone_trim", 0.025)
         moulding(B, a - 0.04, b + 0.04, 2.95, "stone_trim", proj=0.18, h=0.14, z=0.0)
     # lobby windows each side
-    shopfront(B, PIER, dx0 - 0.3, True, "interior_hotel", "brass", "terrazzo_green", door=None)
-    shopfront(B, dx1 + 0.3, W - PIER, True, "interior_hotel", "brass", "terrazzo_green", door=None)
+    shopfront(B, PIER, dx0 - 0.3, True, "interior_hotel", "brass", "terrazzo_green", door=None, dado="wood_dark")
+    shopfront(B, dx1 + 0.3, W - PIER, True, "interior_hotel", "brass", "terrazzo_green", door=None, dado="wood_dark")
     # entrance: two steps, recessed double doors, lit transom
     zd = -1.0
     B.box(dx0 + 0.02, dx1 - 0.02, 0.0, 0.14, zd, 0.3, "stone_trim", 0.02)
