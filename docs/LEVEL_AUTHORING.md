@@ -60,11 +60,17 @@ S needs 950, which a run at par reaches with up to 20% wet.
 | `balcony` | flat slab at 4.12 m, 2.4 m deep | Pale concrete with a rail, lit underneath. |
 | `arcade` | flat slab at 4.15 m, 2.9 m deep, columns every 3.5 m | Reads as a colonnade. Columns can hide part of a sign. |
 | `canopy` | gas-station roof | Only with `style: "gas_station"`, which draws it. |
+| `walkway` | flat slab at 3.0 m, 2.4 m deep, steel posts at its front edge | A motel's upper walkway roofing the lower one; use with `style: "motel"`. |
 | `none` | open sky | |
 
 `style` picks the ground-floor kit module: `shop_lit` (lit window, warm sign), `shop_dark`,
 `shuttered`, `boarded`, `wall`, `doorway`, `inn`, `vacant` (chain-link fence, no building), plus
-`gas_station`, `warehouse` and `loading_dock`. Kit widths are 3, 4, 5, 6 and 8 m. Other widths get
+`gas_station`, `warehouse` and `loading_dock`, and two drawn in code (`src/level/roadside_builder.gd`):
+`motel` (a row of numbered rooms, doors and curtained windows, one storey per floor; give it
+`cover: "walkway"`) and `forecourt` (an open concrete apron with painted bays and a floodlight, its
+building 10 m back from the street: `sign` goes on that building, unlit unless `"lit": true`, and
+`"note"` puts a small card in its window, such as "CLOSED"). Plan scripts pass these as keywords:
+`s.lot("dlot", 12, "forecourt", "none", sign="DINER", note="CLOSED")`. Kit widths are 3, 4, 5, 6 and 8 m. Other widths get
 padded with filler strips, so a 1 to 1.5 m `wall` lot makes a narrow seam between buildings.
 Building height is 4 m + 3.2 m per floor. Signs are lit only on `shop_lit` and `inn`. The font
 shrinks to fit the lot width. `neon=True` gives a signed lot tube lettering on either kit era. On a
@@ -108,6 +114,11 @@ passes it. Two optional fields change that:
 `revolving_door` (`s.prop("revolving_door", x)`) is a hotel's glass drum set into the facade at `x`
 (radius 0.95 m, standing 1.2 m out onto the pavement), its four leaves turning slowly, with a brass top
 and warm light inside. Dressing only; keep figures and henchmen 1.3 m clear of it.
+
+`billboard` (`s.prop("billboard", x, text="LINE ONE\nLINE TWO")`) is a lit 10 m hoarding on two
+posts 3 m behind the lot line, from 2.5 m to 5.7 m up; put it behind a `vacant` or `forecourt` lot.
+`pylon_sign` (`s.prop("pylon_sign", x, text="...")`) is a lit box sign topping a 6 m pole 1.2 m behind
+the lot line. Both are dressing only; `\n` breaks the lines.
 
 `station_stairs` (`s.prop("station_stairs", x)`) is a stair flight against the shopfronts from the
 pavement at `x + 6` up to a deck span at `x`. It is dressing only and only makes sense under a deck;
@@ -269,7 +280,20 @@ has gone). When the walker passes `x`:
   comes as if he had dropped back. He holds 5.8 m back, past the base range of the shot (4 m), so
   on an armed street only Long Barrel reaches him there unless the walker stops and lets him close in.
 
-The first one shows "Behind you." as the warning starts and a tilt-back hint at his first glint. A
+Optional fields per entry (`s.attacker(x, shots, gap=, wait=, hint=)`):
+
+- **`gap`** replaces the 5.8 m he holds back (`hold_gap()`); the camera's ease-back follows it. At
+  3.6 m he is inside the shot's base range.
+- **`wait`** posts him at that x from the start, under cover at z 0.9, facing back down the street
+  with his umbrella up, as soon as nobody earlier is on. He is in plain sight and can be soaked there
+  (that spends his entry). When the walker reaches his `x` he fires from his post without the
+  warning (first glint 0.8 s in, then every 2.5 s); once the walker is 0.5 m past him he turns and
+  follows like the others. `side()` says which way to tilt to block the one on now; the bots brace
+  that way.
+- **`hint`** is shown as he comes, instead of the first man's two built-in hints.
+
+A man soaked while his shot is in the air doesn't take the shot with him: it lands, and the bots stay
+braced for it. The first one shows "Behind you." as the warning starts and a tilt-back hint at his first glint. A
 checkpoint resume skips every pursuer whose `x` is behind it, so one who was on at the checkpoint
 doesn't come back. The bots open up ahead of each glint (`next_glint_in`, as the canopy takes
 `umbrella_open_time` to open) and tilt back (85% of full tilt) when a jet glints, with the human
@@ -319,6 +343,37 @@ leaves behind him. A resume past the crossing leaves the car out; one past the m
 with him boarding. Place the crossing about 6.5 m past that man, with the man inside the last
 canopy.
 
+**`drive_bys`** (`[{"x"}]`; `s.drive_by(x)`, `src/hazards/drive_by.gd`) are cars that come up the
+near lane of the road (z 5.4) from behind the walker, one at a time. When the walker passes `x`:
+
+- **Warning:** the engine and tyre hiss (`car_pass`) from the left while the car is still out of
+  shot, 34 m back; its headlights, dipped toward the kerb, sweep the pavement ahead of him. The
+  camera eases out (`Level.camera_pull`, 6 m, plus 0.12 m of height per metre) so the lane is in
+  frame. The first one each attempt shows "Headlights. Behind.".
+- **Splash:** from when its kerb-side front wheel is 7 m behind him until it draws level, the wheel
+  throws six bursts of road water (`DropletBurst`, cause `splash`) up and over at the pavement,
+  carried forward by the car: they come down on him from behind. Unblocked that is about 11
+  (90% of `wet_car_splash` once half his body is soaked); a canopy tilted back 60% or more stops it.
+- **Shot:** it slows to hold its back window 7.5 m ahead of him; 1.2 s into the pass a passenger sits
+  up on the kerb-side back window's sill, then a `WaterJet` (0.6 s glint, `wet_jet_hit`) leaves
+  from over the boot back at him. A canopy tilted forward 85% or more stops most of it (a few pellets
+  get past a moving walker, as with the men on foot); one that soaks him fails the attempt as SHOT.
+  The walker's own shot has no effect on the car.
+- Once the shot has landed it speeds off to the right; 2.2 s later the camera eases back in.
+
+The splash and the shot are separate: the canopy has to swing from back to forward between them.
+Tilting over costs rain in the open, so put the trigger about 4.5 m short of cover: the splash lands
+in the open and the shot as he reaches the cover (`DRIVE_BY_LEAD` in `tools/streets/the_bypass.py`).
+The scenery traffic waits while one is on. A checkpoint resume skips every drive-by whose `x` is
+behind it. The bots hold the umbrella open while one is on, never rest or refill, tilt back
+(`DriveBy.brace()` -1) from 0.35 s before the splash until it has landed and forward (+1) from 0.5 s
+before the shot until it has landed. level_preview ignores them (`tools/preview.sh` is the judge).
+
+**`slickers`** (`[{"x", "z", "facing", "pose", "smoking"}]`; `s.slicker(x, z=0.8, facing=1,
+pose="stand", smoking=False)`) place a man in a yellow slicker (`RaincoatFigure`) at x on lane z:
+`facing` 1 or -1, `pose` `"stand"`, `"watch"` (turned toward the street) or `"walk"`. Scenery only:
+he is no `WetBody`, so the walker's shots pass him. Put him under cover.
+
 **The walker's shot (armed streets).** From the sixth street out from Main Street on either side
 (`Game.GUN_FROM`; the number is the street's place on the map, `Game.street_number`), the walker can
 fire the umbrella: RB, F or the left mouse button (`{fire}` in hint text), or the FIRE button with
@@ -345,7 +400,8 @@ testing.
   offered once the run has walked a fifth street.
 - **Bots:** under `--autopilot` the walker fires whenever a soakable man is in range and in shot on
   the side it aims (tilting back for one behind), and stops under a gutter stream to refill when two
-  or more shots are gone. Each soak prints `NPC_SOAKED x= t=`.
+  or more shots are gone (the human bot asks its reaction time early so it stops under the stream;
+  either gives up after 1.5 s stopped without the stream refilling it). Each soak prints `NPC_SOAKED x= t=`.
 
 Every body water can wet is a `WetBody` (`src/player/wet_body.gd`): feet at its origin, facing +X,
 measured on the weighted `SAMPLES`, with its own wetness and `wet_max()`, the physics layer of its

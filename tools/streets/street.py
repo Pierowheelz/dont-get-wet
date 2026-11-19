@@ -30,6 +30,8 @@ class Street:
         self.attackers = []
         self.henchmen = []
         self.pickup_rec = None
+        self.drive_bys = []
+        self.slickers = []
         self.courier_rec = None
         self.track_rec = None
         self.viaducts = []
@@ -37,8 +39,9 @@ class Street:
         self.checkpoints = None   # set by hand to override the solver
 
     def lot(self, tag, w, style, cover, sign=None, color=None, floors=2, tears=None, awning_style=None,
-            neon=False):
-        lot = {"x": self.x, "w": float(w), "style": style, "cover": cover, "floors": floors}
+            neon=False, **extra):
+        """extra: style-specific fields, e.g. a forecourt's note="CLOSED" or lit=True."""
+        lot = {"x": self.x, "w": float(w), "style": style, "cover": cover, "floors": floors, **extra}
         if sign:
             lot["sign"] = sign
         if cover == "awning" and color:
@@ -90,10 +93,32 @@ class Street:
         """The follower walks in from the left edge when the walker passes x and holds there for hold s."""
         self.follower_appear.append({"x": round(x, 2), "hold": hold})
 
-    def attacker(self, x, shots=5):
+    def attacker(self, x, shots=5, gap=None, wait=None, hint=None):
         """A pursuer who enters from the left once the walker passes x, closes in behind him and fires
-        `shots` telegraphed jets, then drops back. One at a time: a later one waits for the last to go."""
-        self.attackers.append({"x": round(x, 2), "shots": int(shots)})
+        `shots` telegraphed jets, then drops back. One at a time: a later one waits for the last to go.
+        gap: how far behind he holds (default 5.8 m). wait: he stands posted at that x under cover from
+        the start and fires from there once the walker reaches x, then follows. hint: shown as he comes."""
+        a = {"x": round(x, 2), "shots": int(shots)}
+        if gap is not None:
+            a["gap"] = float(gap)
+        if wait is not None:
+            a["wait"] = round(wait, 2)
+        if hint is not None:
+            a["hint"] = hint
+        self.attackers.append(a)
+
+    def drive_by(self, x):
+        """A car that comes up the near lane from behind once the walker passes x, splashes him as it
+        passes, then a passenger fires one telegraphed shot from ahead."""
+        self.drive_bys.append({"x": round(x, 2)})
+
+    def slicker(self, x, z=0.8, facing=1, pose="stand", smoking=False):
+        """A man in a yellow slicker standing at x on lane z (scenery). facing 1 or -1;
+        pose "stand", "watch" (turned toward the street) or "walk"."""
+        f = {"x": round(x, 2), "z": z, "facing": facing, "pose": pose}
+        if smoking:
+            f["smoking"] = True
+        self.slickers.append(f)
 
     def henchman(self, x):
         """A man waiting under cover at x who fires telegraphed jets at the walker on a timer while he
@@ -144,6 +169,10 @@ class Street:
             rest["follower"] = {"appear": sorted(self.follower_appear, key=lambda a: a["x"])}
         if self.attackers:
             rest["attackers"] = sorted(self.attackers, key=lambda a: a["x"])
+        if self.drive_bys:
+            rest["drive_bys"] = sorted(self.drive_bys, key=lambda a: a["x"])
+        if self.slickers:
+            rest["slickers"] = self.slickers
         if self.courier_rec:
             rest["courier"] = self.courier_rec
         if self.henchmen:

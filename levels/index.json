@@ -37,7 +37,16 @@
     "long_lane",
     "viaduct_road"
    ],
-   "soon": true
+   "blurb": "The bypass. A petrol station, a motel, and a lot of open road.",
+   "difficulty": 7,
+   "file": "res://levels/the_bypass.json",
+   "outro": "He paid cash and slept in the chair.",
+   "load": "Cars don't slow down out here. Some of them speed up.",
+   "fail": {
+    "shot": [
+     "They didn't even stop the car."
+    ]
+   }
   },
   {
    "id": "viaduct_road",

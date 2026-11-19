@@ -707,6 +707,7 @@ func _run() -> void:
 	await _test_viaduct()
 	await _test_viaduct_road()
 	await _test_rocket_row()
+	await _test_the_bypass()
 	_test_dynamic_resolution()
 	_run_tests()
 	get_parent().finish(failures)
@@ -1158,6 +1159,164 @@ func _test_rocket_row() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.current_level = "main_street"
+
+
+## One drive-by pass with the walker held at x, his canopy tilted `tilt` (of full) the whole time:
+## the wetness its splash and its shot put on him, the order they came in, and the camera's pull.
+func _drive_by_pass(x: float, tilt: float) -> Dictionary:
+	var p: Player = level.player
+	await _place(x, 1.0, tilt * Tun.f("umbrella_max_tilt"))
+	p.jet_kick = 0.0
+	var db: DriveBy = level.drive_bys
+	var splash_was: float = p.stats["wet_splash"]
+	var hit_was: float = p.stats["wet_hit"]
+	var cam_z0: float = level.camera.global_position.z
+	db._begin()
+	await _idle_frames(2)
+	var out := {"car_out_of_shot": db.position.x + 2.6 < level.camera.global_position.x - 8.0, "splash_t": -1.0,
+		"glint_t": -1.0, "glint_s": 0.0, "pull": 0.0, "brace": []}
+	var t := 0.0
+	while db.phase != DriveBy.Phase.AWAY and t < 12.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		out["pull"] = maxf(out["pull"], level.camera.global_position.z - cam_z0)
+		if out["splash_t"] < 0.0 and not db.splashes.is_empty():
+			out["splash_t"] = t
+		if out["glint_t"] < 0.0 and db.jet != null:
+			out["glint_t"] = t
+			out["glint_s"] = db.jet.glint_s
+		var b := db.brace()
+		if out["brace"].is_empty() or out["brace"][-1] != b:
+			out["brace"].append(b)
+	await get_tree().create_timer(1.2).timeout
+	out["splash"] = p.stats["wet_splash"] - splash_was
+	out["shot"] = p.stats["wet_hit"] - hit_was
+	return out
+
+
+## The Bypass: cars pass from behind on the near lane, the camera pulling out to show them; each
+## splashes first (a canopy tilted back stops it), then its passenger glints and fires from ahead
+## (tilted forward stops that), and a shot that soaks him fails as SHOT. A man waits posted under the
+## petrol canopy, fires from ahead until passed, then follows at his own `gap`. A man in a slicker
+## stands on the motel walkway, which is cover; the walker's shots don't wet him.
+func _test_the_bypass() -> void:
+	Game.current_level = "the_bypass"
+	if is_instance_valid(level):
+		level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	var p: Player = level.player
+	p.set_physics_process(false)
+	_unhook_defeat(p)
+	var db: DriveBy = level.drive_bys
+	check(db != null and db._queue.size() == level.data["drive_bys"].size() and db.phase == DriveBy.Phase.OFF and not db.visible,
+		"the_bypass has %d drive-bys, none on before the walker reaches one" % db._queue.size())
+	var open_x := -1.0
+	for lot in level.data["lots"]:
+		if lot["style"] == "forecourt" and open_x < 0.0:
+			open_x = float(lot["x"]) + float(lot["w"]) * 0.5
+	seed(7)
+	var up := await _drive_by_pass(open_x, 0.0)
+	check(up["car_out_of_shot"] and up["pull"] > DriveBy.PULL * 0.6,
+		"the warning starts with the car out of shot behind him, and the camera pulls out %.1f m to show the lane" % up["pull"])
+	check(up["splash_t"] > 0.0 and up["glint_t"] > up["splash_t"] + 0.5 and absf(up["glint_s"] - 0.6) < 0.01,
+		"the splash comes first (%.1f s), then a 0.6 s glint (%.1f s) and the shot" % [up["splash_t"], up["glint_t"]])
+	check(up["splash"] > 6.0 and up["shot"] > Tun.f("wet_jet_hit") * 0.8,
+		"upright, both reach him: splash %.1f, shot %.1f" % [up["splash"], up["shot"]])
+	check(up["brace"].has(-1.0) and up["brace"].has(1.0) and up["brace"].find(-1.0) < up["brace"].find(1.0),
+		"the bots are told back, then forward: %s" % [up["brace"]])
+	var back := await _drive_by_pass(open_x, -0.7)
+	check(back["splash"] < up["splash"] * 0.2 and back["shot"] > Tun.f("wet_jet_hit") * 0.8,
+		"tilted back, the canopy stops the splash (%.1f) but not the shot from ahead (%.1f)" % [back["splash"], back["shot"]])
+	var fwd := await _drive_by_pass(open_x, 1.0)
+	check(fwd["shot"] < Tun.f("wet_jet_hit") * 0.35 and fwd["splash"] > up["splash"] * 0.5,
+		"tilted forward, it stops the shot (%.1f) but not the splash from behind (%.1f)" % [fwd["shot"], fwd["splash"]])
+	await get_tree().create_timer(2.5).timeout
+	check(level.camera_pull == 0.0 and absf(level.camera.global_position.z - Tun.f("player_z") - Tun.f("camera_distance")) < 0.6,
+		"once the car has gone the camera eases back in (z %.1f)" % level.camera.global_position.z)
+	p.wet = Tun.f("wet_max") - 3.0
+	await _drive_by_pass(open_x, -0.7)
+	p._physics_process(1.0 / 60.0)
+	check(p.state == Player.State.DEFEATED and p.fail_cause == &"shot", "a passenger's shot that soaks him fails as SHOT: %s" % p.fail_cause)
+	p.state = Player.State.WALK
+	p.wet = 0.0
+
+	# The man posted beside the drainpipe, then following at his own gap.
+	var att: Node = level.attackers
+	var posted_i := -1
+	for i in att._queue.size():
+		if float(att._queue[i][3]) >= 0.0:
+			posted_i = i
+	check(posted_i > 0 and absf(float(att._queue[posted_i][3]) - level.gutters[0]) < 3.0 and level.gutters.size() == 1,
+		"one man is posted within 3 m of the street's only drainpipe")
+	# A man soaked with his shot in the air: it still lands, from where he fired it, even once the
+	# next man is standing at his post ahead (the bots keep bracing back for it).
+	p.position.x = open_x
+	att._next = posted_i
+	att._begin(0)
+	att._set_phase(att.Phase.FIRE)
+	att.position.x = p.position.x - 3.5
+	att._shot_t = 0.0
+	att._fire_control(0.016, p)
+	while att.jet != null and is_instance_valid(att.jet) and att.jet.phase == WaterJet.Phase.GLINT:
+		await get_tree().process_frame
+	att.man.soak(att.man.wet_max(), &"shot")
+	await _idle_frames(3)
+	check(att.posted and att.incoming() and att.side() < 0.0,
+		"soaked mid-shot, his shot still comes from behind while the next man stands posted ahead")
+	while att.incoming():
+		await get_tree().process_frame
+	await _idle_frames(2)
+	check(att.posted and att.visible and absf(att.position.x - float(att._queue[posted_i][3])) < 0.01 and att.man.wettable(),
+		"with nobody else on he stands at his post, in plain sight and soakable")
+	p.position.x = float(att._queue[posted_i][0]) + 0.1
+	await _idle_frames(3)
+	check(att.phase == att.Phase.FIRE and att.posted and att.speed == 0.0 and att.side() > 0.0,
+		"when the walker reaches his x he fires from his post, ahead of the walker, without the warning")
+	p.position.x = att.position.x + 1.0
+	await _idle_frames(3)
+	check(not att.posted and att.side() < 0.0 and absf(att.hold_gap() - float(level.data["attackers"][posted_i]["gap"])) < 0.01,
+		"once passed he turns and follows, holding %.1f m back" % att.hold_gap())
+	check(att.hold_gap() <= Tun.f("gun_range"), "... inside the base range of the walker's shot (%.1f m)" % Tun.f("gun_range"))
+	att._leave()
+
+	# The slicker on the motel walkway: under cover, and no body for the shot to wet.
+	var figs: Array = level.get_children().filter(func(n: Node) -> bool: return n is RaincoatFigure)
+	check(figs.size() == 1 and figs[0].smoking and not WetBody.of_level(level).has(figs[0]),
+		"one man in a slicker, smoking, who is no body the walker's shot can wet")
+	var walk_x: float = figs[0].position.x
+	var shut := await _place(walk_x, 0.0)
+	check(shut < 0.05, "under the motel walkway with the umbrella shut: exposure %.2f" % shut)
+	check(level.data["hints"].any(func(h: Dictionary) -> bool: return absf(float(h["x"]) - walk_x) < 4.0),
+		"a hint shows as the walker reaches him")
+
+	# A resume past the first drive-by's x skips it.
+	var xs: Array = level.data["drive_bys"].map(func(d: Dictionary) -> float: return float(d["x"]))
+	level.queue_free()
+	await _frames(2)
+	Game.debug_start_x = xs[0] + 1.0
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	Game.debug_start_x = -1.0
+	await _frames(3)
+	level.player.set_physics_process(false)
+	check(level.drive_bys._next == 1, "starting past the first drive-by's x skips it")
+	level.queue_free()
+	await _frames(2)
+
+	var r := Run.new("left", Game.start_node)
+	r.completed = [Game.start_node, "canal_row", "mill_road", "kiln_street", "viaduct_road"]
+	r.current_node = "viaduct_road"
+	var run_was := Game.run
+	Game.run = r
+	check(not Game.is_soon("the_bypass") and Game.can_select("the_bypass") and Game.armed("the_bypass"),
+		"the map opens The Bypass once Viaduct Road is walked, and it is armed")
+	r.completed.erase("viaduct_road")
+	r.current_node = "kiln_street"
+	check(not Game.can_select("the_bypass"), "... and not before")
+	Game.run = run_was
 
 
 ## Each observe() is one second of play: median frame and GPU time in ms.
