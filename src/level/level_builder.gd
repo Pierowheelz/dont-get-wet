@@ -31,8 +31,10 @@ const AWNING_COLORS := {
 ##   profile: canopy height over depth, see _awning_y ("line", "arc" + bulge, "dome")
 ##   fabric: "canvas" (stripe_w 0 = solid, hem = front band, seam_w = rib seams), "tin", "acrylic", "enamel"
 ##   valance: "none", "scallop", "straight", "zigzag"; valance_solid / piping are canvas trims
-##   frame: "arms", "brackets" (+ gutter), "chrome" (front tube + ribs), "chrome_edge", "bulbs", "none"
+##   frame: "arms", "brackets" (+ gutter), "chrome" (front tube + ribs), "chrome_edge", "bulbs",
+##     "fins" (chrome edge + swept tail fins standing on the front edge), "none"
 ##   ends: closed side cheeks; glow: neon strip under the front edge
+##   A style with no eras is never picked automatically: only by name.
 const AWNING_STYLES := {
 	"classic": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon"],
 		"profile": "line", "wall_y": 3.05, "front_y": 2.6, "fabric": "canvas", "stripe_w": 0.45, "hem": 0.0,
@@ -70,6 +72,10 @@ const AWNING_STYLES := {
 		"profile": "line", "wall_y": 2.78, "front_y": 2.74, "fabric": "enamel", "stripe_w": 0.0, "hem": 0.0,
 		"sag": 0.0, "valance": "straight", "valance_h": 0.3, "valance_solid": false, "piping": false,
 		"frame": "bulbs", "ends": false, "glow": false},
+	"rocket": {"eras": [], "aesthetics": [],
+		"profile": "line", "wall_y": 2.72, "front_y": 2.76, "fabric": "enamel", "stripe_w": 0.0, "hem": 0.0,
+		"sag": 0.0, "valance": "straight", "valance_h": 0.24, "valance_solid": false, "piping": false,
+		"frame": "fins", "ends": false, "glow": true},
 }
 
 var root: Node3D
@@ -908,10 +914,46 @@ func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color, collapses
 			_box(Vector3(w, 0.035, 0.05), Vector3(x + w * 0.5, fy + 0.01, AWNING_DEPTH + 0.01), chrome)
 		"bulbs":
 			_marquee_bulbs(x, w, fy, float(s["valance_h"]))
+		"fins":
+			_box(Vector3(w, 0.035, 0.05), Vector3(x + w * 0.5, fy + 0.01, AWNING_DEPTH + 0.01), chrome)
+			var n := maxi(2, roundi(w / 3.0) + 1)
+			for i in n:
+				var t := float(i) / (n - 1)
+				_tail_fin(lerpf(x + 0.45, x + w - 0.45, t), fy, -1.0 if t < 0.5 else 1.0, glow_col, chrome)
 	if s["glow"]:
 		var strip := _box(Vector3(w - 0.1, 0.03, 0.03), Vector3(x + w * 0.5, _awning_drip_y(s) + 0.005, AWNING_DEPTH + 0.04),
 			_neon_mat(glow_col.lerp(Color(1, 1, 1), 0.35), 2.4))
 		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## A swept chrome tail fin standing on a canopy's front edge at x, raked out toward `out` (-1 / +1),
+## with a neon tube up its leading edge.
+func _tail_fin(x: float, fy: float, out: float, glow_col: Color, chrome: Material) -> void:
+	var outline := [Vector2(-0.4, 0.0), Vector2(0.35, 0.0), Vector2(0.1, 0.22), Vector2(0.42, 0.78)]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var zf := AWNING_DEPTH - 0.06
+	var zb := AWNING_DEPTH - 0.14
+	var v := func(p: Vector2, z: float) -> Vector3: return Vector3(p.x * out, fy + p.y, z)
+	for z in [zf, zb]:
+		_quad(st, v.call(outline[0], z), v.call(outline[1], z), v.call(outline[2], z), v.call(outline[3], z), Vector2.ZERO, Vector2.ONE)
+	for i in outline.size():
+		var a: Vector2 = outline[i]
+		var b: Vector2 = outline[(i + 1) % outline.size()]
+		_quad(st, v.call(a, zf), v.call(b, zf), v.call(b, zb), v.call(a, zb), Vector2.ZERO, Vector2.ONE)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var m: StandardMaterial3D = (chrome as StandardMaterial3D).duplicate()
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	mi.position = Vector3(x, 0.0, 0.0)
+	root.add_child(mi)
+	var edge: Vector2 = outline[3] - outline[0]
+	var tube := _box(Vector3(0.035, edge.length(), 0.035), Vector3(x + (outline[0].x + edge.x * 0.5) * out,
+		fy + edge.y * 0.5, zf + 0.03), _neon_mat(glow_col.lerp(Color(1, 1, 1), 0.3), 3.0))
+	tube.rotation.z = -atan2(edge.x * out, edge.y)
+	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## Two staggered rows of lit bulbs on a marquee fascia, as one mesh.
@@ -1376,6 +1418,11 @@ func _build_prop(p: Dictionary) -> void:
 			RailwayBuilder.bracket_lamp(self, x)
 		"atom_sign":
 			_atom_sign(x, float(p.get("y", 4.8)))
+		"revolving_door":
+			var door := Node3D.new()
+			door.set_script(load("res://src/level/revolving_door.gd"))
+			door.position = Vector3(x, 0.0, 0.0)
+			root.add_child(door)
 
 
 ## A neon atom on the facade: three elliptical orbits round a nucleus, facing the street.
