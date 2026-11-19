@@ -38,7 +38,7 @@ func build(p_builder: LevelBuilder, tr: Track) -> void:
 	b = p_builder
 	brick = _triplanar(b._material_res("brick_red", b._mat("rail_brick_fb", Color(0.42, 0.2, 0.15), 0.95)), 0.55)
 	brick_dark = _triplanar(b._material_res("brick_dark", b._mat("rail_brick_dark_fb", Color(0.2, 0.17, 0.16), 0.95)), 0.3)
-	stone = b._mat("rail_stone", Color(0.52, 0.49, 0.44), 0.8)
+	stone = _triplanar(b._material_res("stone_trim", b._mat("rail_stone", Color(0.52, 0.49, 0.44), 0.8)), 0.4)
 	iron = b._mat("rail_iron", Color(0.13, 0.17, 0.15), 0.55, 0.45)
 	var open_from := tr.x0
 	for d in tr.decks:
