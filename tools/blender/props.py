@@ -376,14 +376,25 @@ def phone_booth():
 
 
 def sandwich_board():
+    """A-frame pavement sign: two framed boards hinged at the top, a bill pasted on each face."""
     B = Builder("sandwich_board")
+    w, h = 0.6, 0.92
     for s in (-1, 1):
-        with xf_push(B, T(0, 0, 0.0) @ R("X", 12 * s)):
-            B.box(-0.3, 0.3, 0.0, 0.9, s * 0.0 - 0.012, s * 0.0 + 0.012, "wood_dark", 0.006)
-            fz = 0.013 * (1 if s > 0 else -1)
-            B.rect_z(-0.25, 0.25, 0.08, 0.84, fz, "sign_board_dark", facing=s)
+        with xf_push(B, T(0, 0, s * 0.19) @ R("X", -12 * s)):
+            B.box(-w / 2 + 0.03, w / 2 - 0.03, 0.1, h - 0.03, -0.008, 0.008, "sign_board_dark", 0.0)   # board
+            for sx in (-1, 1):  # legs run past the board to the ground
+                B.box(sx * (w / 2 - 0.025) - 0.025, sx * (w / 2 - 0.025) + 0.025, 0.0, h, -0.016, 0.016, "wood_boards", 0.005)
+            for y in (0.1, h - 0.05):  # rails
+                B.box(-w / 2 + 0.05, w / 2 - 0.05, y, y + 0.05, -0.016, 0.016, "wood_boards", 0.005)
+            fz = 0.0095 * s
+            u0, v0 = ((0.5, 0.0), (0.25, 0.5))[s < 0]      # the camera side gets the boxing bill
+            B.rect_z(-0.17, 0.17, 0.17, 0.85, fz, "posters", uv=(u0, v0, u0 + 0.25, v0 + 0.5), facing=s)
+    B.tube((-w / 2 + 0.03, h - 0.03, 0.0), (w / 2 - 0.03, h - 0.03, 0.0), 0.014, "metal_dark", segs=8)   # hinge rod
+    for sx in (-1, 1):  # stay chains
+        x = sx * (w / 2 - 0.025)
+        B.tube((x, 0.42, -0.1), (x, 0.42, 0.1), 0.006, "galvanized", segs=5)
     export(B, "sandwich_board")
-    register("sandwich_board", "sidewalk", (0.6, 0.45), ["clutter"], height=0.9)
+    register("sandwich_board", "sidewalk", (0.6, 0.45), ["clutter"], height=0.92)
 
 
 def cardboard_boxes():
