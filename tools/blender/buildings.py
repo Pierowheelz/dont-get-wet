@@ -414,9 +414,15 @@ def gm_boarded(mid, W, wall, frame="trim_green"):
                 x += w
     # planks nailed across the recessed door
     dc = W / 2
-    for k in range(6):
-        y = 0.35 + k * 0.36 + rng.uniform(-0.05, 0.05)
-        box_rot(B, dc, y, -0.2 + 0.075, 1.25, 0.15, 0.025, rng.uniform(-0.12, 0.12), "wood_boards", 0.006)
+    # nailed up in a hurry: odd lengths and widths, no two level, one long brace run corner to corner
+    zp = -0.2 + 0.075
+    y = 0.42
+    while y < 2.05:
+        ln = rng.uniform(1.12, 1.5)
+        box_rot(B, dc + rng.uniform(-0.09, 0.09), y, zp + rng.uniform(0.0, 0.012), ln, rng.uniform(0.12, 0.2), 0.025,
+                rng.choice([-1, 1]) * rng.uniform(0.03, 0.2), "wood_boards", 0.006)
+        y += rng.uniform(0.44, 0.62)
+    box_rot(B, dc, 1.2, zp + 0.03, 2.1, 0.14, 0.025, rng.choice([-1, 1]) * rng.uniform(0.95, 1.1), "wood_boards", 0.006)
     export(B, mid)
     register(mid, "ground", W, GH, "boarded", ["dark"], sign_rect=list(sign))
 
