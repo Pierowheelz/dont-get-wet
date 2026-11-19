@@ -1,7 +1,8 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="ArrayMesh" path="res://assets/characters/pedestrians/umbrella/canopy.res" id="1"]
 [ext_resource type="ArrayMesh" path="res://assets/characters/pedestrians/umbrella/ribs.res" id="2"]
+[ext_resource type="ArrayMesh" path="res://assets/characters/pedestrians/umbrella/crook.res" id="3"]
 
 [sub_resource type="StandardMaterial3D" id="canopy_mat"]
 resource_local_to_scene = true
@@ -24,19 +25,6 @@ bottom_radius = 0.008
 height = 0.87
 radial_segments = 10
 rings = 1
-
-[sub_resource type="CylinderMesh" id="grip"]
-top_radius = 0.016
-bottom_radius = 0.016
-height = 0.14
-radial_segments = 10
-rings = 1
-
-[sub_resource type="TorusMesh" id="hook"]
-inner_radius = 0.035
-outer_radius = 0.058
-rings = 12
-ring_segments = 8
 
 [sub_resource type="CylinderMesh" id="tip"]
 top_radius = 0.0
@@ -65,11 +53,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.87, 0)
 mesh = SubResource("tip")
 surface_material_override/0 = SubResource("metal")
 
-[node name="Grip" type="MeshInstance3D" parent="."]
-mesh = SubResource("grip")
-surface_material_override/0 = SubResource("wood")
-
-[node name="Hook" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0.0465, -0.07, 0)
-mesh = SubResource("hook")
+[node name="Handle" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
 surface_material_override/0 = SubResource("wood")
