@@ -331,12 +331,19 @@ def crates():
 
 
 def bollard():
+    """Cast-iron street bollard in the lamp posts' green: plinth, fluted taper, collar and a ball cap,
+    with a pale band so a kerb-side post still reads against a wet road at night."""
     B = Builder("bollard")
-    B.lathe([(0.0, 0.0), (0.13, 0.0), (0.13, 0.05), (0.11, 0.08), (0.1, 0.7), (0.115, 0.72), (0.115, 0.76),
-             (0.1, 0.8), (0.08, 0.86), (0.04, 0.9), (0.0, 0.91)], 0, 0, "metal_dark", segs=20)
-    B.lathe([(0.0, 0.6), (0.106, 0.6), (0.106, 0.66), (0.0, 0.66)], 0, 0, "paint_yellow", segs=20)
+    m = "metal_green"
+    B.lathe([(0.0, 0.0), (0.15, 0.0), (0.15, 0.06), (0.125, 0.09), (0.125, 0.15), (0.105, 0.18), (0.08, 0.6),
+             (0.1, 0.62), (0.1, 0.71), (0.075, 0.74), (0.06, 0.77), (0.085, 0.8), (0.095, 0.85), (0.085, 0.9),
+             (0.05, 0.935), (0.0, 0.94)], 0, 0, m, segs=20)
+    for k in range(8):  # flutes, as on the lamp post's shaft
+        a = 2 * math.pi * k / 8
+        B.tube((0.1 * math.cos(a), 0.19, 0.1 * math.sin(a)), (0.077 * math.cos(a), 0.6, 0.077 * math.sin(a)), 0.014, m, segs=6)
+    B.lathe([(0.0, 0.625), (0.104, 0.625), (0.104, 0.705), (0.0, 0.705)], 0, 0, "trim_cream", segs=20)
     export(B, "bollard")
-    register("bollard", "curb", (0.3, 0.3), [], height=0.91)
+    register("bollard", "curb", (0.3, 0.3), [], height=0.94)
 
 
 def phone_booth():
