@@ -503,27 +503,56 @@ def posters():
 
 
 def ghost_sign():
+    """Painted wall advertisement, decades old: brick shows through the field, the lettering has
+    held on better, and rain has washed streaks down from the top."""
     rng = random.Random(40)
+    seed0 = _NOISE_SEED[0]
     w, h = 1024, 512
-    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    d.rectangle([20, 20, w - 20, h - 20], fill=(180, 160, 110, 255))
-    d.rectangle([40, 40, w - 40, h - 40], outline=(120, 40, 30, 255), width=10)
-    f1 = font("serif", 120)
-    f2 = font("narrow", 70)
-    f3 = font("script", 90)
-    d.text((80, 60), "Harland's", font=f3, fill=(120, 40, 30, 255))
-    d.text((80, 190), "HARDWARE & PAINT", font=f2, fill=(40, 50, 70, 255))
-    d.text((80, 300), "EST. 1921", font=f1, fill=(120, 40, 30, 255))
-    # fade: patchy alpha + brick-mortar-ish horizontal loss
-    noise = seeded_noise((w // 8, h // 8), 80).resize((w, h), Image.BICUBIC)
-    alpha = noise.point(lambda v: int(max(0, min(255, (v - 60) * 1.6))))
-    for y in range(0, h, 22):
-        ImageDraw.Draw(alpha).line([(0, y), (w, y)], fill=0, width=3)
-    a = ImageChops.multiply(im.getchannel("A"), alpha)
-    a = a.point(lambda v: int(v * 0.75))
-    im.putalpha(a)
-    return painterly(im, 0.6, 40)
+    field = Image.new("L", (w, h), 0)
+    ink = Image.new("L", (w, h), 0)
+    col = Image.new("RGB", (w, h), (196, 178, 132))
+    df, di, dc = ImageDraw.Draw(field), ImageDraw.Draw(ink), ImageDraw.Draw(col)
+    df.rectangle([14, 14, w - 14, h - 14], fill=255)
+    red, blue = (132, 40, 30), (34, 44, 66)
+    for (xy, wd) in (([34, 34, w - 34, h - 34], 12), ([56, 56, w - 56, h - 56], 4)):
+        di.rectangle(xy, outline=255, width=wd)
+        dc.rectangle(xy, outline=red, width=wd)
+
+    def line(text, kind, size, y, fill, track=0):
+        f = font(kind, size)
+        while True:
+            tw = sum(f.getlength(c) + track for c in text) - track
+            if tw <= w - 150 or size < 30:
+                break
+            size -= 4
+            f = font(kind, size)
+        x = (w - tw) / 2
+        for c in text:
+            di.text((x, y), c, font=f, fill=255)
+            dc.text((x, y), c, font=f, fill=fill)
+            x += f.getlength(c) + track
+
+    line("Harland's", "script", 128, 62, red)
+    di.rectangle([120, 208, w - 120, 214], fill=255)
+    dc.rectangle([120, 208, w - 120, 214], fill=blue)
+    line("HARDWARE & PAINT", "narrow", 124, 222, blue, track=6)
+    line("EST. 1921", "serif", 78, 362, red, track=14)
+    # wear: broad soft patches (never to nothing), streaks washed down from the top, fine pitting
+    patch = seeded_noise((w // 96 + 2, h // 96 + 2), 60).resize((w, h), Image.BICUBIC).filter(ImageFilter.GaussianBlur(14))
+    wear = patch.point(lambda v: int(max(120, min(255, 150 + (v - 128) * 2.2))))
+    streak = Image.new("L", (w, h), 255)
+    ds = ImageDraw.Draw(streak)
+    for k in range(46):
+        x = rng.randint(0, w)
+        ds.line([(x, 0), (x + rng.randint(-6, 6), rng.randint(90, 420))], fill=rng.randint(120, 190), width=rng.randint(5, 16))
+    wear = ImageChops.multiply(wear, streak.filter(ImageFilter.GaussianBlur(5)))
+    pit = seeded_noise((w // 2, h // 2), 50).resize((w, h), Image.BILINEAR).point(lambda v: 255 if v > 92 else 150)
+    wear = ImageChops.multiply(wear, pit)
+    a = ImageChops.lighter(field.point(lambda v: int(v * 0.5)), ink.point(lambda v: int(v * 0.92)))
+    im = painterly(col, 0.5, 40).convert("RGBA")
+    im.putalpha(ImageChops.multiply(a, wear))
+    _NOISE_SEED[0] = seed0 + 2   # the textures after this one keep the noise they always had
+    return im
 
 
 def awning_canvas():
