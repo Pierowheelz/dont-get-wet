@@ -43,7 +43,9 @@ def skin(obj, rig, groups, mats):
         p.use_smooth = True
 
 
-def solidify(obj, rig, thickness):
+def solidify(obj, rig, thickness, lining=False):
+    """Gives the open shell `obj` an inner face `thickness` in. `lining`: the inner face takes the
+    object's second material."""
     bpy.ops.object.select_all(action='DESELECT')
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
@@ -51,6 +53,8 @@ def solidify(obj, rig, thickness):
     sol.thickness = thickness
     sol.offset = -1.0
     sol.use_rim = True
+    if lining:
+        sol.material_offset = 1
     bpy.ops.object.modifier_apply(modifier=sol.name)
     # Closed now, so the recalculated normals all face out (the culled back faces are the inside).
     bm = bmesh.new()
@@ -71,13 +75,52 @@ def mesh_object(name, bm):
     return obj
 
 
+class Cloth:
+    """A skinned mesh in its bind pose, for laying other cloth on: world-space vertices, a BVH and a
+    KD tree, and its skin weights by vertex."""
+
+    def __init__(self, obj):
+        from mathutils.bvhtree import BVHTree
+        from mathutils.kdtree import KDTree
+        self.obj = obj
+        self.verts = [obj.matrix_world @ v.co for v in obj.data.vertices]
+        self.bvh = BVHTree.FromPolygons(self.verts, [tuple(p.vertices) for p in obj.data.polygons])
+        self.kd = KDTree(len(self.verts))
+        for i, v in enumerate(self.verts):
+            self.kd.insert(v, i)
+        self.kd.balance()
+        self.names = {g.index: g.name for g in obj.vertex_groups}
+
+    def weights_near(self, point):
+        _, index, _ = self.kd.find(point)
+        return {self.names[g.group]: g.weight for g in self.obj.data.vertices[index].groups if g.weight > 1e-4}
+
+    def reach(self, origin, direction, limit):
+        """How far out from `origin` along `direction` its outermost surface lies within `limit`
+        (None if it has none there), and the point."""
+        from mathutils import Vector
+        far, at, start = None, None, 0.0
+        while start < limit:
+            hit = self.bvh.ray_cast(origin + direction * start, direction, limit - start)
+            if hit[0] is None:
+                break
+            far, at = start + hit[3], hit[0]
+            start = far + 1e-4
+        return far, at
+
+
 # --- Coat skirt ------------------------------------------------------------------------------------
 # Blender frame of the MPFB rig: +Z up, the character faces -Y, his left is +X.
 def coat_skirt(rig, name, profile, mat, slit_top, centre_y=-0.02, segments=40, ring_step=0.035,
-               leg_top=0.97, leg_full=0.72, leg_max=0.95, side_blend=0.12):
+               leg_top=0.97, leg_full=0.72, leg_max=0.95, side_blend=0.12, leg_hem=None, wrap=None):
     """A flared tube through the rings `profile` [(z, half width, front depth, back depth)], top down,
     open at the front below `slit_top`, weighted to the pelvis at the top and to the thighs further
-    down. Vertex 0 and `segments` of each ring are the two edges of the front opening."""
+    down. Vertex 0 and `segments` of each ring are the two edges of the front opening.
+    `leg_hem` (z, share): below z the thighs' hold eases to `share` of itself at the hem, so a stride
+    carries the hem less far than the knee.
+    `wrap` (Cloth, z, margin): above z each ring is let out to clear the cloth's surface by `margin`
+    and moves with it (its skin weights, blended in over 6 cm)."""
+    from mathutils import Vector
     def ring_at(z):
         for (z0, *a), (z1, *b) in zip(profile, profile[1:]):
             if z1 <= z <= z0:
@@ -105,15 +148,30 @@ def coat_skirt(rig, name, profile, mat, slit_top, centre_y=-0.02, segments=40, r
                 k = 1.0 - smoothstep(slit_top, slit_top + 0.06, z)
                 left += (own - left) * k
             leg = leg_max * smoothstep(leg_top, leg_full, z)
-            weights.append((1.0 - leg, leg * left, leg * (1.0 - left)))
+            if leg_hem:
+                leg *= 1.0 - (1.0 - leg_hem[1]) * smoothstep(leg_hem[0], hem, z)
+            w = {"pelvis": 1.0 - leg, "thigh_l": leg * left, "thigh_r": leg * (1.0 - left)}
+            if wrap and z > wrap[1]:
+                cloth, wrap_z, margin = wrap
+                axis = Vector((0.0, centre_y, z))
+                out = Vector((x, y - centre_y, 0.0))
+                far, at = cloth.reach(axis, out.normalized(), 0.3)
+                if far is not None:
+                    if far + margin > out.length:
+                        x, y = (axis + out.normalized() * (far + margin)).xy
+                    k = smoothstep(wrap_z, wrap_z + 0.06, z)
+                    w = {b: v * (1.0 - k) for b, v in w.items()}
+                    for b, v in cloth.weights_near(at).items():
+                        w[b] = w.get(b, 0.0) + v * k
+            weights.append(w)
             row.append(bm.verts.new((x, y, z)))
         grid.append(row)
     for r in range(rings):
         for j in range(segments):
             bm.faces.new((grid[r][j], grid[r + 1][j], grid[r + 1][j + 1], grid[r][j + 1]))
     coat = mesh_object(name, bm)
-    skin(coat, rig, {"pelvis": [w[0] for w in weights], "thigh_l": [w[1] for w in weights],
-                     "thigh_r": [w[2] for w in weights]}, [mat])
+    bones = ["pelvis", "thigh_l", "thigh_r"] + sorted({b for w in weights for b in w} - {"pelvis", "thigh_l", "thigh_r"})
+    skin(coat, rig, {b: [w.get(b, 0.0) for w in weights] for b in bones}, [mat])
     solidify(coat, rig, 0.012)
     return coat
 

@@ -13,7 +13,7 @@ enum Pose { STAND, WATCH, WALK }
 
 const OUTFIT := "res://assets/characters/walker/slicker.glb"
 const SUIT := "res://assets/characters/walker/slicker_suit.webp"
-const PARTS := ["slicker_skirt", "slicker_hood", "slicker_buttons"]
+const PARTS := ["slicker_skirt", "slicker_hood", "slicker_flap", "slicker_buttons", "slicker_cords"]
 const WATCH_TURN := 0.75     # rad turned from his facing toward the camera while he watches
 const TURN_RATE := 2.5       # rad/s
 const CANOPY := Color(0.07, 0.07, 0.08)
@@ -23,6 +23,9 @@ const MOUTH := Vector3(0.024, 1.606, 0.146)
 const CIG_DIR := Vector3(0.3, -0.45, 1.0)
 const CIG_LEN := 0.06
 const DRAG_EVERY := Vector2(4.0, 8.0)   # s between drags on it
+const WISP_SHADER := preload("res://src/fx/smoke_wisp.gdshader")
+const WISP_SIZE := Vector2(0.3, 0.55)   # m: the quad the thread of smoke is drawn on
+const WISP_TRAIL := 0.8                 # quad half widths the thread leans back while he walks
 
 @export var facing := 1:
 	set(v):
@@ -38,7 +41,7 @@ const DRAG_EVERY := Vector2(4.0, 8.0)   # s between drags on it
 		smoking = v
 		if _cig:
 			_cig.visible = v
-			_smoke.emitting = v
+			_smoke.visible = v
 ## WALK: move along x at walk_speed in his facing (off: the owner moves the node).
 @export var advance := true
 @export var walk_speed := 1.25
@@ -50,7 +53,9 @@ var umbrella: Umbrella
 var fill: OmniLight3D        # a soft cool fill from the camera side, so the yellow reads in the dark
 var _cig: Node3D
 var _ember_mat: StandardMaterial3D
-var _smoke: CPUParticles3D
+var _smoke: MeshInstance3D
+var _wisp: ShaderMaterial
+var _trail := 0.0             # how far the smoke leans back from the way he walks
 var _yaw := 0.0
 var _drag_in := 2.0
 var _drag := 0.0
@@ -72,8 +77,8 @@ func _build() -> void:
 	if fill == null:
 		fill = OmniLight3D.new()
 		fill.light_color = Color(0.85, 0.9, 1.0)
-		fill.light_energy = 0.6
-		fill.omni_range = 2.6
+		fill.light_energy = 0.22
+		fill.omni_range = 2.2
 		fill.omni_attenuation = 1.5
 		fill.light_specular = 0.25
 		add_child(fill)
@@ -160,48 +165,21 @@ func _build_cigarette() -> void:
 	ember.material_override = _ember_mat
 	_cig.add_child(ember)
 
-	_smoke = CPUParticles3D.new()
-	_smoke.amount = 40
-	_smoke.lifetime = 1.6
-	_smoke.local_coords = false
-	_smoke.direction = Vector3.UP
-	_smoke.spread = 8.0
-	_smoke.gravity = Vector3(0.02, 0.04, 0.0)
-	_smoke.initial_velocity_min = 0.12
-	_smoke.initial_velocity_max = 0.16
-	var grow := Curve.new()
-	grow.max_value = 3.0
-	grow.add_point(Vector2(0.0, 0.4))
-	grow.add_point(Vector2(1.0, 2.5))
-	_smoke.scale_amount_curve = grow
+	# One thread of smoke: an upright quad from the ember up (smoke_wisp.gdshader), kept square to the
+	# street whichever way his head turns (see _process).
+	_smoke = MeshInstance3D.new()
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.035, 0.035)
-	var qm := StandardMaterial3D.new()
-	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	qm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	qm.vertex_color_use_as_albedo = true
-	var puff := GradientTexture2D.new()
-	puff.fill = GradientTexture2D.FILL_RADIAL
-	puff.fill_from = Vector2(0.5, 0.5)
-	puff.fill_to = Vector2(0.5, 0.0)
-	puff.width = 32
-	puff.height = 32
-	var pg := Gradient.new()
-	pg.set_color(0, Color(1, 1, 1, 1))
-	pg.set_color(1, Color(1, 1, 1, 0))
-	puff.gradient = pg
-	qm.albedo_texture = puff
-	quad.material = qm
+	quad.size = WISP_SIZE
+	quad.center_offset = Vector3(0.0, WISP_SIZE.y * 0.5, 0.0)
 	_smoke.mesh = quad
-	var fade := Gradient.new()
-	fade.set_color(0, Color(0.5, 0.51, 0.55, 0.0))
-	fade.add_point(0.1, Color(0.5, 0.51, 0.55, 0.03))
-	fade.set_color(1, Color(0.5, 0.51, 0.55, 0.0))
-	_smoke.color_ramp = fade
+	_wisp = ShaderMaterial.new()
+	_wisp.shader = WISP_SHADER
+	_smoke.material_override = _wisp
+	_smoke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_smoke.top_level = true
 	ember.add_child(_smoke)
 	_cig.visible = smoking
-	_smoke.emitting = smoking
+	_smoke.visible = smoking
 	_set_ember(0.0)
 
 
@@ -209,7 +187,10 @@ func _process(delta: float) -> void:
 	var walking := pose == Pose.WALK
 	model.call("set_motion", walk_speed if walking else 0.0, 0.0)
 	if _smoke:
-		_smoke.speed_scale = 2.2 if walking else 1.0   # walking away from it, the trail thins out sooner
+		# Walking, he leaves it behind him: the thread leans back.
+		_trail = move_toward(_trail, -facing * WISP_TRAIL if walking else 0.0, delta * 2.0)
+		_wisp.set_shader_parameter(&"drift", _trail)
+		_smoke.global_transform = Transform3D(Basis.IDENTITY, (_smoke.get_parent() as Node3D).global_position)
 	if walking and advance:
 		position.x += facing * walk_speed * delta
 		if level and level.has_method("ground_y"):
