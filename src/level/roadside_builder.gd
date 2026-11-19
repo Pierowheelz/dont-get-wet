@@ -110,22 +110,47 @@ static func _room(b: LevelBuilder, sts: Dictionary, rx: float, rw: float, y0: fl
 
 ## An open apron of concrete with painted bays, and a low building SET_BACK behind the lot line.
 static func forecourt(b: LevelBuilder, x: float, w: float, lot: Dictionary) -> void:
-	var conc := b._mat("forecourt", Color(0.3, 0.3, 0.29), 0.35)
-	b._box(Vector3(w, 0.3, SET_BACK + 2.0), Vector3(x + w * 0.5, -0.15, -(SET_BACK + 2.0) * 0.5), conc)
-	var paint := b._mat("bay_paint", Color(0.7, 0.68, 0.6), 0.5)
+	# The apron is the same rain-soaked tarmac as the road, so the floodlight lies across it in the wet.
+	var apron := b._material_res("asphalt_wet", b._mat("forecourt", Color(0.3, 0.3, 0.29), 0.35))
+	b._box(Vector3(w, 0.3, SET_BACK + 2.0), Vector3(x + w * 0.5, -0.15, -(SET_BACK + 2.0) * 0.5), apron)
+	var sts := {}
+	var paint := b._mat("bay_paint", Color(0.62, 0.6, 0.53), 0.5)
 	var bx := x + 1.0
 	while bx < x + w - 0.5:
-		b._box(Vector3(0.1, 0.02, 4.5), Vector3(bx, 0.005, -3.6), paint)
+		_add(sts, paint, bx - 0.05, bx + 0.05, 0.0, 0.012, -5.85, -1.35)
 		bx += 2.6
 	var bw := maxf(w - 1.6, 3.0)
 	var bh := 4.2
-	var wall := b._mat("forecourt_wall", Color(0.46, 0.42, 0.36), 0.85)
 	var cx := x + w * 0.5
-	b._box(Vector3(bw, bh, 6.0), Vector3(cx, bh * 0.5, -SET_BACK - 3.0), wall)
-	b._box(Vector3(bw + 0.4, 0.5, 1.4), Vector3(cx, bh - 0.1, -SET_BACK + 0.3), b._mat("forecourt_fascia", Color(0.62, 0.15, 0.12), 0.6))
+	var fz := -SET_BACK
+	b._box(Vector3(bw, bh, 6.0), Vector3(cx, bh * 0.5, fz - 3.0), b._mat("forecourt_wall", Color(0.46, 0.42, 0.36), 0.85))
+	_wall_face(b, _textured(b, "forecourt_render", "concrete", Color(0.62, 0.57, 0.5)), cx - bw * 0.5, cx + bw * 0.5, 0.0, bh, fz + 0.004)
+	_add(sts, b._mat("forecourt_fascia", Color(0.62, 0.15, 0.12), 0.6), cx - bw * 0.5 - 0.2, cx + bw * 0.5 + 0.2, bh - 0.35, bh + 0.15, fz - 0.4, fz + 1.0)
 	var shut := not bool(lot.get("lit", false))
-	var glass := b._mat("glass_dark", Color(0.03, 0.035, 0.04), 0.05, 0.3)
-	b._box(Vector3(bw - 1.2, 1.8, 0.08), Vector3(cx, 1.6, -SET_BACK + 0.02), glass)
+	# The shop window: a run of plate glass in aluminium bars over a tiled stall riser, a door at one end.
+	var alu := b._mat("motel_alu", Color(0.55, 0.56, 0.58), 0.35, 0.8)
+	var glass: Material = b._mat("glass_dark", Color(0.03, 0.035, 0.04), 0.05, 0.3) if shut else _glow(b, "showroom_lit", Color(0.5, 0.66, 0.74), 0.45)
+	var g0 := cx - bw * 0.5 + 0.6
+	var g1 := cx + bw * 0.5 - 0.6
+	_add(sts, glass, g0, g1, 0.7, 2.5, fz, fz + 0.04)
+	_add(sts, b._mat("forecourt_riser", Color(0.2, 0.25, 0.24), 0.4), g0 - 0.05, g1 + 0.05, 0.0, 0.7, fz, fz + 0.07)
+	_add(sts, alu, g0 - 0.05, g1 + 0.05, 2.5, 2.58, fz, fz + 0.09)
+	_add(sts, alu, g0 - 0.05, g1 + 0.05, 0.68, 0.74, fz, fz + 0.09)
+	var panes := maxi(2, roundi((g1 - g0) / 1.7))
+	for i in panes + 1:
+		var mx := lerpf(g0, g1, float(i) / panes)
+		_add(sts, alu, mx - 0.03, mx + 0.03, 0.7, 2.5, fz, fz + 0.09)
+	var door_x := lerpf(g0, g1, (panes - 0.5) / panes)
+	_add(sts, alu, door_x - 0.5, door_x + 0.5, 0.0, 2.2, fz + 0.04, fz + 0.1)
+	_add(sts, glass, door_x - 0.42, door_x + 0.42, 0.25, 2.1, fz + 0.1, fz + 0.11)
+	if not shut:
+		# What the lit window shows from the road: a counter and the strip lights over it.
+		_add(sts, b._mat("showroom_counter", Color(0.12, 0.1, 0.09), 0.7), g0 + 0.4, door_x - 0.9, 0.7, 1.3, fz + 0.04, fz + 0.07)
+		var tube := b._neon_mat(Color(0.9, 0.97, 1.0), 1.6)
+		for i in panes:
+			var tx := lerpf(g0, g1, (i + 0.5) / panes)
+			_add(sts, tube, tx - 0.5, tx + 0.5, 2.3, 2.38, fz + 0.04, fz + 0.07)
+	_commit(b, sts)
 	if lot.has("sign"):
 		var lbl := Label3D.new()
 		lbl.text = String(lot["sign"])
@@ -135,7 +160,7 @@ static func forecourt(b: LevelBuilder, x: float, w: float, lot: Dictionary) -> v
 		lbl.font_size = int(clampf((bw - 0.8) / 0.006 / maxf(1.0, lbl.text.length() * 0.62), 40.0, 120.0))
 		lbl.modulate = Color(0.5, 0.45, 0.38) if shut else Color(1.0, 0.85, 0.55)
 		lbl.shaded = shut
-		lbl.position = Vector3(cx, bh - 0.1, -SET_BACK + 1.02)
+		lbl.position = Vector3(cx, bh - 0.1, fz + 1.02)
 		lbl.double_sided = false
 		b.root.add_child(lbl)
 	if lot.has("note"):
@@ -145,10 +170,10 @@ static func forecourt(b: LevelBuilder, x: float, w: float, lot: Dictionary) -> v
 		note.pixel_size = 0.005
 		note.modulate = Color(0.8, 0.75, 0.65)
 		note.shaded = true
-		note.position = Vector3(cx - bw * 0.25, 1.9, -SET_BACK + 0.08)
+		note.position = Vector3(cx - bw * 0.25, 1.9, fz + 0.08)
 		note.double_sided = false
 		b.root.add_child(note)
-	b._box(Vector3(w + 6.0, 9.0, 1.0), Vector3(cx, 4.5, -SET_BACK - 8.0), b._mat("farwall", Color(0.22, 0.2, 0.19), 0.9))
+	b._box(Vector3(w + 6.0, 9.0, 1.0), Vector3(cx, 4.5, fz - 8.0), b._mat("farwall", Color(0.22, 0.2, 0.19), 0.9))
 	_floodlight(b, x + 0.5, -0.8, Color(1.0, 0.78, 0.5) if shut else Color(0.92, 0.95, 1.0))
 
 
