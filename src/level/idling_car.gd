@@ -37,6 +37,18 @@ func _ready() -> void:
 		tail.emission = Color(1.0, 0.08, 0.05)
 		tail.emission_energy_multiplier = 1.6
 		body.set_surface_override_material(7, tail)
+		# At night the mirror chrome has only black sky to reflect, which left the hubcaps and bumpers
+		# black and each wheel a bare whitewall ring: a duller chrome that takes the street's light,
+		# and the whitewalls knocked back to match it.
+		var chrome := StandardMaterial3D.new()
+		chrome.albedo_color = Color(0.74, 0.76, 0.8)
+		chrome.metallic = 0.7
+		chrome.roughness = 0.32
+		body.set_surface_override_material(3, chrome)
+		var whitewall := StandardMaterial3D.new()
+		whitewall.albedo_color = Color(0.4, 0.4, 0.38)
+		whitewall.roughness = 0.6
+		body.set_surface_override_material(8, whitewall)
 	_driver()
 	var rubber := StandardMaterial3D.new()
 	rubber.albedo_color = Color(0.4, 0.41, 0.43)   # the arms' chrome catches the light as they sweep

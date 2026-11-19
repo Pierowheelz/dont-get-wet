@@ -23,6 +23,7 @@ const LOOK_FROM := 22.0                    # the camera looks ahead from this fa
 const LOOK_AHEAD := 2.5
 const ACCEL := 6.0
 const LIGHTS := 8.0
+const BEAM_FOG := 1.0                      # the beams in the street's haze: at a crossing car's 3 they wash the black car out pink
 const SEEN_M := 14.0
 
 var after := 0                  # the henchman whose end sends him to the car
@@ -48,6 +49,7 @@ func _ready() -> void:
 	visible = true
 	for l in _lights:
 		l.light_energy = 0.0
+		l.light_volumetric_fog_energy = BEAM_FOG
 	for l in _body.find_children("*", "SpotLight3D", true, false):
 		_idle_lights.append(l)
 		l.visible = false             # parked dark

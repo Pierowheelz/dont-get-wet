@@ -42,6 +42,7 @@ const AWAY_S := 2.2           # the camera holds out this long once it speeds aw
 const BACK_SEAT := Vector3(-0.75, 0.0, -0.42)
 const SILL := Vector3(-0.75, 0.05, -0.75)   # where his feet are once he sits up on the back window's sill
 const LEAN := 0.2             # rad he leans out toward the kerb, sitting up on the sill
+const CABIN_LIGHT := 6.0      # the light on the passenger once he is up on the sill
 const BRACE_BACK_S := 0.35    # the bots tilt back this long before the splash starts...
 const BRACE_FIRE_S := 0.5     # ...and forward this long before the shot leaves
 
@@ -60,6 +61,7 @@ var _lean := 0.0
 var _car: Node3D
 var _passenger: Node3D
 var _gun: Umbrella
+var _cabin: OmniLight3D
 var _hiss: AudioStreamPlayer3D
 
 
@@ -83,8 +85,35 @@ func _ready() -> void:
 		# Dipped toward the kerb so the beams fall across the pavement ahead of the walker.
 		sl.basis = Basis(Vector3.UP, -PI * 0.5 - 0.1) * Basis(Vector3.RIGHT, -0.06)
 		_car.add_child(sl)
+	# It passes between the camera and the pavement, so the flank in shot is its unlit side: a cool
+	# light rides above that side for the paint's shoulder and roof to catch, and the paint is a
+	# shade off black so the body has a shape.
+	var flank := OmniLight3D.new()
+	flank.light_color = Color(0.62, 0.72, 1.0)
+	flank.light_energy = 2.4
+	flank.omni_range = 6.5
+	flank.omni_attenuation = 1.3
+	flank.light_volumetric_fog_energy = 0.0
+	flank.position = Vector3(0.2, 2.5, 2.9)
+	_car.add_child(flank)
+	var body := _car.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
+	var paint := body.get_surface_override_material(0) as StandardMaterial3D
+	if paint:
+		paint = paint.duplicate()
+		paint.albedo_color = Color(0.045, 0.05, 0.065)
+		paint.roughness = 0.26
+		body.set_surface_override_material(0, paint)
 	_passenger = (load(Player.CHARACTER_SCENE) as PackedScene).instantiate()
 	_car.add_child(_passenger)
+	# The cabin's light spills out with him as he sits up, or he is a dark suit against a dark street.
+	_cabin = OmniLight3D.new()
+	_cabin.light_color = Color(1.0, 0.84, 0.6)
+	_cabin.omni_range = 2.8
+	_cabin.omni_attenuation = 1.4
+	_cabin.light_volumetric_fog_energy = 0.0
+	_cabin.position = SILL + Vector3(-0.7, 1.6, 1.1)
+	_cabin.light_energy = 0.0
+	_car.add_child(_cabin)
 	_gun = Umbrella.new()
 	_gun.layer = Umbrella.NPC_UMBRELLA_LAYER
 	_passenger.call("get_grip", &"right").add_child(_gun)
@@ -242,6 +271,7 @@ func _t_lean(delta: float, out: bool) -> void:
 func _pose() -> void:
 	var l := smoothstep(0.0, 1.0, _lean)
 	_passenger.visible = l > 0.02 or phase == Phase.AIM
+	_cabin.light_energy = CABIN_LIGHT * l
 	_passenger.basis = Basis(Vector3.RIGHT, -LEAN * l) * Basis(Vector3.UP, PI)
 	_passenger.position = (BACK_SEAT + Vector3(0.0, -0.75, 0.0)).lerp(SILL, l)
 	_passenger.call("set_motion", 0.0, 0.0)
