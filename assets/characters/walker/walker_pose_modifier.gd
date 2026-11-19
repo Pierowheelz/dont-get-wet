@@ -1,6 +1,6 @@
 extends SkeletonModifier3D
 ## Procedural layer applied on top of the locomotion AnimationTree (runs after the mixer).
-## - spine/neck slump (sad), bent-over heavy breathing (stopped / catching breath)
+## - spine/neck slump (sad), breathing while he stands (quiet, or heaving when out of breath)
 ## - right arm: analytic two-bone IK to the umbrella-holding pose, blended by `raise` (with
 ##   `umbrella_left`, the left arm holds it and the right one works the runner and swings free)
 ## - left arm: slightly damped swing (carrying the closed umbrella), fists around the handles;
@@ -17,7 +17,9 @@ var spread := 0.0      # umbrella open amount 0..1 (drives the left hand's runne
 var tilt := 0.0
 var droop := 0.0
 var sad := 0.0
-var breath := 0.0      # 0..1 weight of the "catching breath" overlay
+var breath := 0.0      # 0..1 weight of the standing breathing overlay
+var winded := 0.0      # 0..1 how out of breath he is: from quiet breathing to a heaving chest
+var breath_phase := 0.0   # breaths taken so far (walker.gd advances it faster the more winded he is)
 var run := 0.0         # gait position: 0 walk .. 0.5 brisk .. 1 jog
 var stride := 1.0      # leg swing amplitude kept (walker.gd shortens the cycle to match)
 var umbrella_left := false
@@ -59,6 +61,7 @@ const CARRY_PITCH := 0.1
 const CARRY_TOE_IN := 0.06
 const CARRY_FINGER_DIR := Vector3(0.45, -1.0, 0.0)
 const CARRY_POLE := Vector3(-0.7, -1.0, 0.3)       # elbow back, down and a little out
+const BREATH_QUIET := 0.25   # share of the winded chest heave left in quiet breathing
 
 # Aimed like a rifle (furled, `aim`): the crook sits in the pocket of the shoulder, the fist a hand's
 # length up the shaft from it and the other hand under the ridged sleeve. Aimed behind, he twists
@@ -204,8 +207,11 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var skel_from_char := char_from_skel.affine_inverse()
 	var right_axis := (skel_from_char.basis * Vector3(0, 0, 1)).normalized()
 
-	# --- Torso: slump (sad) and bent-over heavy breathing (stopped) ---------------------------
-	var heave := 0.5 + 0.5 * sin(time * TAU * 0.8)
+	# --- Torso: slump (sad) and breathing (stopped) --------------------------------------------
+	# Standing, he stays upright. Out of breath, the chest and shoulders heave and he gives a little
+	# at the waist, head a touch down: a man catching his breath on his feet, not doubled over.
+	var heave := (0.5 + 0.5 * sin(breath_phase * TAU)) * breath * lerpf(BREATH_QUIET, 1.0, winded)
+	var tired := breath * winded
 	# Posture: the retargeted UAL clips lean the MPFB torso and head well forward. Instead of fixed
 	# offsets, measure the actual pose each frame and straighten the chain so the chest stacks over
 	# the hips and the head over the chest (slight natural lean, more when running), keeping the
@@ -222,20 +228,20 @@ func _process_modification_with_delta(_delta: float) -> void:
 		_rot_global(skel, _b["Hips"], right_axis, -hinge)
 		for side in ["Left", "Right"]:
 			_rot_global(skel, skel.find_bone(side + "UpperLeg"), right_axis, hinge)
-	var pitch_spine := sad * 0.11 + breath * (0.13 + 0.03 * heave) + lean * 0.2
-	var pitch_chest := sad * 0.10 + breath * (0.10 - 0.05 * heave) + lean * 0.15
-	var pitch_upper := sad * 0.08 + breath * (0.05 - 0.04 * heave) + lean * 0.15
-	var pitch_neck := sad * 0.14 + breath * 0.04 + duck * 0.45
-	var pitch_head := sad * 0.30 + breath * (0.10 + 0.04 * heave) + duck * 0.55
+	var pitch_spine := sad * 0.11 + tired * 0.03 + heave * 0.02 + lean * 0.2
+	var pitch_chest := sad * 0.10 + tired * 0.03 - heave * 0.03 + lean * 0.15
+	var pitch_upper := sad * 0.08 + tired * 0.02 - heave * 0.02 + lean * 0.15
+	var pitch_neck := sad * 0.14 + tired * 0.03 + duck * 0.45
+	var pitch_head := sad * 0.30 + tired * 0.05 + heave * 0.03 + duck * 0.55
 	# Forward pitch = rotate +Y toward +X = negative rotation about the character's +Z axis.
 	_rot_global(skel, _b["Spine"], right_axis, -pitch_spine)
 	_rot_global(skel, _b["Chest"], right_axis, -pitch_chest)
 	_rot_global(skel, _b["UpperChest"], right_axis, -pitch_upper)
 	_rot_global(skel, _b["Neck"], right_axis, -pitch_neck)
 	_rot_global(skel, _b["Head"], right_axis, -pitch_head)
-	# Shoulders hunch forward when sad / heave when out of breath.
+	# Shoulders hunch forward when sad / rise as he breathes in.
 	var fwd_axis := (skel_from_char.basis * Vector3(1, 0, 0)).normalized()
-	var shrug := breath * 0.06 * heave
+	var shrug := 0.06 * heave
 	_rot_global(skel, _b["LeftShoulder"], fwd_axis, shrug + sad * 0.06)
 	_rot_global(skel, _b["RightShoulder"], fwd_axis, -shrug - sad * 0.06)
 

@@ -263,6 +263,8 @@ func _process(delta: float) -> void:
 		position.y = level.ground_y(position.x)
 	visual.set_motion(speed, run_amount)
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
+	if visual.has_method("set_winded"):
+		visual.set_winded(1.0 - stamina / Tun.f("stamina_max"))
 	var kick := jet_kick * JET_KICK_TILT - gun.recoil * RECOIL_TILT * gun.aim_sign()
 	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt + kick, maxf(droop, jet_kick * JET_KICK_DROOP))
 	if visual.has_method("set_aim"):

@@ -16,7 +16,7 @@ Root `Node3D` with a script that implements **all** of these methods (see
 
 ```gdscript
 func set_motion(speed_mps: float, run_amount: float) -> void   # in-place locomotion; run_amount 0 walk → 1 full run
-func set_stopped(stopped: bool) -> void                        # idle / catching breath
+func set_stopped(stopped: bool) -> void                        # standing still, upright
 func set_umbrella_pose(raise: float, tilt: float, droop: float) -> void
     # raise 0..1: right arm goes from relaxed to holding the umbrella above the head
     # tilt (radians): + leans the umbrella forward (+X), − backward. Range about ±0.7
@@ -32,6 +32,11 @@ Optional (the player calls it if the visual has it): `set_aim(amount: float)`, 0
 shouldered and aimed along the pose's `tilt` while `raise` brings the arm up. Ahead and overhead the
 crook sits at the shoulder with the other hand under the shaft; aimed behind, he twists toward the
 camera, looks back and points it one-handed. The grip's +Y still runs along the shaft toward the tip.
+
+Also optional: `set_winded(amount: float)`, 0..1 how out of breath he is (the player passes the share
+of stamina spent). Stopped with the umbrella down he stands upright and breathes quietly at 0; toward
+1 his chest and shoulders heave harder and faster and he gives a few degrees at the waist. Nothing
+breathes while the umbrella is raised: the canopy's cover follows the hand.
 
 - Feet at origin, facing **+X**, height ≈ 1.78 m. No root motion — the player script moves the root.
 - `get_grip()` returns a Node3D that follows the hand bone. Its origin is in the palm; its local **+Y**

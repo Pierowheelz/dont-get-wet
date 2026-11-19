@@ -9,6 +9,8 @@ const PoseModifier := preload("res://assets/characters/walker/walker_pose_modifi
 const HAIR_SHADER := preload("res://assets/characters/walker/walker_hair.gdshader")
 const Loco := preload("res://assets/characters/walker/locomotion.gd")
 const SAD_STRIDE := 0.85   # shorter, shuffling steps when defeated
+const BREATH_HZ_QUIET := 0.3   # breaths per second standing rested
+const BREATH_HZ_WINDED := 0.8  # ...and out of breath
 
 ## Hold the open umbrella in the left fist: get_grip(&"right") is then in the left hand.
 @export var umbrella_left := false
@@ -27,6 +29,8 @@ var _gait_s := 0.0
 var _stopped := false
 var _stop_s := 0.0
 var _breath_s := 0.0
+var _winded := 0.0
+var _breath_phase := 0.0
 var _mood: StringName = &"normal"
 var _sad_s := 0.0
 var _raise := 0.0
@@ -181,8 +185,11 @@ func _apply_params(delta: float) -> void:
 	_run_s = lerpf(_run_s, _run, k_fast) if delta > 0.0 else _run
 	var idle_target := 1.0 if (_stopped or _speed < 0.05) else 0.0
 	_stop_s = lerpf(_stop_s, idle_target, 1.0 - exp(-delta * 5.0)) if delta > 0.0 else idle_target
-	var breath_target := (1.0 - _raise) if _stopped else 0.0   # no gasping bent over while holding the umbrella up
+	# The breathing moves his shoulders, and the open canopy's cover follows his hand: none of it
+	# while the umbrella is up.
+	var breath_target := (1.0 - _raise) if _stopped else 0.0
 	_breath_s = lerpf(_breath_s, breath_target, k_slow) if delta > 0.0 else breath_target
+	_breath_phase = fposmod(_breath_phase + delta * lerpf(BREATH_HZ_QUIET, BREATH_HZ_WINDED, _winded), 1.0)
 	var sad_target := 1.0 if _mood == &"sad" else 0.0
 	_sad_s = lerpf(_sad_s, sad_target, k_slow) if delta > 0.0 else sad_target
 
@@ -207,6 +214,8 @@ func _apply_params(delta: float) -> void:
 	_mod.sad = _sad_s * (1.0 - _run_s)
 	_model.position.y = foot_lift   # straighter knees (pose modifier) make the legs a little longer
 	_mod.breath = _breath_s
+	_mod.winded = _winded
+	_mod.breath_phase = _breath_phase
 	_mod.time = _t
 
 
@@ -224,6 +233,11 @@ func set_motion(speed_mps: float, run_amount: float) -> void:
 
 func set_stopped(stopped: bool) -> void:
 	_stopped = stopped
+
+
+## 0..1 how out of breath he is: standing stopped, his chest heaves harder and faster with it.
+func set_winded(amount: float) -> void:
+	_winded = clampf(amount, 0.0, 1.0)
 
 
 func set_umbrella_pose(raise: float, tilt: float, droop: float) -> void:
