@@ -347,29 +347,52 @@ def bollard():
 
 
 def phone_booth():
+    """Aluminium-and-glass call box: solid kick panels, a folding door, and a lit header whose dark
+    lettering blocks read as TELEPHONE from across the street."""
     B = Builder("phone_booth")
     W, D, H = 0.9, 0.9, 2.25
+    al = "aluminium"
     B.box(-W / 2 - 0.03, W / 2 + 0.03, 0.0, 0.08, -D / 2 - 0.03, D / 2 + 0.03, "concrete", 0.01)
     for sx in (-1, 1):
         for sz in (-1, 1):
-            B.box(sx * W / 2 - 0.04, sx * W / 2 + 0.04, 0.08, H, sz * D / 2 - 0.04, sz * D / 2 + 0.04, "aluminium", 0.012)
-    B.box(-W / 2 - 0.04, W / 2 + 0.04, H, H + 0.25, -D / 2 - 0.04, D / 2 + 0.04, "aluminium", 0.02)
-    B.box(-W / 2 + 0.02, W / 2 - 0.02, H + 0.05, H + 0.2, D / 2 + 0.04, D / 2 + 0.045, "lamp_bulb", 0.0)
-    B.box(-W / 2 + 0.02, W / 2 - 0.02, H + 0.05, H + 0.2, -D / 2 - 0.045, -D / 2 - 0.04, "lamp_bulb", 0.0)
-    B.box(-W / 2 - 0.05, W / 2 + 0.05, H + 0.25, H + 0.29, -D / 2 - 0.05, D / 2 + 0.05, "aluminium", 0.01)
-    # glass sides with horizontal rails (front = folding door)
+            B.box(sx * W / 2 - 0.05, sx * W / 2 + 0.05, 0.08, H, sz * D / 2 - 0.05, sz * D / 2 + 0.05, al, 0.012)
+    # header: lit sign band on the two faces seen from the street, capped by an overhanging roof
+    B.box(-W / 2 - 0.05, W / 2 + 0.05, H, H + 0.25, -D / 2 - 0.05, D / 2 + 0.05, al, 0.02)
+    for (fz, sgn) in ((D / 2 + 0.05, 1), (-D / 2 - 0.05, -1)):
+        B.box(-W / 2 + 0.02, W / 2 - 0.02, H + 0.04, H + 0.21, min(fz, fz + sgn * 0.006), max(fz, fz + sgn * 0.006), "lamp_bulb", 0.0)
+        for k in range(9):
+            x = -0.36 + k * 0.09
+            lw = 0.05 if k not in (4, 6) else 0.03      # uneven widths, as letters are
+            B.box(x - lw / 2, x + lw / 2, H + 0.08, H + 0.17, min(fz + sgn * 0.006, fz + sgn * 0.009), max(fz + sgn * 0.006, fz + sgn * 0.009), "metal_dark", 0.0)
+    B.box(-W / 2 - 0.08, W / 2 + 0.08, H + 0.25, H + 0.3, -D / 2 - 0.08, D / 2 + 0.08, al, 0.012)
+    B.box(-W / 2 + 0.1, W / 2 - 0.1, H + 0.3, H + 0.33, -D / 2 + 0.1, D / 2 - 0.1, al, 0.01)
+    # walls: kick panel below, glass above with two rails (front = folding door, split down the middle)
+    kick = 0.52
     for (fz, facing) in ((D / 2, 1), (-D / 2, -1)):
-        B.rect_z(-W / 2 + 0.04, W / 2 - 0.04, 0.12, H - 0.02, fz, "glass_dirty", facing=facing)
-        for y in (0.45, 1.1, 1.8):
-            B.box(-W / 2 + 0.04, W / 2 - 0.04, y, y + 0.04, fz - 0.015, fz + 0.015, "aluminium", 0.005)
+        B.box(-W / 2 + 0.05, W / 2 - 0.05, 0.1, kick, fz - 0.012, fz + 0.012, al, 0.004)
+        B.rect_z(-W / 2 + 0.05, W / 2 - 0.05, kick, H - 0.02, fz, "glass_dirty", facing=facing)
+        for y in (kick, 1.2, H - 0.06):
+            B.box(-W / 2 + 0.05, W / 2 - 0.05, y, y + 0.05, fz - 0.018, fz + 0.018, al, 0.005)
     for (fx, facing) in ((W / 2, 1), (-W / 2, -1)):
-        B.rect_x(-D / 2 + 0.04, D / 2 - 0.04, 0.12, H - 0.02, fx, "glass_dirty", facing=facing)
-        for y in (0.45, 1.1, 1.8):
-            B.box(fx - 0.015, fx + 0.015, y, y + 0.04, -D / 2 + 0.04, D / 2 - 0.04, "aluminium", 0.005)
-    # phone on the back wall
-    B.box(-0.15, 0.15, 1.1, 1.6, -D / 2 + 0.04, -D / 2 + 0.18, "metal_dark", 0.02)
-    B.box(-0.03, 0.03, 1.25, 1.5, -D / 2 + 0.18, -D / 2 + 0.24, "metal_dark", 0.015)
-    B.box(-0.08, 0.08, 1.62, 1.7, -D / 2 + 0.04, -D / 2 + 0.12, "lamp_bulb", 0.005)
+        B.box(fx - 0.012, fx + 0.012, 0.1, kick, -D / 2 + 0.05, D / 2 - 0.05, al, 0.004)
+        B.rect_x(-D / 2 + 0.05, D / 2 - 0.05, kick, H - 0.02, fx, "glass_dirty", facing=facing)
+        for y in (kick, 1.2, H - 0.06):
+            B.box(fx - 0.018, fx + 0.018, y, y + 0.05, -D / 2 + 0.05, D / 2 - 0.05, al, 0.005)
+    B.box(-0.02, 0.02, 0.1, H, D / 2 - 0.02, D / 2 + 0.02, al, 0.005)                       # door's fold
+    B.box(0.06, 0.09, 1.0, 1.3, D / 2 + 0.018, D / 2 + 0.045, "chrome", 0.008)              # pull handle
+    # payphone on the back wall: backboard, coin box with its three slots, handset on a cord, shelf
+    zb = -D / 2 + 0.03
+    B.box(-0.22, 0.22, 0.95, 1.75, zb, zb + 0.03, "plastic_beige", 0.006)
+    B.box(-0.13, 0.13, 1.12, 1.6, zb + 0.03, zb + 0.17, "metal_dark", 0.02)
+    B.box(-0.09, 0.09, 1.52, 1.57, zb + 0.17, zb + 0.18, "chrome", 0.004)
+    B.tube((0.0, 1.38, zb + 0.17), (0.0, 1.38, zb + 0.185), 0.07, "chrome", segs=16)        # dial
+    B.box(-0.07, 0.07, 1.16, 1.22, zb + 0.17, zb + 0.18, "chrome", 0.006)                   # coin return
+    B.box(-0.2, -0.15, 1.2, 1.48, zb + 0.06, zb + 0.13, "metal_dark", 0.02)                 # handset, hung at the side
+    B.tube((-0.175, 1.2, zb + 0.1), (-0.12, 0.98, zb + 0.12), 0.008, "chrome", segs=5)
+    B.tube((-0.12, 0.98, zb + 0.12), (-0.05, 1.13, zb + 0.14), 0.008, "chrome", segs=5)
+    B.box(-0.3, 0.3, 0.9, 0.93, zb, zb + 0.22, al, 0.006)                                   # shelf
+    B.box(-0.14, 0.14, 0.72, 0.9, zb + 0.02, zb + 0.07, "paint_yellow", 0.008)              # directory hung under it
+    B.box(-0.1, 0.1, H - 0.03, H, -0.1, 0.1, "lamp_bulb", 0.005)                            # ceiling light
     B.marker("omni_lamp", (0.0, 2.2, 0.0))
     export(B, "phone_booth")
     register("phone_booth", "sidewalk", (1.0, 1.0), ["light", "shelter"], height=2.54)
