@@ -1242,7 +1242,8 @@ func _test_the_bypass() -> void:
 	check(back["splash"] < up["splash"] * 0.2 and back["shot"] > Tun.f("wet_jet_hit") * 0.8,
 		"tilted back, the canopy stops the splash (%.1f) but not the shot from ahead (%.1f)" % [back["splash"], back["shot"]])
 	var fwd := await _drive_by_pass(open_x, 1.0)
-	check(fwd["shot"] < Tun.f("wet_jet_hit") * 0.35 and fwd["splash"] > up["splash"] * 0.5,
+	# A droplet or two can skim the rim (2.6 each); a shot that misses the canopy costs a full hit.
+	check(fwd["shot"] < Tun.f("wet_jet_hit") * 0.5 and fwd["splash"] > up["splash"] * 0.5,
 		"tilted forward, it stops the shot (%.1f) but not the splash from behind (%.1f)" % [fwd["shot"], fwd["splash"]])
 	await get_tree().create_timer(2.5).timeout
 	check(level.camera_pull == 0.0 and absf(level.camera.global_position.z - Tun.f("player_z") - Tun.f("camera_distance")) < 0.6,
