@@ -160,6 +160,7 @@ func _ready() -> void:
 		courier.name = "Courier"
 		courier.level = self
 		add_child(courier)
+	RaincoatFigure.place_debug(self)
 
 	var traffic := preload("res://src/level/traffic.gd").new()
 	traffic.level = self

@@ -21,6 +21,7 @@ var breath := 0.0      # 0..1 weight of the "catching breath" overlay
 var run := 0.0         # gait position: 0 walk .. 0.5 brisk .. 1 jog
 var stride := 1.0      # leg swing amplitude kept (walker.gd shortens the cycle to match)
 var umbrella_left := false
+var carry := 0.0       # 0..1 the furled umbrella carried at the hip like a rifle, tip forward
 @export var hip_back := 0.0      # rad the pelvis is pitched back (legs counter-rotated: no)
 @export var pelvis_tilt := 0.16   # rad of posterior pelvic tilt (tucks the backside under)
 @export_range(0.0, 1.0) var posture_fix := 0.0   # per-frame torso straightening (0 = trust the clip)
@@ -50,6 +51,13 @@ const OPEN_TIP := deg_to_rad(20.0)  # opened / closed at ~70° above horizontal 
 const RUNNER_PUSH_FWD := 0.12    # right hand holds the umbrella this much further out meanwhile
 const RUNNER_FINGER_DIR := Vector3(0.3, 0.0, 1.0)   # knuckles point across the body to the right
 const ELBOW_POLE_L := Vector3(0.15, -1.0, -0.55)    # elbow down and out to the left
+# Carried at the hip: the fist hangs a little ahead of the shoulder and just clear of the coat, the
+# shaft runs forward from it with the tip raised a little, knuckles down and forward.
+const CARRY_HAND := Vector3(0.1, -0.45, 0.05)
+const CARRY_PITCH := 0.1
+const CARRY_TOE_IN := 0.06
+const CARRY_FINGER_DIR := Vector3(0.45, -1.0, 0.0)
+const CARRY_POLE := Vector3(-0.7, -1.0, 0.3)       # elbow back, down and a little out
 
 var grip_r_offset := Transform3D.IDENTITY  # grip frame expressed in RightHand bone space
 var grip_l_offset := Transform3D.IDENTITY  # grip frame expressed in LeftHand bone space
@@ -230,6 +238,9 @@ func _process_modification_with_delta(_delta: float) -> void:
 	# --- Left hand works the runner while the umbrella opens / closes ----------------------------
 	if fid > 0.001 and w > 0.001:
 		_solve_runner_arm(skel, skel_from_char, fid * w)
+	var c := clampf(carry, 0.0, 1.0) * (1.0 - w)
+	if c > 0.001:
+		_solve_carry_arm(skel, skel_from_char, c)
 
 	# --- Legs: slow walking takes shorter steps (walker.gd lowers the cycle length to match) ----
 	if stride < 0.999:
@@ -275,7 +286,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 		_rot_global(skel, ft, right_axis, -corr)
 
 	# --- Free arm: swing back behind the hip as the same-side leg comes forward ----------------
-	var held_r := fid * w if umbrella_left else w   # the right hand is on the shaft
+	var held_r := fid * w if umbrella_left else maxf(w, c)   # the right hand is on the shaft
 	if held_r < 0.5:
 		_swing(skel, "Right", right_axis, free_arm_swing * (1.0 - 2.0 * held_r) * (1.0 - 0.7 * sad), 0.4)
 
@@ -322,6 +333,21 @@ func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float
 	var hand_s := skel_from_char * grip_c * _hold_grip().affine_inverse()
 
 	_ik_arm(skel, skel_from_char, side, hand_s, ELBOW_POLE * Vector3(1, 1, m), w)
+
+
+## The umbrella hand at the hip, the shaft forward like a rifle's barrel. Placed from the shoulder as
+## it is now, so the fist rides with the body's bob and lean.
+func _solve_carry_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float) -> void:
+	var m := _mirror()
+	var side := "Left" if umbrella_left else "Right"
+	var shoulder_c := char_from_skel * skel.get_bone_global_pose(_b[side + "UpperArm"]).origin
+	var p := shoulder_c + CARRY_HAND * Vector3(1, 1, m)
+	var y_c := Vector3(cos(CARRY_PITCH), sin(CARRY_PITCH), -CARRY_TOE_IN * m).normalized()
+	var x_c := CARRY_FINGER_DIR.normalized()
+	x_c = (x_c - y_c * x_c.dot(y_c)).normalized()
+	var grip_c := Transform3D(Basis(x_c, y_c, x_c.cross(y_c).normalized()), p)
+	var hand_s := skel_from_char * grip_c * _hold_grip().affine_inverse()
+	_ik_arm(skel, skel_from_char, side, hand_s, CARRY_POLE * Vector3(1, 1, m), w)
 
 
 ## The umbrella hand's fist around the shaft, in its hand bone's space.

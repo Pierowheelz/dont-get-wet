@@ -437,6 +437,32 @@ const COURIER := {"courier": {"appear_x": 30.0, "door_x": 200.0, "stops": [{"x":
 
 ## Courier on Main Street: he steps out, glances when the walker is close, and ends the attempt as
 ## LOST, MADE or SHOT.
+func _test_raincoat_figure() -> void:
+	for facing: int in [1, -1]:
+		var fig := RaincoatFigure.new()
+		fig.facing = facing
+		fig.pose = RaincoatFigure.Pose.WALK
+		add_child(fig)
+		await _idle_frames(3)
+		var skel := fig.model.find_child("GeneralSkeleton", true, false) as Skeleton3D
+		check(RaincoatFigure.PARTS.all(func(n: String) -> bool: return skel.find_child(n, false, false) is MeshInstance3D),
+			"facing %d: the slicker's skirt, hood and buttons are skinned to his skeleton" % facing)
+		var x0 := fig.position.x
+		await get_tree().create_timer(1.0).timeout
+		var moved := (fig.position.x - x0) * facing
+		check(moved > 0.9 * fig.walk_speed and moved < 1.3 * fig.walk_speed, "facing %d: walking, he moves his way at walk_speed (%.2f m in 1 s)" % [facing, moved])
+		var shaft := fig.umbrella.global_basis.y.normalized()
+		check(shaft.x * facing > 0.8, "facing %d: the furled umbrella points forward, like a rifle (%s)" % [facing, shaft])
+		check(fig.umbrella.global_position.z > fig.global_position.z + 0.1, "facing %d: carried in the camera-side hand (z %+.2f)" % [facing, fig.umbrella.global_position.z - fig.global_position.z])
+		check(fig.umbrella.open == 0.0 and fig.umbrella._body.collision_layer == 0, "facing %d: furled, and no collider for the rain to hit" % facing)
+		fig.smoking = true
+		var cig_visible := fig._cig.visible
+		fig.smoking = false
+		check(cig_visible and not fig._cig.visible, "facing %d: smoking shows the cigarette, and hides it again" % facing)
+		fig.queue_free()
+	await _idle_frames(1)
+
+
 func _test_courier() -> void:
 	var lv := await _street_with(COURIER)
 	var p: Player = lv.player
@@ -664,6 +690,7 @@ func _run() -> void:
 	await _test_street_hints()
 	await _test_follower()
 	await _test_courier()
+	await _test_raincoat_figure()
 	await _test_fail_cause()
 	await _test_umbrella_shot()
 	await _test_viaduct()

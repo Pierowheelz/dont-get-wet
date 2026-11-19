@@ -21,6 +21,8 @@ No third-party recordings or samples are used, so there is nothing to attribute.
   Rebuild script: `assets/characters/walker/source/build_walker.py`.
 - `raincoat.glb` (a coat skirt and a fedora skinned to `walker_model.glb`) and `raincoat_suit.webp`
   (the suit texture above, dyed): generated from it by `source/build_raincoat.py`.
+- `slicker.glb` (a coat skirt, a hood and buttons skinned to `walker_model.glb`) and `slicker_suit.webp`
+  (the suit texture above, dyed): generated from it by `source/build_slicker.py`.
 - `anim/mocap/{walk,brisk,jog,idle}.res` (the locomotion in use) and their sources
   `source/cmu/{35_01,16_21,16_35,77_02}.bvh`: **CMU Graphics Lab Motion Capture Database**,
   http://mocap.cs.cmu.edu/ — created with funding from NSF EIA-0196217. Licence: free for use in

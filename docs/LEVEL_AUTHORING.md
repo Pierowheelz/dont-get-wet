@@ -390,6 +390,9 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
   26 m even though the sun lets a player recover.
 - **`--start-x` for screenshots:** start under cover. Cars whose crossing is behind the start never
   drive.
+- **`--slicker=X[,stand|watch|walk[,1|-1[,smoke[,Z]]]]`** places a man in a yellow slicker
+  (`src/level/raincoat_figure.gd`) at x X, lane z Z (default 0.8), for screenshots only;
+  `--slicker-close` frames the first one with a close camera.
 - **The title screen shows Main Street from 4 to 60 m.** Keep that stretch good-looking.
 - **Colonnade columns hide sign letters.** Use short signs on `arcade` lots, or accept the
   partial word.
