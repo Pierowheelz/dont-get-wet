@@ -233,7 +233,16 @@
     "atomic_avenue",
     "skyway_terminal"
    ],
-   "soon": true
+   "blurb": "Hotels with chrome fins, and doormen who don't look at you. Some of them aren't doormen.",
+   "difficulty": 7,
+   "file": "res://levels/rocket_row.json",
+   "outro": "The car was gone. In the gutter, a matchbook from the Skyway Terminal Hotel.",
+   "load": "Room 9 checked out before dawn.",
+   "fail": {
+    "shot": [
+     "Right through the lapels."
+    ]
+   }
   },
   {
    "id": "skyway_terminal",

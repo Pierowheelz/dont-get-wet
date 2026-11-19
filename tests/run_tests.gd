@@ -706,6 +706,7 @@ func _run() -> void:
 	await _test_umbrella_shot()
 	await _test_viaduct()
 	await _test_viaduct_road()
+	await _test_rocket_row()
 	_test_dynamic_resolution()
 	_run_tests()
 	get_parent().finish(failures)
@@ -996,6 +997,167 @@ func _test_viaduct_road() -> void:
 	r.current_node = "mill_road"
 	check(not Game.can_select("viaduct_road"), "... and not before")
 	Game.run = run_was
+
+
+## Puts the walker at x with the camera caught up, and lets the street run `frames` frames.
+func _walker_at(x: float, frames := 3) -> void:
+	var p: Player = level.player
+	p.position = Vector3(x, level.ground_y(x), Tun.f("player_z"))
+	level._cam_x = x + Tun.f("camera_lead")
+	level._update_camera(1.0)
+	await _idle_frames(frames)
+
+
+## Real seconds until `cond` holds (INF if it doesn't within `limit`).
+func _until(cond: Callable, limit: float) -> float:
+	var t := 0.0
+	while not cond.call():
+		if t > limit:
+			return INF
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	return t
+
+
+## Rocket Row: men who wait under the canopies and fire on a timer, the car that pulls out once one
+## is dealt with, and the street on the map.
+func _test_rocket_row() -> void:
+	Game.current_level = "rocket_row"
+	if is_instance_valid(level):
+		level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	var p: Player = level.player
+	p.set_physics_process(false)
+	p.speed = 0.0
+	_unhook_defeat(p)
+	check(p.gun.armed, "Rocket Row is armed")
+	var hm: Node = level.henchmen
+	check(hm != null and hm.men.size() == 5 and hm.men.all(func(m) -> bool:
+		return m.body is NpcBody and m.body.umbrella.open == 0.0 and absf(m.body.rotation.y - PI) < 0.01),
+		"five men wait at their x, umbrellas furled, facing back down the street")
+	var m = hm.men[0]
+	await _walker_at(m.x - hm.RANGE - 3.0, 30)
+	check(m.phase == hm.Phase.WAIT and not hm.incoming() and not hm.armed(), "out of his range he only waits")
+	var dealt: Array = []
+	hm.dealt_with.connect(func(i: int) -> void: dealt.append(i))
+	await _walker_at(m.x - 6.0)
+	var first := await _until(func() -> bool: return m.incoming(), 4.0)
+	check(m.phase == hm.Phase.FIRE and m.open == 1.0 and first < hm.OPEN_S + hm.FIRST_SHOT + 0.3 and level._seen.has("henchman"),
+		"in range and in shot he opens up and his first glint comes %.2f s later, with the hint" % first)
+	# The timer: each gap is the next of INTERVALS, nudged by up to JITTER, and runs only once the
+	# last jet has landed.
+	var gaps_ok := true
+	for k in 6:
+		hm._drop_jet(m)
+		var i: int = m.next
+		hm._fire(m)
+		gaps_ok = gaps_ok and absf(m.shot_t - hm.INTERVALS[i]) <= hm.JITTER + 0.001 and m.next == (i + 1) % hm.INTERVALS.size()
+	check(gaps_ok, "the gaps between shots cycle through %s, each within %.1f s" % [hm.INTERVALS, hm.JITTER])
+	var held: float = m.shot_t
+	await _idle_frames(10)
+	check(m.incoming() and m.shot_t == held, "while his jet is glinting or in the air the next one waits")
+	# Brought down to aim, his canopy stops the walker's shot; overhead between shots it lets it by.
+	m.jet.glint_s = 100.0
+	await get_tree().create_timer(0.5).timeout
+	await _walker_at(m.x - 3.0)
+	p.gun.aim_back = false
+	var shield := await _shots_at(m.body, 3)
+	check(shield[0] > shield[1] * 8 and shield[2] < Tun.f("gun_hit") * 0.35,
+		"aiming, his lowered canopy stops the shot (%d stopped, %d through, wet %.1f a shot)" % shield)
+	check(not p._autopilot_fire(), "the bots hold their fire while his canopy is in the way")
+	m.body.wet = 0.0
+	m.body.visual.call("set_wetness", 0.0)
+	hm._drop_jet(m)
+	m.shot_t = 100.0
+	await get_tree().create_timer(0.5).timeout
+	check(p._autopilot_fire(), "... and fire once it is back over his head")
+	await _fire()
+	var one: float = m.body.wet
+	await _fire()
+	await _frames(2)
+	check(one >= Tun.f("gun_hit") * 0.95 and m.phase == hm.Phase.DONE and not m.body.wettable() and dealt == [0] and not hm.armed(),
+		"two clean hits between his shots soak him (%.1f after one): he gives up and is dealt with" % one)
+
+	# Passed: he turns round, fires from behind while the walker is in range, and is dealt with.
+	var m2 = hm.men[1]
+	await _walker_at(m2.x - 5.0)
+	await _until(func() -> bool: return m2.phase == hm.Phase.FIRE, 3.0)
+	hm._drop_jet(m2)
+	await _walker_at(m2.x + 2.5)
+	m2.shot_t = 0.3
+	var turned := await _until(func() -> bool: return absf(m2.body.rotation.y) < 0.01, 2.0)
+	var behind := await _until(func() -> bool: return m2.incoming(), 2.0)
+	check(dealt == [0, 1] and turned < 1.0 and behind < 1.0 and hm.brace_side() <= 0.0,
+		"past him, he is dealt with, turns round in %.2f s and fires from behind %.2f s later" % [turned, behind])
+	hm._drop_jet(m2)
+	await _walker_at(m2.x + hm.RANGE + 1.0)
+	m2.shot_t = 0.0
+	await _idle_frames(20)
+	check(not m2.incoming(), "out of his range behind, he stops")
+
+	# The car: parked dark beside a man in a slicker until the third man is dealt with.
+	var pk: PickupCar
+	for c in level.cars:
+		if c is PickupCar:
+			pk = c
+	var cx: float = pk.crossing_x
+	var slicker := pk.man
+	check(pk.phase == PickupCar.P.PARKED and not pk.is_threat_for(cx - 5.0) and pk._lights.all(func(l: SpotLight3D) -> bool: return l.light_energy == 0.0)
+		and slicker is RaincoatFigure and not WetBody.of_level(level).has(slicker as Node) and slicker.smoking,
+		"a car idles dark in the side street, the man in the slicker beside it, out of the shot's reach")
+	await _walker_at(cx - 12.0)
+	var early: bool = level._seen.has("slicker")
+	await _walker_at(cx - 8.0)
+	check(not early and level._seen.has("slicker"), "once he is in the frame, the line about his raincoat shows")
+	check(level.camera_bias == pk.LOOK_AHEAD, "coming up to the crossing, the camera looks ahead to keep him in shot")
+	var m3 = hm.men[pk.after]
+	m3.body.soak(m3.body.wet_max(), &"shot")
+	await _frames(2)
+	check(pk.phase == PickupCar.P.BOARDING and pk.is_threat_for(cx - 5.0) and level.camera_bias == pk.LOOK_AHEAD,
+		"once man #%d is soaked he heads for the car, in shot, and the engine turns over" % pk.after)
+	var boarded := await _until(func() -> bool: return pk.phase == PickupCar.P.STARTING, 6.0)
+	await _frames(2)
+	check(not is_instance_valid(slicker) and boarded < 4.0 and level.camera_bias == 0.0, "he gets in (%.1f s) and the camera comes back" % boarded)
+	await _walker_at(cx - 2.0)
+	await get_tree().create_timer(pk.START_S + 0.3).timeout
+	check(pk.phase == PickupCar.P.STARTING and pk._lights[0].light_energy > 7.0, "headlights on, it waits while the walker is at the kerb")
+	await _walker_at(cx - 5.5)
+	var was: float = p.stats["wet_splash"]
+	var drove := await _until(func() -> bool: return pk._splashed, 3.0)
+	await get_tree().create_timer(1.5).timeout
+	check(drove < 2.0 and p.stats["wet_splash"] - was > 5.0, "5.5 m short of the crossing it pulls out through the puddle at him (+%.1f wet)" % (p.stats["wet_splash"] - was))
+
+	# A resume from the middle checkpoint leaves out the men behind it, and the car with them.
+	level.queue_free()
+	await _frames(2)
+	Game.debug_resume_cp = 1
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	Game.debug_resume_cp = -1
+	await _frames(3)
+	hm = level.henchmen
+	var gone: Array = hm.men.filter(func(mm) -> bool: return mm.body == null).map(func(mm) -> int: return mm.index)
+	check(gone == [0, 1, 2] and level.cars.filter(func(c) -> bool: return c is PickupCar).all(func(c) -> bool: return c.phase == PickupCar.P.GONE),
+		"resuming at %.1f m skips the men behind it %s and the car" % [level.player.position.x, gone])
+	level.player.set_physics_process(false)
+
+	var r := Run.new("right", Game.start_node)
+	r.completed = [Game.start_node, "arcade_lane", "neon_junction", "telstar_parade", "atomic_avenue"]
+	r.current_node = "atomic_avenue"
+	var run_was := Game.run
+	Game.run = r
+	check(not Game.is_soon("rocket_row") and Game.can_select("rocket_row"), "the map opens Rocket Row once Atomic Avenue is walked")
+	r.completed.pop_back()
+	r.current_node = "telstar_parade"
+	check(not Game.can_select("rocket_row"), "... and not before")
+	Game.run = run_was
+	check(preload("res://src/ui/hud.gd").fail_line("rocket_row", &"shot") == "Right through the lapels.", "Rocket Row's SHOT line")
+	level.queue_free()
+	await _frames(2)
+	Game.current_level = "main_street"
 
 
 ## Each observe() is one second of play: median frame and GPU time in ms.
