@@ -62,6 +62,8 @@ const CARRY_TOE_IN := 0.06
 const CARRY_FINGER_DIR := Vector3(0.45, -1.0, 0.0)
 const CARRY_POLE := Vector3(-0.7, -1.0, 0.3)       # elbow back, down and a little out
 const BREATH_QUIET := 0.25   # share of the winded chest heave left in quiet breathing
+const STAND_ARM := -0.02     # rad forward of straight down (+) the free upper arm hangs while he stands
+const STAND_ELBOW := 0.24    # ...and its elbow's bend
 
 # Aimed like a rifle (furled, `aim`): the crook sits in the pocket of the shoulder, the fist a hand's
 # length up the shaft from it and the other hand under the ridged sleeve. Aimed behind, he twists
@@ -320,7 +322,13 @@ func _process_modification_with_delta(_delta: float) -> void:
 	# --- Free arm: swing back behind the hip as the same-side leg comes forward ----------------
 	var held_r := maxf(fid * w, support) if umbrella_left else maxf(w, c)   # the right hand is on the shaft
 	if held_r < 0.5:
-		_swing(skel, "Right", right_axis, free_arm_swing * (1.0 - 2.0 * held_r) * (1.0 - 0.7 * sad), 0.4)
+		# Standing with that hand empty, it hangs at his side: no swing against the back leg of his
+		# stance, the elbow eased. Gone by a quarter raise, where a standing shooter holds his to fire.
+		var stand := breath * clampf(1.0 - 8.0 * held_r, 0.0, 1.0)
+		_swing(skel, "Right", right_axis, free_arm_swing * (1.0 - 2.0 * held_r) * (1.0 - 0.7 * sad) * (1.0 - stand), 0.4,
+				lerpf(0.06, STAND_ARM, stand))
+		if stand > 0.0:
+			_set_elbow(skel, "Right", right_axis, lerpf(_elbow_bend(skel, "Right"), STAND_ELBOW, stand))
 
 	# --- Fists ---------------------------------------------------------------------------------
 	_curl_hand(skel, "Left", 1.0)
@@ -588,7 +596,7 @@ func stride_now() -> float:
 
 ## Swing an upper arm from the shoulder, opposite to the same-side leg (the formal-walk clip
 ## barely swings its arms). `gain` = arm angle per unit of thigh angle.
-func _swing(skel: Skeleton3D, side: String, right_axis: Vector3, gain: float, max_fwd := 0.35) -> void:
+func _swing(skel: Skeleton3D, side: String, right_axis: Vector3, gain: float, max_fwd := 0.35, bias := 0.06) -> void:
 	var ua: int = _b[side + "UpperArm"]
 	var sh := char_from_skel * skel.get_bone_global_pose(ua).origin
 	var el := char_from_skel * skel.get_bone_global_pose(_b[side + "LowerArm"]).origin
@@ -598,7 +606,7 @@ func _swing(skel: Skeleton3D, side: String, right_axis: Vector3, gain: float, ma
 	var knee := char_from_skel * skel.get_bone_global_pose(skel.find_bone(side + "LowerLeg")).origin
 	var ld := (knee - hip).normalized()
 	var thigh := atan2(ld.x, -ld.y)               # + = leg forward
-	var target := clampf(-gain * thigh + 0.06, -0.26, max_fwd)   # slight forward bias, even swing
+	var target := clampf(-gain * thigh + bias, -0.26, max_fwd)   # slight forward bias, even swing
 	# For a limb pointing DOWN, a positive rotation about the right axis swings it forward.
 	_rot_global(skel, ua, right_axis, target - ang)
 
