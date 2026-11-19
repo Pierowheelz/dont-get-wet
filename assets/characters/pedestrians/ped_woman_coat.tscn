@@ -7,7 +7,7 @@
 script = ExtResource("1")
 kind = &"walker"
 umbrella = true
-tint_options = {"winter_coat": [Color(0.78, 0.66, 0.48, 1), Color(0.55, 0.5, 0.42, 1), Color(0.42, 0.45, 0.52, 1), Color(0.6, 0.36, 0.3, 1)], "sportsuit": [Color(0.25, 0.24, 0.26, 1)], "boots": [Color(0.32, 0.2, 0.14, 1), Color(0.16, 0.14, 0.13, 1)]}
+tint_options = {"winter_coat": [Color(0.5, 0.56, 0.5, 1), Color(0.55, 0.5, 0.42, 1), Color(0.42, 0.45, 0.52, 1), Color(0.6, 0.36, 0.3, 1)], "sportsuit": [Color(0.25, 0.24, 0.26, 1)], "boots": [Color(0.32, 0.2, 0.14, 1), Color(0.16, 0.14, 0.13, 1)]}
 suggested_speed = 1.2
 
 [node name="Model" parent="." instance=ExtResource("2")]
