@@ -197,18 +197,44 @@ static func _floodlight(b: LevelBuilder, x: float, z: float, col: Color) -> void
 	b.root.add_child(sl)
 
 
-## A hoarding on two steel posts, low enough to read under the street's camera, its face lit by two lamps on arms: `text`, one line per "\n".
+## A hoarding on two braced steel posts, low enough to read under the street's camera: a framed
+## paper face over a bill poster's catwalk, lit by two lamps on arms. `text`, one line per "\n".
 static func billboard(b: LevelBuilder, x: float, text: String, z := -3.0) -> void:
 	var steel := b._mat("hoarding_steel", Color(0.16, 0.16, 0.17), 0.55, 0.6)
 	var bw := 10.0
 	var y0 := 2.5
 	var bh := 3.2
+	var sts := {}
 	for dx in [-3.2, 3.2]:
-		b._box(Vector3(0.3, y0 + 0.2, 0.3), Vector3(x + dx, (y0 + 0.2) * 0.5, z - 0.3), steel)
-	b._box(Vector3(bw + 0.3, bh + 0.3, 0.2), Vector3(x, y0 + bh * 0.5, z - 0.12), steel)
-	var face := b._mat("hoarding_face", Color(0.86, 0.84, 0.78), 0.8)
-	b._box(Vector3(bw, bh, 0.06), Vector3(x, y0 + bh * 0.5, z), face)
-	b._box(Vector3(bw, 0.5, 0.07), Vector3(x, y0 + 0.3, z + 0.005), b._mat("hoarding_band", Color(0.12, 0.13, 0.15), 0.7))
+		_add(sts, steel, x + dx - 0.15, x + dx + 0.15, 0.0, y0 + 0.2, z - 0.45, z - 0.15)
+		_add(sts, steel, x + dx - 0.3, x + dx + 0.3, 0.0, 0.12, z - 0.6, z)
+	_add(sts, steel, x - 3.2, x + 3.2, 1.2, 1.32, z - 0.36, z - 0.24)
+	_add(sts, steel, x - bw * 0.5 - 0.15, x + bw * 0.5 + 0.15, y0 - 0.15, y0 + bh + 0.15, z - 0.22, z - 0.02)
+	_add(sts, b._mat("hoarding_face", Color(0.86, 0.84, 0.78), 0.8), x - bw * 0.5, x + bw * 0.5, y0, y0 + bh, z - 0.03, z + 0.03)
+	_add(sts, b._mat("hoarding_band", Color(0.12, 0.13, 0.15), 0.7), x - bw * 0.5, x + bw * 0.5, y0 + 0.05, y0 + 0.55, z, z + 0.04)
+	# The frame's moulding round the face, and the catwalk under it on its brackets.
+	var mould := b._mat("hoarding_mould", Color(0.3, 0.12, 0.1), 0.6)
+	for yy in [y0 - 0.12, y0 + bh]:
+		_add(sts, mould, x - bw * 0.5 - 0.12, x + bw * 0.5 + 0.12, yy, yy + 0.12, z - 0.03, z + 0.08)
+	for xx in [x - bw * 0.5 - 0.12, x + bw * 0.5]:
+		_add(sts, mould, xx, xx + 0.12, y0, y0 + bh, z - 0.03, z + 0.08)
+	_add(sts, steel, x - bw * 0.5, x + bw * 0.5, y0 - 0.42, y0 - 0.37, z, z + 0.55)
+	_add(sts, steel, x - bw * 0.5, x + bw * 0.5, y0 + 0.5, y0 + 0.53, z + 0.52, z + 0.55)
+	var px := x - bw * 0.5
+	while px <= x + bw * 0.5 + 0.01:
+		_add(sts, steel, px - 0.02, px + 0.02, y0 - 0.4, y0 + 0.5, z + 0.51, z + 0.55)
+		px += bw / 8.0
+	var lamp := b._neon_mat(Color(1.0, 0.92, 0.75), 2.0)
+	for dx in [-2.6, 2.6]:
+		_add(sts, steel, x + dx - 0.03, x + dx + 0.03, y0 + bh + 0.22, y0 + bh + 0.28, z, z + 0.95)
+		_add(sts, steel, x + dx - 0.28, x + dx + 0.28, y0 + bh + 0.2, y0 + bh + 0.3, z + 0.78, z + 1.02)
+		_add(sts, lamp, x + dx - 0.24, x + dx + 0.24, y0 + bh + 0.17, y0 + bh + 0.2, z + 0.8, z + 1.0)
+	_commit(b, sts)
+	# X bracing between the posts, behind the catwalk.
+	var brace := Vector2(6.4, y0 - 1.4)
+	for sgn in [-1.0, 1.0]:
+		var mi := b._box(Vector3(brace.length(), 0.07, 0.07), Vector3(x, 1.2 + brace.y * 0.5 + 0.06, z - 0.3), steel)
+		mi.rotation.z = sgn * brace.angle()
 	var lbl := Label3D.new()
 	lbl.text = text
 	lbl.font_size = 150
@@ -222,9 +248,6 @@ static func billboard(b: LevelBuilder, x: float, text: String, z := -3.0) -> voi
 	lbl.double_sided = false
 	b.root.add_child(lbl)
 	for dx in [-2.6, 2.6]:
-		b._box(Vector3(0.06, 0.06, 0.9), Vector3(x + dx, y0 + bh + 0.25, z + 0.45), steel)
-		var lamp := b._neon_mat(Color(1.0, 0.92, 0.75), 2.0)
-		b._box(Vector3(0.5, 0.1, 0.2), Vector3(x + dx, y0 + bh + 0.2, z + 0.9), lamp).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var sl := SpotLight3D.new()
 		sl.light_color = Color(1.0, 0.92, 0.78)
 		sl.light_energy = 5.0
@@ -233,7 +256,7 @@ static func billboard(b: LevelBuilder, x: float, text: String, z := -3.0) -> voi
 		sl.shadow_enabled = false
 		sl.light_volumetric_fog_energy = 0.8
 		sl.position = Vector3(x + dx, y0 + bh + 0.15, z + 1.0)
-		sl.rotation = Vector3(-PI * 0.5 - 0.5, 0, 0)
+		sl.rotation = Vector3(-PI * 0.5 + 0.5, 0, 0)   # down and back onto the face
 		b.root.add_child(sl)
 
 
