@@ -37,6 +37,12 @@ func get_grip(hand: StringName) -> Node3D                      # &"right" (raise
   (umbrella carried closed like a cane / hanging). With `umbrella_left` set before it enters the tree, the
   walker holds the open umbrella in his left fist instead, mirrored, and `&"right"` is that left-fist grip.
 - The player script turns the root 180° about Y to walk left (defeat sequence).
+- NPCs that can be soaked (`NpcBody`) use the same scene and methods: `set_wetness` darkens their
+  suit as they get wet, and `set_mood(&"sad")` with the turn and walk left plays their defeat.
+
+Physics layers (`project.godot`): 1 `world`, 2 `cover` (awnings, balconies, arches: the walker's rain
+cover), 3 `player`, 4 `umbrella` (the walker's canopy), 5 `npc_umbrella` (soakable NPCs' canopies:
+they stop droplets flown at those NPCs and never shelter the walker).
 
 ## 2. Building kit — `res://assets/buildings/kit.json`
 

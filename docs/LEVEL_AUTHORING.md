@@ -78,7 +78,7 @@ door at `x + 4`. Keep the JSON `end_x` in step with it, because the preview uses
 skipped, and `"car": true` adds a car whose splash costs up to 25 (`wet_car_splash`). The splash is a burst of
 600 real droplets (`DropletBurst`) thrown off the puddle at about 45 degrees, fanned along the street: only
 those that come down on the walker from the knees up wet him. Each wets the body point nearest it (the
-weighted points rain is measured on, `Player.SAMPLES`); 25 droplets soak a point, and the splash costs the full
+weighted points rain is measured on, `WetBody.SAMPLES`); 25 droplets soak a point, and the splash costs the full
 25 once half his weighted body is soaked (`CarHazard.SPLASH_FULL`). Unblocked it costs the full 25 up to about
 4 m short of the crossing, about 16 at 5 m, 11 at 6 m and almost nothing past 8 m. A forward-tilted open umbrella
 stops the droplets it meets: about 3 get through at 3 m, about 2 from 4 m out (closer in the wave is still
@@ -259,6 +259,11 @@ has gone). When the walker passes `x`:
   less with Sturdy Frame: `upgrade_sturdy_jet_shove`).
 - **Under a railway arch** he holds his fire, but the held shot still counts, as does one he can't
   reach from more than 9 m back. After `shots` he drops back out of the left of the frame.
+- **He can be soaked.** Each man is an `NpcBody` with the walker's capacity (`wet_max`, 50): two
+  clean hits of the walker's shot soak him. Soaked, he drops his umbrella and trudges off the left
+  as the walker does when he fails; the camera holds back 2.5 s so it is seen, and the next one
+  comes as if he had dropped back. He holds 5.8 m back, past the base range of the shot (4 m), so
+  on an armed street only Long Barrel reaches him there unless the walker stops and lets him close in.
 
 The first one shows "Behind you." as the warning starts and a tilt-back hint at his first glint. A
 checkpoint resume skips every pursuer whose `x` is behind it, so one who was on at the checkpoint
@@ -268,6 +273,43 @@ bot's reaction delay, and never stop to rest in his line of fire. level_preview 
 ignores them: `tools/preview.sh` is the judge. Bring each in some 15 m short of a run of arches, so a
 few shots come in the open and the rest are held, and keep the human bot's minimum stamina above 10:
 the umbrella stays up through every shot.
+
+**The walker's shot (armed streets).** From the sixth street out from Main Street on either side
+(`Game.GUN_FROM`; the number is the street's place on the map, `Game.street_number`), the walker can
+fire the umbrella: RB, F or the left mouse button (`{fire}` in hint text), or the FIRE button with
+touch controls. Below that it is locked and the HUD shows no water meter. The first armed street a
+run walks shows "There's a reason the umbrella is heavy. ({fire})". `--armed` arms any street for
+testing.
+
+- **Aim:** along the street, forward, or behind once the open canopy is tilted back past 30% of full
+  tilt. Furled, the last tilt input picks the side (default forward) and the shot leaves from his
+  fist at hip height. It is aimed up or down at the chest of the nearest body it can reach.
+- **The burst:** 40 droplets (`WaterGun`, a `DropletBurst` with cause `shot`) at 15 m/s from the
+  umbrella's tip, fanned ±0.08 rad up and down. Droplets are spent at the range, `gun_range` 4 m plus
+  `upgrade_barrel_range_add` per Long Barrel tier ([0, 2, 4, 6]), each up to 10% short of it; spent
+  ones drop out of the air and wet nobody.
+- **Damage:** a burst that soaks 45% of a body's weighted points wets it `gun_hit` (25, half of
+  `wet_max`) times `upgrade_pressure_mult` per Pressure tier ([1, 1.25, 1.5, 2]): two clean hits soak
+  a man, one at Pressure tier 3. A canopy the droplets meet stops them, so a man whose umbrella is
+  between takes proportionally less.
+- **Water:** `gun_shots` 4, one every `gun_cadence` 0.35 s while the button is held. It refills at
+  `gun_refill_idle` (0.04 a second, one shot in 25 s), and at `gun_refill_stream` (one a second, with
+  a rising splash per shot) while the walker is stopped with the umbrella fully open under a gutter
+  stream that lands on at least half the canopy. A gutter is a refill point: put one before a fight.
+- **Shop:** Long Barrel (`barrel`) and Pressure (`pressure`), 3 tiers each at `upgrade_costs`, are
+  offered once the run has walked a fifth street.
+- **Bots:** under `--autopilot` the walker fires whenever a soakable man is in range and in shot on
+  the side it aims (tilting back for one behind), and stops under a gutter stream to refill when two
+  or more shots are gone. Each soak prints `NPC_SOAKED x= t=`.
+
+Every body water can wet is a `WetBody` (`src/player/wet_body.gd`): feet at its origin, facing +X,
+measured on the weighted `SAMPLES`, with its own wetness and `wet_max()`, the physics layer of its
+canopy (`canopy_mask()`), and `weatherproof` (only shots wet it). The walker is one; an NPC that can
+be soaked is an `NpcBody` (`src/level/npc_body.gd`), which brings the walker's model and umbrella, and
+whose owner moves and poses it until it is soaked. NPC canopies are on their own physics layer
+(`npc_umbrella`, `Umbrella.NPC_UMBRELLA_LAYER`): they stop droplets flown at the NPC and never keep
+rain, streams or sheets off the walker. Every `DropletBurst` (car splashes, jets, the walker's shot)
+flies at every body of the level but the one that fired it.
 
 **`set_pieces`** (`name`, `x0`, `x1`, `teaches`) is a top-level list the game ignores. Fill it in so
 the next person can see the intent without replaying the street.
