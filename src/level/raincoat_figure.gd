@@ -246,6 +246,21 @@ func _set_ember(glow: float) -> void:
 	_ember_mat.emission_energy_multiplier = 1.0 + 2.5 * glow
 
 
+## The level's `slickers`: [{x, z, facing, pose, smoking}], scenery standing where the plan puts them.
+static func place_all(lvl: Node) -> void:
+	for d in lvl.data.get("slickers", []):
+		var fig := RaincoatFigure.new()
+		fig.name = "RaincoatFigure"
+		fig.level = lvl
+		var x := float(d["x"])
+		fig.pose = {"stand": Pose.STAND, "watch": Pose.WATCH, "walk": Pose.WALK}.get(String(d.get("pose", "stand")), Pose.STAND)
+		fig.facing = int(d.get("facing", 1))
+		fig.smoking = bool(d.get("smoking", false))
+		fig.position = Vector3(x, lvl.ground_y(x), float(d.get("z", 0.8)))
+		lvl.add_child(fig)
+	place_debug(lvl)
+
+
 ## Screenshot aid (never in a level file): `--slicker=X[,stand|watch|walk[,1|-1[,smoke[,Z]]]]` places one
 ## on the street at x X (default lane z 0.8); `--slicker-close` frames the first one with a close camera.
 static func place_debug(lvl: Node) -> void:

@@ -26,6 +26,8 @@ var track: Track              # the elevated monorail, or null
 var phones: Array = []         # {x, keep, line} of every ringing payphone, in prop order
 var attackers: Node            # the level's `attackers` (attackers.gd), or null
 var camera_bias := 0.0         # metres the camera eases from its lead: back (<0) so someone behind stays in shot, or ahead
+var camera_pull := 0.0         # metres the camera eases out from the street (a wider view), 0 = normal
+var drive_bys: DriveBy         # the level's `drive_bys` (cars that pass from behind), or null
 var courier: Courier           # the level's scripted pedestrian to keep in frame, or null
 var henchmen: Node             # the level's `henchmen` (henchmen.gd), or null
 
@@ -42,6 +44,7 @@ var _gusts := false
 var _cam_locked := false
 var _cam_x := 0.0
 var _cam_bias := 0.0
+var _cam_pull := 0.0
 var _t := 0.0
 
 
@@ -167,6 +170,11 @@ func _ready() -> void:
 		world.add_child(pk)
 		cars.append(pk)
 		pk.approaching.connect(_on_car_approaching)
+	if data.has("drive_bys"):
+		drive_bys = DriveBy.new()
+		drive_bys.name = "DriveBys"
+		drive_bys.level = self
+		add_child(drive_bys)
 	if data.has("follower"):
 		var follower := preload("res://src/level/follower.gd").new()
 		follower.name = "Follower"
@@ -177,7 +185,7 @@ func _ready() -> void:
 		courier.name = "Courier"
 		courier.level = self
 		add_child(courier)
-	RaincoatFigure.place_debug(self)
+	RaincoatFigure.place_all(self)
 
 	var traffic := preload("res://src/level/traffic.gd").new()
 	traffic.level = self
@@ -521,6 +529,10 @@ func _train_and_phone_hints(delta: float) -> void:
 		hud.hint(phones[near]["line"], 5.0)
 
 
+const CAM_PULL_EASE := 2.2     # 1/s: how quickly the camera eases out or back in for camera_pull
+const CAM_PULL_RISE := 0.12    # and rises this much per metre, so the pavement stays mid-frame
+
+
 func _update_camera(delta: float) -> void:
 	if player == null or camera == null:
 		return
@@ -528,8 +540,9 @@ func _update_camera(delta: float) -> void:
 		_cam_bias = move_toward(_cam_bias, camera_bias, 1.6 * delta)
 		var target := player.position.x + Tun.f("camera_lead") + _cam_bias
 		_cam_x = lerpf(_cam_x, target, 1.0 - exp(-6.0 * delta))
-	var z := Tun.f("player_z") + Tun.f("camera_distance")
-	camera.position = Vector3(_cam_x, Tun.f("camera_height"), z)
+		_cam_pull = lerpf(_cam_pull, camera_pull, 1.0 - exp(-CAM_PULL_EASE * delta))
+	var z := Tun.f("player_z") + Tun.f("camera_distance") + _cam_pull
+	camera.position = Vector3(_cam_x, Tun.f("camera_height") + _cam_pull * CAM_PULL_RISE, z)
 	camera.rotation = Vector3(deg_to_rad(Tun.f("camera_pitch_deg")), 0, 0)
 
 

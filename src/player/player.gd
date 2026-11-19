@@ -50,6 +50,8 @@ var _ap_hold := 0.0
 var _ap_resting := false          # autopilot is holding Stop until stamina is full
 var _ap_no_rest_before := -INF      # autopilot won't settle to rest again before this x
 var _ap_filling := false          # autopilot is stopped under a stream, refilling the shot
+var _ap_fill_dry := 0.0           # s it has stood there without the stream refilling it
+const FILL_GIVE_UP_S := 1.5
 var _drips: GPUParticles3D                 # autopilot: keep umbrella up a little after leaving rain
 
 
@@ -544,6 +546,9 @@ func _autopilot(delta: float) -> Array:
 	# delayed replay). Rest through a light sprinkle at the cover's edge, but if a gust drives real
 	# rain in, give up the rest and don't settle again until he has moved on a little.
 	var car_coming: bool = level.car_threat(position.x)   # its splash takes a moment to land: no resting through it
+	var db: DriveBy = level.drive_bys
+	var drive_by: bool = db != null and db.coming()
+	car_coming = car_coming or drive_by
 	var fill := _autopilot_refill(under_fire or car_coming or jet_in)
 	if not fill.is_empty():
 		return fill
@@ -563,8 +568,8 @@ func _autopilot(delta: float) -> Array:
 	for g in level.gutters:
 		if g - position.x > -0.6 and g - position.x < lead:
 			danger = true
-	var car_ahead := car_coming
-	if car_ahead:
+	var car_ahead := car_coming and not drive_by
+	if car_coming:
 		danger = true
 	var wash := _wash_threat(Game.umbrella_open_time() + 0.5)
 	if wash:
@@ -590,7 +595,7 @@ func _autopilot(delta: float) -> Array:
 	if wash:
 		tl = 0.0
 	var stop := false
-	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire and not car_ahead:
+	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire and not car_coming:
 		stop = true
 		for off in [-0.9, -0.45, 0.0, 0.45, 0.9]:
 			if _exposed_at(position.x + off) or _exposed_at(position.x + off, 0.5):
@@ -610,12 +615,16 @@ func _autopilot(delta: float) -> Array:
 			tl = minf(tl, -0.6) if open > 0.0 else -1.0
 		elif ahead:
 			tl = maxf(tl, 0.0) if open > 0.0 else 1.0
-	# Put the canopy between him and the jet: well over, not quite flat (that lets the rain in).
+	# Put the canopy between him and the jet: well over toward it, not quite flat (that lets the rain in).
 	var brace: float = hm.brace_side() if hm else 0.0
-	if att != null and att.brace() or brace < 0.0:
+	if att != null and att.brace():
+		brace = att.side()
+	if brace < 0.0:
 		tl = minf(tl, -0.85)
 	elif brace > 0.0:
 		tl = maxf(tl, 0.85)
+	if drive_by and db.brace() != 0.0:
+		tl = -0.7 if db.brace() < 0.0 else 0.85   # back toward the splash, then forward toward the shot
 	return [u, h, tl, stop]
 
 
@@ -643,11 +652,16 @@ func _autopilot_refill(threat: bool) -> Array:
 	if not gun.armed or threat:
 		_ap_filling = false
 		return []
-	if _ap_filling and gun.shots >= gun.capacity():
+	# Stopped out from under the stream (a late stop overshoots it), it gives up rather than wait.
+	_ap_fill_dry = _ap_fill_dry + get_physics_process_delta_time() if _ap_filling and state == State.STOPPED \
+		and gun.refill_rate() < Tun.f("gun_refill_stream") else 0.0
+	if _ap_filling and (gun.shots >= gun.capacity() or _ap_fill_dry > FILL_GIVE_UP_S):
 		_ap_filling = false
 		_ap_no_rest_before = position.x + 1.0
 	if not _ap_filling and gun.shots <= gun.capacity() - 2 and position.x >= _ap_no_rest_before:
+		# The human bot stops HUMAN_DELAY late: it asks that much sooner so it stops under the stream.
+		var late := speed * HUMAN_DELAY if Game.debug_human else 0.0
 		for g in level.gutters:
-			if absf(g - position.x) < 0.15:
+			if absf(g - position.x - late) < 0.15:
 				_ap_filling = true
 	return [1.0, 0.0, 0.0, true] if _ap_filling else []

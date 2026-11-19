@@ -9,7 +9,8 @@ var _cars: Array = []
 
 func _process(delta: float) -> void:
 	_next -= delta
-	if _next <= 0.0 and level.player and level.player.state == Player.State.WALK:
+	var lane_busy: bool = level.drive_bys != null and level.drive_bys.phase != DriveBy.Phase.OFF
+	if _next <= 0.0 and level.player and level.player.state == Player.State.WALK and not lane_busy:
 		_next = randf_range(22.0, 45.0)
 		_spawn()
 	for c in _cars.duplicate():

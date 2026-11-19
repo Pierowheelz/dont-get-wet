@@ -9,6 +9,11 @@ extends Node3D
 ## hurrying or running leaves him behind; out of the frame for GIVE_UP_S, he gives up for good.
 ## Each man is an NpcBody: the walker's shots can soak him (two clean hits), and then he gives up as
 ## the walker does and trudges off on his own; the next man comes as if he had dropped back.
+## An entry may set `gap` (how far back he holds, instead of HOLD_GAP), `hint` (shown as he comes,
+## instead of the first man's two hints) and `wait`: then he is posted at that x from the start,
+## standing under cover facing back down the street, and when the walker reaches his x he fires from
+## where he stands (no warning: he is in plain sight) until the walker has passed him, then turns
+## and follows like the others.
 ## A checkpoint resume skips every attacker whose x is behind it.
 
 enum Phase { OFF, WARN, FIRE, LEAVE }
@@ -27,6 +32,9 @@ const MAX_SPEED := 2.8         # coming up behind him, before he has closed in
 const BRACE_S := 0.35          # how long before a shot leaves the bots tilt back for it
 const GIVE_UP_S := 1.0         # out of the frame this long after the warning, he gives up
 const SOAKED_HOLD_S := 2.5     # the camera keeps a soaked man in shot this long as he gives up
+const FIRST_SHOT_POSTED := 0.8  # a posted man is already in shot: his first glint comes quickly
+const TURN_S := 0.9            # after the walker passes his post, before he can fire again
+const POST_Z := 0.9            # a posted man stands back toward the wall, under the cover
 const SHADOW_W := 2.6         # across the pavement: the lamp is off to the kerb side, so it fans out
 const SHADOW_Z := 1.2
 const SHADOW_LEN := [3.5, 11.0]   # the lamp shadow's length as the warning starts and ends
@@ -40,7 +48,8 @@ var index := -1              # which entry of `attackers` is (or was last) on
 var shots_left := 0
 var held := 0                # shots held because the walker was under an arch
 var jet: WaterJet            # the jet in the air, if any
-var _queue: Array = []       # [x, shots] ascending
+var _queue: Array = []       # [x, shots, gap, wait (-1: comes from behind), hint] ascending
+var posted := false          # the next man is standing at his `wait` post
 var _next := 0
 var _t := 0.0                # time in this phase
 var _shot_t := 0.0
@@ -61,7 +70,8 @@ var _stride := 0.0
 
 func _ready() -> void:
 	for a in level.data.get("attackers", []):
-		_queue.append([float(a["x"]), int(a.get("shots", 5))])
+		_queue.append([float(a["x"]), int(a.get("shots", 5)), float(a.get("gap", HOLD_GAP)),
+			float(a.get("wait", -1.0)), a.get("hint", null)])
 	_queue.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	# A checkpoint resume spawns the walker past some of them; those stay spent, and one who was on
 	# at the checkpoint doesn't come back.
@@ -109,9 +119,12 @@ func _new_man() -> void:
 
 ## Soaked: he has left on his own (NpcBody); the attack is over as if he had dropped back.
 func _on_soaked() -> void:
+	if posted and phase == Phase.OFF:
+		_next += 1          # soaked at his post before he ever fired
+	posted = false
 	if jet and is_instance_valid(jet) and jet.phase == WaterJet.Phase.GLINT:
 		jet.queue_free()
-	jet = null
+		jet = null    # a shot already in the air flies on: incoming() keeps the bots braced for it
 	_set_phase(Phase.OFF)
 	visible = false
 	speed = 0.0
@@ -157,9 +170,12 @@ func _process(delta: float) -> void:
 	_t += delta
 	var playing := p.state == Player.State.WALK or p.state == Player.State.STOPPED
 	if phase == Phase.OFF:
+		_post()
 		if playing and _next < _queue.size() and p.position.x >= _queue[_next][0]:
 			_begin(_next)
 			_next += 1
+		elif posted:
+			_pose(delta)
 		return
 	if not playing and phase != Phase.LEAVE:
 		_leave()
@@ -172,9 +188,11 @@ func _process(delta: float) -> void:
 				_shot_t = FIRST_SHOT
 		Phase.FIRE:
 			var gap := p.position.x - position.x
-			_closed = _closed or gap <= HOLD_GAP + 0.3
+			if posted and gap > 0.5:
+				_fall_in()       # the walker has gone by his post: he turns and follows
+			_closed = _closed or gap <= hold_gap() + 0.3
 			var cap := Tun.f("walk_speed") if _closed else MAX_SPEED
-			speed = clampf(p.speed + clampf((gap - HOLD_GAP) * 0.8, -0.6, 1.0), 0.0, cap)
+			speed = 0.0 if posted else clampf(p.speed + clampf((gap - hold_gap()) * 0.8, -0.6, 1.0), 0.0, cap)
 			_out_t = _out_t + delta if position.x < _frame_edge() - OUT_MARGIN else 0.0
 			if _out_t >= GIVE_UP_S:
 				_leave()     # outrun: he doesn't come back
@@ -200,13 +218,53 @@ func _begin(i: int) -> void:
 	_fired = 0
 	_closed = false
 	_out_t = 0.0
+	visible = true
+	if _queue[i][4] != null:
+		_hint(String(_queue[i][4]), 3.5)
+	elif i == 0:
+		_hint("Behind you.", 3.0)
+	if posted:
+		_set_phase(Phase.FIRE)    # in plain sight already: no warning
+		_shot_t = FIRST_SHOT_POSTED
+		return
 	_set_phase(Phase.WARN)
 	position.x = _frame_edge() - ENTER_MARGIN - CLOSE_IN * WARN_S - 1.5
+	position.z = LANE_Z
 	speed = level.player.speed + CLOSE_IN
-	visible = true
 	level.set("camera_bias", _camera_bias())
-	if i == 0:
-		_hint("Behind you.", 3.0)
+
+
+## How far behind the walker this man settles to fire.
+func hold_gap() -> float:
+	return float(_queue[index][2]) if index >= 0 else HOLD_GAP
+
+
+## +1 when the man on now fires from ahead of the walker, -1 from behind: the way to tilt to block him.
+func side() -> float:
+	return 1.0 if position.x > level.player.position.x else -1.0
+
+
+## Stands the next man at his post (an entry with `wait`) once nobody else is on, facing back down
+## the street with his umbrella up, until the walker reaches his x.
+func _post() -> void:
+	if posted or _next >= _queue.size() or float(_queue[_next][3]) < 0.0:
+		return
+	posted = true
+	position = Vector3(float(_queue[_next][3]), level.ground_y(float(_queue[_next][3])), POST_Z)
+	man.rotation.y = PI
+	speed = 0.0
+	visible = true
+
+
+## The walker has passed his post: he turns round and comes after him like the others.
+func _fall_in() -> void:
+	posted = false
+	man.rotation.y = 0.0
+	if jet and is_instance_valid(jet) and jet.phase == WaterJet.Phase.GLINT:
+		jet.queue_free()
+		jet = null
+	_shot_t = maxf(_shot_t, TURN_S)
+	level.set("camera_bias", _camera_bias())
 
 
 func _set_phase(ph: Phase) -> void:
@@ -219,6 +277,8 @@ func _leave() -> void:
 		jet.queue_free()
 	jet = null
 	_set_phase(Phase.LEAVE)
+	posted = false
+	man.rotation.y = 0.0
 	level.set("camera_bias", 0.0)
 
 
@@ -238,13 +298,13 @@ func _fire_control(delta: float, p: Player) -> void:
 		return
 	shots_left -= 1
 	_shot_t = SHOT_EVERY
-	if sheltered or p.position.x - position.x > RANGE:
+	if sheltered or absf(p.position.x - position.x) > RANGE:
 		held += 1
 		return
 	jet = WaterJet.fire(level, _muzzle)
 	jet.shooter = man
 	_fired += 1
-	if index == 0 and _fired == 1:
+	if index == 0 and _fired == 1 and _queue[0][4] == null:
 		_hint("Tilt back ({tilt}) to put the umbrella between you.", 4.0)
 
 
@@ -299,7 +359,7 @@ func _draw_shadow(delta: float) -> void:
 func _camera_bias() -> float:
 	var cam: Camera3D = level.camera
 	var half := cam.global_position.x - _frame_edge()
-	return minf(half - HOLD_GAP - IN_FRAME - Tun.f("camera_lead"), 0.0)
+	return minf(half - hold_gap() - IN_FRAME - Tun.f("camera_lead"), 0.0)
 
 
 ## World x of the left edge of the frame, on his lane.
