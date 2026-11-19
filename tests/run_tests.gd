@@ -162,6 +162,19 @@ func _fire(side := 1.0) -> DropletBurst:
 	return b
 
 
+## `n` shots at a man, his wetness reset after each: [droplets his canopy stopped, droplets that
+## reached him, mean wetness a shot]. Averaged, because one stray droplet on the head is a third of a hit.
+func _shots_at(man: NpcBody, n: int) -> Array:
+	var out := [0, 0, 0.0]
+	for i in n:
+		var b := await _fire()
+		out[0] += b.stopped_by(man)
+		out[1] += b.landed_on(man)
+		out[2] += man.wet / n
+		man.wet = 0.0
+	return out
+
+
 ## The walker's shot: range per Long Barrel tier, two clean hits soak a man (one at Pressure tier 3),
 ## a man's canopy stops it, and his canopy never keeps the rain off the walker. The water refills
 ## slowly by itself and fast stopped under a stream, and the shot is locked before the sixth street.
@@ -218,11 +231,9 @@ func _test_umbrella_shot() -> void:
 	man.queue_free()
 	Game.run.upgrades[&"pressure"] = 0
 	man = await _npc(p.gun.muzzle().x + 3.0, true)
-	var blocked := await _fire()
-	var stopped := blocked.stopped_by(man)
-	var through := blocked.landed_on(man)
-	check(man.wet < direct * 0.35 and stopped > through * 2,
-		"his canopy, brought down at the walker, stops the shot: %d droplets stopped, %d through, wet %.1f" % [stopped, through, man.wet])
+	var shield := await _shots_at(man, 3)
+	check(shield[2] < direct * 0.35 and shield[0] > shield[1] * 8,
+		"his canopy, brought down at the walker, stops the shot: %d droplets stopped, %d through, wet %.1f a shot" % shield)
 	man.queue_free()
 	man = await _npc(x0 + 2.5)
 	p.gun.aim_back = false
