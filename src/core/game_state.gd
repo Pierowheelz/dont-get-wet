@@ -32,6 +32,8 @@ var debug_resume_cp := -1          # --resume-checkpoint=N starts the level resu
 var debug_aim := NAN               # --aim=-1..1 holds the furled umbrella raised and pointed there (testing)
 var debug_fire := false             # --fire: the umbrella's shot held down (testing)
 var debug_armed := false            # --armed: the umbrella shot works on any street (testing)
+var debug_stop := NAN              # --stop[=S] holds Stop from S seconds in (testing)
+var debug_stamina := NAN           # --stamina=N starts the level with N stamina (testing)
 var last_result: Dictionary = {}
 var checkpoint: Dictionary = {}     # latest checkpoint of the level being played (Level._take_checkpoint); memory only, never saved
 var resuming := false               # play_level(id, true) asked the next Level to restore `checkpoint`
@@ -51,6 +53,8 @@ func _ready() -> void:
 	debug_auto_continue = args.has("--auto-continue")
 	debug_armed = args.has("--armed")
 	debug_fire = args.has("--fire")
+	if args.has("--stop"):
+		debug_stop = 0.0
 	if args.has("--low"):
 		settings["low_quality"] = true
 	for a in args:
@@ -68,6 +72,10 @@ func _ready() -> void:
 			debug_tilt = float(a.substr(7))
 		if a.begins_with("--aim="):
 			debug_aim = float(a.substr(6))
+		if a.begins_with("--stop="):
+			debug_stop = float(a.substr(7))
+		if a.begins_with("--stamina="):
+			debug_stamina = float(a.substr(10))
 		if a.begins_with("--resume-checkpoint="):
 			debug_resume_cp = int(a.substr(20))
 		if a.begins_with("--wet="):

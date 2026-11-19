@@ -69,7 +69,7 @@ static func dry_speed(spot_rate: float, wet_frac: float) -> float:
 
 
 func _ready() -> void:
-	stamina = Tun.f("stamina_max")
+	stamina = Tun.f("stamina_max") if is_nan(Game.debug_stamina) else Game.debug_stamina
 	if ResourceLoader.exists(CHARACTER_SCENE):
 		visual = (load(CHARACTER_SCENE) as PackedScene).instantiate()
 	else:
@@ -164,6 +164,8 @@ func _physics_process(delta: float) -> void:
 		u = 0.0; aim_in = Game.debug_aim * max_tilt
 	if Game.debug_fire:
 		fire_req = true
+	if _debug_t >= Game.debug_stop:
+		stop_req = true
 
 	var smax := Tun.f("stamina_max")
 	# --- umbrella open/close: same speed both ways, reverses from wherever it is ---------------

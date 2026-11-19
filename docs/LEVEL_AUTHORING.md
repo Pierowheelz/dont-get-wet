@@ -505,6 +505,9 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
 - **`--aim=-1..1`** (with `--armed` below street six) holds the furled umbrella raised and pointed that
   share of `umbrella_max_tilt` from a second in, `--fire` holds the shot down, and `--player-close`
   frames the walker with a close camera. Screenshots only.
+- **`--stop`** holds Stop from the start (`--stop=S` from S seconds in) and **`--stamina=N`** starts
+  the street with N stamina, for looking at the walker standing rested or out of breath. Screenshots
+  only.
 - **The title screen shows Main Street from 4 to 60 m.** Keep that stretch good-looking.
 - **Colonnade columns hide sign letters.** Use short signs on `arcade` lots, or accept the
   partial word.
