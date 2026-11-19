@@ -10,7 +10,7 @@ to get him to shelter as dry as you can.
 Open the umbrella under rain, close it under cover to get your breath back, hurry across the gaps,
 tilt into the wind, and watch out for passing cars.
 
-> **Alpha v0.2.0** — an early version. Expect rough edges, and tell us what you think!
+> **Alpha v0.3.0** — an early version. Expect rough edges, and tell us what you think!
 > Use **Send feedback** on the title screen, or [fill in the feedback form](../../issues/new?template=feedback.yml)
 > (which streets you played, how you played, what felt good and what didn't).
 
@@ -54,11 +54,15 @@ game draws it at a lower resolution until it catches up.
 
 - **Rain soaks you wherever the sky is open.** Fill the wetness meter and it's game over.
 - **Checkpoints.** The marks on the progress bar are checkpoints, each under cover. Get soaked after
-  passing one and you can carry on from it, as wet and as tired as you were when you got there.
+  passing one and you can carry on from it, as tired as you were when you got there and as wet (but
+  never more than 80% wet). Each restart from a checkpoint costs 5% of that street's score.
 - **The umbrella takes a moment to open**, and holding it up tires you out.
 - **Close it under cover** (awnings, balconies) — stamina only comes back while it's closed.
 - **Watch for gutters, wind and cars.** Keep the umbrella upright under overflowing gutters, tilt it
-  into slanting rain, and tilt it forward when headlights come — cars splash!
+  into slanting rain, and tilt it forward when headlights come — cars splash! Puddles only splash
+  your shoes, so walk straight through.
+- **Trains overhead shed sheets of water.** Wait for one to pass under an awning, or keep the
+  umbrella upright as it goes over.
 - **Hold Stop to stand still.** Catch your breath under cover, or wait for a gap in the traffic. He walks on when you let go, and you can keep the umbrella up while you wait.
 - **Sunny breaks and warm vents dry you off**, fast when you're soaked and barely at all when you're not.
   They can rescue a bad start, but don't linger.
