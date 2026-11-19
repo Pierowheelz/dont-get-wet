@@ -148,12 +148,12 @@ static func _floodlight(b: LevelBuilder, x: float, z: float, col: Color) -> void
 	b.root.add_child(sl)
 
 
-## A hoarding on two steel posts, its face lit by two lamps on arms: `text`, one line per "\n".
+## A hoarding on two steel posts, low enough to read under the street's camera, its face lit by two lamps on arms: `text`, one line per "\n".
 static func billboard(b: LevelBuilder, x: float, text: String, z := -3.0) -> void:
 	var steel := b._mat("hoarding_steel", Color(0.16, 0.16, 0.17), 0.55, 0.6)
 	var bw := 10.0
-	var y0 := 3.4
-	var bh := 3.4
+	var y0 := 2.5
+	var bh := 3.2
 	for dx in [-3.2, 3.2]:
 		b._box(Vector3(0.3, y0 + 0.2, 0.3), Vector3(x + dx, (y0 + 0.2) * 0.5, z - 0.3), steel)
 	b._box(Vector3(bw + 0.3, bh + 0.3, 0.2), Vector3(x, y0 + bh * 0.5, z - 0.12), steel)
@@ -163,7 +163,7 @@ static func billboard(b: LevelBuilder, x: float, text: String, z := -3.0) -> voi
 	var lbl := Label3D.new()
 	lbl.text = text
 	lbl.font_size = 150
-	lbl.pixel_size = 0.0075
+	lbl.pixel_size = 0.006
 	lbl.line_spacing = -18.0
 	if b.sign_font:
 		lbl.font = b.sign_font
@@ -191,9 +191,9 @@ static func billboard(b: LevelBuilder, x: float, text: String, z := -3.0) -> voi
 ## A tall box sign on a pole, lit from inside: `text`, one line per "\n".
 static func pylon_sign(b: LevelBuilder, x: float, text: String, z := -1.2) -> void:
 	var steel := b._mat("pylon_steel", Color(0.75, 0.74, 0.7), 0.4, 0.6)
-	var top := 7.4
-	var sw := 3.0
-	var sh := 2.3
+	var top := 6.0
+	var sw := 3.6
+	var sh := 2.2
 	b._box(Vector3(0.28, top - sh, 0.28), Vector3(x, (top - sh) * 0.5, z), steel)
 	var box := b._neon_mat(Color(0.95, 0.93, 0.85), 0.9)
 	b._box(Vector3(sw, sh, 0.4), Vector3(x, top - sh * 0.5, z), box).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -202,7 +202,7 @@ static func pylon_sign(b: LevelBuilder, x: float, text: String, z := -1.2) -> vo
 	var lbl := Label3D.new()
 	lbl.text = text
 	lbl.font_size = 96
-	lbl.pixel_size = 0.0055
+	lbl.pixel_size = 0.0042
 	lbl.line_spacing = -10.0
 	if b.sign_font:
 		lbl.font = b.sign_font
