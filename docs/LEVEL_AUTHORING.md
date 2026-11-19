@@ -315,7 +315,7 @@ and the cover that follows it.
 | 0 to 28 | The Bijou arcade (diner, cinema colonnade) | walk under continuous cover |
 | 28 to 68 | First gaps (2.5, 4, 3, 5 m) | open the umbrella for a short gap |
 | 80 to 104 | Elm Street and the Hotel Ambassador | cross 12 m (about 40 stamina), then close up under 12 m of balconies by a fire barrel |
-| 104 to 139 | The drainpipe at the Savings & Loan | keep the umbrella upright under a gutter |
+| 104 to 139 | The drainpipe at the Savings & Loan | keep the umbrella upright under a gutter, then a second through a torn awning |
 | 139 to 162 | Oak Street | deep puddles at both kerbs (a splash, no cost), then 15 m of cover |
 | 162 to 192 | The Palace lot | close the umbrella in a 6 m sun break between two rainy strips |
 | 220 to 257 | Pawn Row | torn awnings that keep the umbrella up, a gutter through a tear, a breather, a last gutter at the inn |

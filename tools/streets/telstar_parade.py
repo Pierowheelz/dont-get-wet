@@ -84,7 +84,7 @@ shop("flux", 4, "shop_lit", "awning", sign="FLUX", color="blue", floors=5, awnin
 seam("seamB", 1.2, 6)
 shop("ion", 5, "shop_lit", "awning", sign="ION", color="teal", floors=5, awning_style="googie")
 shop("lot6", 8, "vacant", "none", floors=0)
-shop("quasar", 6, "shop_lit", "awning", sign="QUASAR", color="orange", floors=4)
+shop("quasar", 6, "shop_lit", "awning", sign="QUASAR", color="orange", floors=4, tears=[[2.4, 3.6]])
 # 4. The Junction Viaduct: the wind turns into a headwind under the deck
 shop("disco", 5, "shop_lit", "awning", sign="DISCO", color="blue", floors=5, awning_style="bubble")
 shop("vac6", 6, "vacant", "none", floors=0)
@@ -152,6 +152,7 @@ s.feature("puddle", s.start("sputnik") + 1.2, w=1.4)
 s.feature("puddle", s.end("sputnik") - 1.2, w=1.4, deep=True)
 s.feature("puddle", s.mid("lot8"), w=1.2)
 s.feature("puddle", s.mid("lot9"), w=1.4, deep=True)
+s.feature("gutter", s.start("quasar") + 3.0)   # through the torn awning, before the Junction Viaduct
 
 s.prop("phone_booth", s.mid("booth1"), ring=True)
 s.prop("vending_machine_a", s.start("automat") + 1.2)
@@ -217,7 +218,7 @@ s.set_piece("Orbit Avenue", s.start("lot2"), s.end("chrome"),
             "and the side street too: tilting into the wind and straightening up for the train pull against "
             "each other")
 s.set_piece("The Express Viaduct", s.start("laund"), s.end("quasar"),
-            "a second deck over longer bare stretches, then two gutters in googie seams under the track")
+            "a second deck over longer bare stretches, then two gutters in googie seams under the track and a third through QUASAR's torn awning")
 s.set_piece("The Junction Viaduct", s.start("disco"), s.end("plasma"),
             "the wind turns into a headwind under the deck; then a torn marquee, a gutter and Sputnik "
             "Street's car, with the sheet crossing the side street")

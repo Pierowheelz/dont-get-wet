@@ -30,11 +30,11 @@ s.lot("carlot", 3, "vacant", "none", floors=0)
 s.xing("elm", 9)
 s.lot("hotel", 8, "shop_lit", "balcony", sign="HOTEL AMBASSADOR", floors=5)
 s.lot("lounge", 4, "shop_dark", "balcony", sign="LOUNGE", floors=5)
-# 4. The drainpipe at the savings bank: gutter, then a puddle gap
+# 4. The drainpipe at the savings bank: two gutters, then a gap
 s.lot("bank", 8, "shuttered", "awning", sign="SAVINGS & LOAN", color="green", floors=3)
 s.lot("pipe", 1.5, "wall", "none", floors=3)
 s.lot("barber", 5, "shop_lit", "awning", sign="BARBER", color="red", floors=2)
-s.lot("deli", 5, "shop_dark", "awning", sign="DELI", color="teal", floors=2)
+s.lot("deli", 5, "shop_dark", "awning", sign="DELI", color="teal", floors=2, tears=[[2.0, 3.2]])
 s.lot("lot2", 5, "vacant", "none", floors=0)
 s.lot("books", 6, "shop_dark", "awning", sign="BOOKS", color="brown", floors=2)
 s.lot("photo", 4, "shop_lit", "awning", sign="PHOTO", color="blue", floors=3)
@@ -78,6 +78,7 @@ s.feature("puddle", s.mid("alley4"), w=1.4, deep=True)
 s.feature("puddle", s.start("records") + 1.9, w=1.0)
 s.feature("gutter", s.start("toys") + 3.7)
 s.feature("gutter", s.mid("pipe2"))
+s.feature("gutter", s.start("deli") + 2.6)
 
 for t in ["diner", "showing", "radio", "dime", "hotel", "bank", "deli", "photo", "laundro", "loans", "news", "records", "secondhand", "tvrepair", "bakery"]:
     s.prop("lamp_post", s.mid(t))
@@ -117,7 +118,7 @@ s.set_piece("First gaps", s.start("alley1"), s.end("parking"),
 s.set_piece("Elm Street and the Hotel Ambassador", s.start("carlot"), s.end("lounge"),
             "a 12 m gap (used-car lot + Elm St) that costs ~40 stamina, then 12 m of balconies and a fire barrel to close up and recover")
 s.set_piece("The drainpipe at the Savings & Loan", s.start("bank"), s.end("photo"),
-            "a gutter in a 1.5 m seam between awnings (keep the umbrella upright), then a puddle in the next lot (walk, don't run)")
+            "a gutter in a 1.5 m seam between awnings (keep the umbrella upright), then a second through the deli's torn awning")
 s.set_piece("Oak Street", s.start("oak"), s.end("grocery"),
             "re-test: deep puddles at both kerbs, then 15 m of cover to recover")
 s.set_piece("The Palace lot", s.start("palace"), s.end("flats"),
