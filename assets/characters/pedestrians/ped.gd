@@ -23,8 +23,10 @@ const Loco := preload("res://assets/characters/walker/locomotion.gd")
 @export var umbrella_side_offset := 0.0
 ## Colour variation: mesh-name substring -> Array[Color] (albedo multiplier, one picked per seed).
 @export var tint_options: Dictionary = {}
-@export var umbrella_colors: Array[Color] = [Color(0.09, 0.1, 0.13), Color(0.32, 0.06, 0.07),
-		Color(0.08, 0.16, 0.3), Color(0.12, 0.22, 0.14), Color(0.42, 0.33, 0.12)]
+## Sober cloth only. Red is the walker's umbrella (and his doubles'), yellow belongs to one man in the
+## city and navy to the man in the long coat: a passer-by never carries any of them.
+@export var umbrella_colors: Array[Color] = [Color(0.06, 0.065, 0.08), Color(0.06, 0.065, 0.08),
+		Color(0.2, 0.21, 0.23), Color(0.07, 0.19, 0.13), Color(0.2, 0.13, 0.08), Color(0.25, 0.2, 0.27)]
 ## Speed (m/s) suggested to the spawner for this pedestrian.
 @export var suggested_speed := 1.25
 
