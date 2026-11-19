@@ -185,7 +185,7 @@ func _do_splash(player: Node3D) -> void:
 		var v := randf_range(splash_v[0], splash_v[1])
 		vels.append(Vector3(-cos(a), sin(a), randf_range(-0.06, 0.06)) * v)
 	burst = DropletBurst.spawn(level, starts, vels, Tun.f("wet_car_splash"), {"full": SPLASH_FULL,
-		"per_point": SPLASH_PER_POINT, "color": Color(0.7, 0.78, 0.9, 0.55)})
+		"per_point": SPLASH_PER_POINT, "cause": &"splash", "color": Color(0.7, 0.78, 0.9, 0.55)})
 	var p := player as Player
-	burst.hit.connect(func(wet: float) -> void: p.splash_wet(wet))
-	burst.done.connect(func(_landed: int, _stopped: int) -> void: p.splash_done(burst.wet_given))
+	var b := burst
+	b.done.connect(func(_landed: int, _stopped: int) -> void: p.splash_done(b.given_to(p)))

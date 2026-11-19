@@ -1,7 +1,8 @@
 class_name Player
-extends Node3D
+extends WetBody
 ## The walker: auto-walks along +X, the player only controls the umbrella, hurry, stop and tilt.
-## Owns stamina, wetness and the analytic rain-exposure model (docs/DESIGN.md §5).
+## Owns stamina, wetness and the analytic rain-exposure model (docs/DESIGN.md §5); splashes and
+## shots wet him through WetBody.
 
 signal defeated
 signal arrived
@@ -19,28 +20,12 @@ const NECK_Y := 1.55               # head-duck pivot
 const RAIN_SKY_Y := 3.6            # above every cover: where a drop's x decides if it's raining
 const CHARACTER_SCENE := "res://assets/characters/walker/walker.tscn"
 
-## Body sample points (local, facing +X) and their weights for exposure, to rain, streams, washes and
-## the droplets of a splash or shot alike. Nothing below the knees: no umbrella can cover the shins.
-const SAMPLES := [
-	[Vector3(0.0, 1.74, 0.0), 2.0],     # head
-	[Vector3(0.02, 1.5, 0.19), 1.4],    # shoulders
-	[Vector3(0.02, 1.5, -0.19), 1.4],
-	[Vector3(0.13, 1.22, 0.0), 1.0],    # chest
-	[Vector3(-0.13, 1.22, 0.0), 1.0],   # back
-	[Vector3(0.0, 0.95, 0.12), 0.8],    # hips
-	[Vector3(0.12, 0.55, 0.0), 0.6],    # knees
-	[Vector3(-0.1, 0.55, 0.0), 0.5],
-]
-
-var level: Node                    # the Level (provides rain_intensity, wind, dry_rate, ground_y...)
 var state := State.WALK
-var speed := 0.0
 var run_amount := 0.0
 var open := 0.0
 var tilt := 0.0
 var droop := 0.0
 var stamina := 100.0
-var wet := 0.0
 var exposure := 0.0                # 0..1 rain exposure this frame (for HUD/FX)
 var gutter_hit := 0.0
 var exhausted := false
@@ -57,12 +42,8 @@ const JET_KICK_DROOP := 0.7        # and how far it sags (as when exhausted)
 var _hit_cause := &"wet"
 var _hit_t := -INF
 
-var visual: Node3D
-var umbrella: Umbrella
 var _prev_x := 0.0
 var _step_phase := 0.0
-var _end_t := 0.0
-var _dropped_umbrella := false
 var _ap_hold := 0.0
 var _ap_resting := false          # autopilot is holding Stop until stamina is full
 var _ap_no_rest_before := -INF      # autopilot won't settle to rest again before this x
@@ -128,7 +109,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	match state:
 		State.DEFEATED:
-			_process_defeated(delta)
+			_trudge(delta)
 			return
 		State.ENTERING, State.DONE:
 			_process_entering(delta)
@@ -211,7 +192,7 @@ func _physics_process(delta: float) -> void:
 	_update_umbrella()
 	var intensity: float = level.rain_intensity(position.x)
 	exposure = _rain_exposure() if intensity > 0.0 else 0.0
-	var head := _sample_world(SAMPLES[0][0])
+	var head := sample_world(SAMPLES[0][0])
 	sheltered = _cast(head, head - rain_dir() * 30.0, COVER_MASK)
 	var gain := exposure * intensity * Tun.f("wet_rain_rate")
 	if exposure > 0.05:
@@ -291,23 +272,15 @@ func _cast(from: Vector3, to: Vector3, mask: int) -> bool:
 	return not get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
-## Body sample in world space. While he leans in to open / close the umbrella, the upper-body
-## samples lean forward with him (pivoting at the hips, as the pose modifier bends the spine).
-func _sample_world(local: Vector3) -> Vector3:
+## While he leans in to open / close the umbrella, the upper-body samples lean forward with him
+## (pivoting at the hips, as the pose modifier bends the spine).
+func pose_sample(local: Vector3) -> Vector3:
 	if not _dropped_umbrella and open > 0.0:
 		if local.y > HIP_Y:
 			local.x += (local.y - HIP_Y) * tan(Umbrella.open_lean(open))
 		if local.y > NECK_Y:      # head ducks further at the neck
 			local.x += (local.y - NECK_Y) * tan(Umbrella.open_duck(open))
-	return global_transform * local
-
-
-## The body samples in world space: [position, weight] for each of SAMPLES.
-func body_samples() -> Array:
-	var out := []
-	for s in SAMPLES:
-		out.append([_sample_world(s[0]), s[1]])
-	return out
+	return local
 
 
 ## Fraction (weighted 0..1) of body samples that rain can reach.
@@ -323,7 +296,7 @@ func _rain_exposure() -> float:
 	var total := 0.0
 	var hit := 0.0
 	for s in SAMPLES:
-		var p := _sample_world(s[0])
+		var p := sample_world(s[0])
 		total += s[1]
 		if _cast(p, p + up, COVER_MASK):
 			continue                      # sheltered by an awning/balcony
@@ -369,7 +342,7 @@ func _gutter_exposure() -> float:
 			var hit := 0.0
 			var blocked := 0.0
 			for s in SAMPLES:
-				var p := _sample_world(s[0])
+				var p := sample_world(s[0])
 				if absf(p.x - g) > 0.22:
 					continue
 				total += s[1]
@@ -392,7 +365,7 @@ func _wash_exposure() -> float:
 	var total := 0.0
 	var hit := 0.0
 	for s in SAMPLES:
-		var p := _sample_world(s[0])
+		var p := sample_world(s[0])
 		total += s[1]
 		if not level.wash_at(p.x, t):
 			continue
@@ -436,14 +409,6 @@ func _check_puddles() -> void:
 			puddle_stepped.emit(global_position + Vector3(0.2, 0, 0), run_amount > 0.45)
 
 
-## Droplets of a car's splash that reached him (CarHazard, through a DropletBurst).
-func splash_wet(amount: float) -> void:
-	if state != State.WALK and state != State.STOPPED:
-		return
-	wet = minf(wet + amount, Tun.f("wet_max"))
-	stats["wet_splash"] += amount
-
-
 ## The splash is over: `total` reached him in all.
 func splash_done(total: float) -> void:
 	if total > 0.0:
@@ -463,12 +428,20 @@ func _footsteps(delta: float) -> void:
 
 # --- end states -----------------------------------------------------------------------------
 
-## A burst of wetness all at once, such as a water jet that got through. If he's soaked within
-## HIT_BLAME_S of it, the attempt fails with `cause` rather than "wet".
+func wettable() -> bool:
+	return state == State.WALK or state == State.STOPPED
+
+
+## A burst of wetness all at once: a car's splash, or a water jet that got through. If a jet soaks
+## him within HIT_BLAME_S of it, the attempt fails with `cause` rather than "wet"; a splash takes
+## the blame no more than the rain does.
 func soak(amount: float, cause: StringName) -> void:
-	if state == State.DEFEATED or state == State.ENTERING or state == State.DONE:
+	if not wettable():
 		return
-	wet = minf(wet + amount, Tun.f("wet_max"))
+	super.soak(amount, cause)
+	if cause == &"splash":
+		stats["wet_splash"] += amount
+		return
 	stats["wet_hit"] += amount
 	_hit_cause = cause
 	_hit_t = level.elapsed
@@ -484,34 +457,9 @@ func fail(cause: StringName) -> void:
 
 func _defeat() -> void:
 	state = State.DEFEATED
-	visual.set_mood(&"sad")
-	_drop_umbrella()
-	_end_t = 0.0
-	defeated.emit()
-
-
-func _drop_umbrella() -> void:
-	_dropped_umbrella = true
 	open = 0.0
-	var start := umbrella.global_transform
-	var land := Transform3D(Basis.from_euler(Vector3(0.2, randf() * TAU, PI * 0.55)),
-		Vector3(start.origin.x + 0.25, level.ground_y(start.origin.x) + 0.1, start.origin.z + 0.3))
-	var tw := create_tween()
-	tw.tween_method(func(t: float) -> void:
-		umbrella.global_transform = start.interpolate_with(land, t), 0.0, 1.0, 0.6) \
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	umbrella.set_state(0.5, Game.umbrella_radius(), 0.0)   # dropped half-folded
-
-
-func _process_defeated(delta: float) -> void:
-	_end_t += delta
-	if _end_t < 0.9:
-		speed = move_toward(speed, 0.0, 3.0 * delta)
-		return
-	rotation.y = move_toward(rotation.y, PI, 4.0 * delta)
-	speed = move_toward(speed, 0.75, 1.5 * delta)
-	position.x -= speed * delta
-	position.y = level.ground_y(position.x)
+	_give_up()
+	defeated.emit()
 
 
 func _begin_entering() -> void:

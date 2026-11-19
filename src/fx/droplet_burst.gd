@@ -1,18 +1,18 @@
 class_name DropletBurst
 extends Node3D
-## A burst of water droplets flown one by one, so what wets the walker is exactly what the player
-## sees reach him. Each droplet falls under gravity; near the walker every step is checked against
-## his open canopy and lot cover (it stops there) and against his body from the knees up (a capsule).
-## A droplet on his body wets the body sample nearest it (Player.SAMPLES, the same weighted points
-## rain is measured on); a sample is soaked once PER_POINT droplets reach it. The burst's exposure is
-## the weighted share of samples soaked, as rain's is, and it wets him `amount` once that share
-## reaches `full`. Droplets that miss fall to the street. A car's splash and a fired water shot are
-## both bursts.
-##   var b := DropletBurst.spawn(level, starts, velocities, amount)
-##   b.hit.connect(func(wet: float) -> void: ...)           # each step's added wetness
-##   b.done.connect(func(landed: int, stopped: int) -> void: ...)
+## A burst of water droplets flown one by one, so what wets a body is exactly what the player sees
+## reach it. The burst flies at every WetBody of the level but its `shooter` (a weatherproof body
+## only takes `cause` &"shot"). Each droplet falls under gravity; near a body every step is checked
+## against lot cover and that body's open canopy (it stops there) and against the body from the
+## knees up (a capsule). A droplet on a body wets the body sample nearest it (WetBody.SAMPLES, the
+## same weighted points rain is measured on); a sample is soaked once `per_point` droplets reach it.
+## The burst's exposure of a body is the weighted share of its samples soaked, as rain's is, and it
+## wets that body `amount` (WetBody.soak with `cause`) once that share reaches `full`. Droplets that
+## miss fall to the street; with a `reach`, droplets further than that from where they started are
+## spent: they wet nobody and drop out of the air. A car's splash and a fired water shot are bursts.
+##   var b := DropletBurst.spawn(level, starts, velocities, amount, {"cause": &"shot", "shooter": me})
+##   b.done.connect(func(landed: int, stopped: int) -> void: b.given_to(body) ...)
 
-signal hit(amount: float)
 signal done(landed: int, stopped: int)
 
 const GRAVITY := 9.8
@@ -21,17 +21,23 @@ const BODY_LOW := 0.55        # cover his shins, so droplets there don't count).
 const BODY_TOP := 1.75        # ...to the top of his head
 const NEAR := 1.6             # within this of him (x and z) a droplet is checked each step
 const LIFE := 2.5
+const SPENT_KEEP := 0.2       # share of its speed along the street a spent droplet keeps
 
 var level: Node
-var amount := 1.0             # wetness once `full` of his body is soaked
+var amount := 1.0             # wetness once `full` of a body is soaked
 var full := 0.6               # weighted share of body samples that counts as a full hit
 var per_point := 4.0          # droplets that soak one body sample
-var through_umbrella := false # the canopy doesn't stop these (a parting shot that can't be blocked)
-var landed := 0               # droplets that reached his body
-var stopped := 0              # droplets his canopy stopped
+var cause := &"splash"        # passed to WetBody.soak
+var shooter: WetBody          # never wet by its own burst
+var reach := 0.0              # metres along the street a droplet carries before it is spent (0: no limit)
+var reach_jitter := 0.0       # each droplet's reach falls short of `reach` by up to this share
+var through_umbrella := false # canopies don't stop these (a parting shot that can't be blocked)
+var landed := 0               # droplets that reached a body
+var stopped := 0              # droplets a body's canopy stopped
 var stopped_cover := 0        # droplets an awning or other lot cover stopped
 var wet_given := 0.0
-var _soak := {}               # sample index -> droplets that reached it
+var _targets: Array = []      # WetBody
+var _hits := {}               # WetBody -> {soak: {sample index: droplets}, landed, stopped, given}
 var size := 0.09
 var trail := 0                # ghost copies behind each droplet, so a fast one reads as a streak
 var trail_dt := 0.014
@@ -40,6 +46,9 @@ var _pos := PackedVector3Array()
 var _vel := PackedVector3Array()
 var _scale := PackedFloat32Array()
 var _alive: Array[bool] = []
+var _spent: Array[bool] = []
+var _from := PackedVector3Array()
+var _reach := PackedFloat32Array()
 var _live := 0
 var _t := 0.0
 var _mm: MultiMeshInstance3D
@@ -54,11 +63,18 @@ static func spawn(p_level: Node, starts: PackedVector3Array, velocities: PackedV
 	for k in opts:
 		b.set(k, opts[k])
 	b._pos = starts.duplicate()
+	b._from = starts.duplicate()
 	b._vel = velocities.duplicate()
 	for i in starts.size():
 		b._scale.append(randf_range(0.6, 1.4))
 		b._alive.append(true)
+		b._spent.append(false)
 	b._live = starts.size()
+	if b.reach > 0.0:
+		for i in starts.size():
+			b._reach.append(b.reach * (1.0 - randf() * b.reach_jitter))
+	b._targets = WetBody.of_level(p_level).filter(func(body: WetBody) -> bool:
+		return body != b.shooter and (b.cause == &"shot" or not body.weatherproof))
 	p_level.add_child(b)
 	return b
 
@@ -126,57 +142,106 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
-	var p: Player = level.player
-	var near_x := p.global_position.x
-	var near_z := p.global_position.z
-	var foot := p.global_position.y
 	var space := get_world_3d().direct_space_state
-	var mask := Player.COVER_MASK | (0 if through_umbrella else Player.UMBRELLA_MASK)
-	var got := false
-	var samples := []
+	var got := {}
+	var samples := {}             # this step's posed samples, per body that a droplet reached
 	for i in _pos.size():
 		if not _alive[i]:
 			continue
 		var a := _pos[i]
 		var v := _vel[i]
 		v.y -= GRAVITY * delta
+		if reach > 0.0 and not _spent[i] and absf(a.x - _from[i].x) > _reach[i]:
+			_spent[i] = true
+			v.x *= SPENT_KEEP
+			v.z *= SPENT_KEEP
 		var b := a + v * delta
 		_vel[i] = v
-		if absf(b.x - near_x) < NEAR and absf(b.z - near_z) < NEAR and b.y < foot + 3.2:
-			var q := PhysicsRayQueryParameters3D.create(a, b, mask)
-			q.hit_back_faces = true
-			var h := space.intersect_ray(q)
-			if not h.is_empty():
-				var umb := (h["collider"] as CollisionObject3D).collision_layer & Player.UMBRELLA_MASK != 0
-				if umb:
-					stopped += 1
-				else:
-					stopped_cover += 1
-				_kill(i, h["position"])
-				continue
-			var on := _body_hit(a, b, Vector3(near_x, foot, near_z))
-			if p.state != Player.State.DEFEATED and on >= 0.0:
-				landed += 1
-				if samples.is_empty():
-					samples = p.body_samples()
-				_wet_nearest(samples, pts_on(a, b, Vector3(near_x, foot, near_z)), p.global_basis.z.normalized())
-				got = true
-				_kill(i, b)
-				continue
+		if not _spent[i] and _meet(i, a, b, space, got, samples):
+			continue
 		if (v.y < 0.0 and b.y < level.ground_y(b.x)) or _t > LIFE:   # falling onto the street (the kerb lip doesn't catch a rising one)
 			_kill(i, b if b.y >= level.ground_y(b.x) else Vector3(b.x, level.ground_y(b.x) + 0.02, b.z))
 			continue
 		_pos[i] = b
-	if got:
-		var wet := amount * minf(exposure() / full, 1.0)
-		if wet > wet_given:
-			hit.emit(wet - wet_given)
-			wet_given = wet
+	for body: WetBody in got:
+		var r: Dictionary = _hits[body]
+		var wet := amount * minf(exposure(body) / full, 1.0)
+		if wet > r["given"]:
+			body.soak(wet - r["given"], cause)
+			wet_given += wet - r["given"]
+			r["given"] = wet
 	_draw()
 	if _live == 0:
 		set_physics_process(false)
 		done.emit(landed, stopped)
 		get_tree().create_timer(0.6, false).timeout.connect(queue_free)
+
+
+## Droplet i's step a-b near a body: stopped by cover or a canopy, or landing on a body. True if it
+## ended there.
+func _meet(i: int, a: Vector3, b: Vector3, space: PhysicsDirectSpaceState3D, got: Dictionary, samples: Dictionary) -> bool:
+	var near: Array = []
+	var mask := Player.COVER_MASK
+	for body: WetBody in _targets:
+		if not is_instance_valid(body):
+			continue
+		var f := body.global_position
+		if absf(b.x - f.x) < NEAR and absf(b.z - f.z) < NEAR and b.y < f.y + 3.2:
+			near.append(body)
+			if not through_umbrella:
+				mask |= body.canopy_mask()
+	if near.is_empty():
+		return false
+	var q := PhysicsRayQueryParameters3D.create(a, b, mask)
+	q.hit_back_faces = true
+	var h := space.intersect_ray(q)
+	if not h.is_empty():
+		var layer := (h["collider"] as CollisionObject3D).collision_layer
+		var holder: WetBody = null
+		for body: WetBody in near:
+			if body.canopy_mask() & layer != 0:
+				holder = body
+				break
+		if holder:
+			stopped += 1
+			_record(holder)["stopped"] += 1
+		else:
+			stopped_cover += 1
+		_kill(i, h["position"])
+		return true
+	for body: WetBody in near:
+		var foot := body.global_position
+		if not body.wettable() or _body_hit(a, b, foot) < 0.0:
+			continue
+		landed += 1
+		var r := _record(body)
+		r["landed"] += 1
+		if not samples.has(body):
+			samples[body] = body.body_samples()
+		_wet_nearest(r["soak"], samples[body], pts_on(a, b, foot), body.across())
+		got[body] = true
+		_kill(i, b)
+		return true
+	return false
+
+
+func _record(body: WetBody) -> Dictionary:
+	if not _hits.has(body):
+		_hits[body] = {"soak": {}, "landed": 0, "stopped": 0, "given": 0.0}
+	return _hits[body]
+
+
+## Droplets that reached `body`, droplets its canopy stopped, and the wetness it took.
+func landed_on(body: WetBody) -> int:
+	return _hits[body]["landed"] if _hits.has(body) else 0
+
+
+func stopped_by(body: WetBody) -> int:
+	return _hits[body]["stopped"] if _hits.has(body) else 0
+
+
+func given_to(body: WetBody) -> float:
+	return _hits[body]["given"] if _hits.has(body) else 0.0
 
 
 func _kill(i: int, at: Vector3) -> void:
@@ -186,20 +251,23 @@ func _kill(i: int, at: Vector3) -> void:
 		GPUParticles3D.EMIT_FLAG_POSITION)
 
 
-## The weighted share (0..1) of his body samples this burst has soaked so far.
-func exposure() -> float:
+## The weighted share (0..1) of `body`'s samples this burst has soaked so far.
+func exposure(body: WetBody) -> float:
+	if not _hits.has(body):
+		return 0.0
+	var soak: Dictionary = _hits[body]["soak"]
 	var total := 0.0
 	var wet := 0.0
-	for i in Player.SAMPLES.size():
-		var w: float = Player.SAMPLES[i][1]
+	for i in WetBody.SAMPLES.size():
+		var w: float = WetBody.SAMPLES[i][1]
 		total += w
-		wet += w * minf(_soak.get(i, 0) / per_point, 1.0)
+		wet += w * minf(soak.get(i, 0) / per_point, 1.0)
 	return wet / total
 
 
-## A droplet reached his body at `at`: it wets the sample nearest it, measured in his side-on plane
-## (left and right are the same distance, so a droplet between his shoulders wets both).
-func _wet_nearest(samples: Array, at: Vector3, across: Vector3) -> void:
+## A droplet reached a body at `at`: it wets the sample nearest it, measured in the body's side-on
+## plane (left and right are the same distance, so a droplet between his shoulders wets both).
+static func _wet_nearest(soak: Dictionary, samples: Array, at: Vector3, across: Vector3) -> void:
 	var best := INF
 	var d := []
 	for s in samples:
@@ -209,7 +277,7 @@ func _wet_nearest(samples: Array, at: Vector3, across: Vector3) -> void:
 		best = minf(best, d[-1])
 	for i in d.size():
 		if d[i] <= best + 0.01:
-			_soak[i] = _soak.get(i, 0) + 1
+			soak[i] = soak.get(i, 0) + 1
 
 
 ## Where on his line the step a-b comes nearest (the point the droplet meets him).

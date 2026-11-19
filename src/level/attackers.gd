@@ -7,6 +7,8 @@ extends Node3D
 ## under a railway arch he holds his fire, but each held shot still counts. Out of water, he drops
 ## back off the left. Once he has closed in he walks no faster than the walker's walking pace, so
 ## hurrying or running leaves him behind; out of the frame for GIVE_UP_S, he gives up for good.
+## Each man is an NpcBody: the walker's shots can soak him (two clean hits), and then he gives up as
+## the walker does and trudges off on his own; the next man comes as if he had dropped back.
 ## A checkpoint resume skips every attacker whose x is behind it.
 
 enum Phase { OFF, WARN, FIRE, LEAVE }
@@ -47,9 +49,7 @@ var _closed := false         # he has reached HOLD_GAP once: from now on, walkin
 var _out_t := 0.0
 var _shadow_a := 0.0
 var _shadow_f := 0.0
-var _model: Node3D
-var _umbrella: Umbrella
-var _grip: Node3D
+var man: NpcBody             # the one on now (or next): a fresh one after each is soaked
 var _shadow: MeshInstance3D
 var _shadow_mat: ShaderMaterial
 var _pool: SpotLight3D
@@ -66,21 +66,7 @@ func _ready() -> void:
 	# at the checkpoint doesn't come back.
 	while _next < _queue.size() and _queue[_next][0] <= level.player.position.x:
 		_next += 1
-	_model = (load(Player.CHARACTER_SCENE) as PackedScene).instantiate()
-	add_child(_model)
-	_model.call("set_wetness", 0.0)
-	var fill := OmniLight3D.new()
-	fill.light_color = Color(0.85, 0.88, 1.0)
-	fill.light_energy = 0.7
-	fill.omni_range = 3.0
-	fill.omni_attenuation = 1.5
-	fill.position = Vector3(0.35, 1.15, 1.0)
-	fill.light_specular = 0.3
-	add_child(fill)
-	_grip = _model.call("get_grip", &"right")
-	_umbrella = Umbrella.new()     # the walker's own, so he reads as his double
-	_grip.add_child(_umbrella)
-	_umbrella._body.collision_layer = 0
+	_new_man()
 	_shadow = MeshInstance3D.new()
 	var q := QuadMesh.new()
 	q.size = Vector2(1.0, 1.0)
@@ -111,6 +97,25 @@ func _ready() -> void:
 	add_child(_steps)
 	visible = false
 	position = Vector3(-100.0, 0.0, LANE_Z)
+
+
+func _new_man() -> void:
+	man = NpcBody.new()
+	man.level = level
+	add_child(man)
+	man.soaked.connect(_on_soaked)
+
+
+## Soaked: he has left on his own (NpcBody); the attack is over as if he had dropped back.
+func _on_soaked() -> void:
+	if jet and is_instance_valid(jet) and jet.phase == WaterJet.Phase.GLINT:
+		jet.queue_free()
+	jet = null
+	_set_phase(Phase.OFF)
+	visible = false
+	speed = 0.0
+	level.set("camera_bias", 0.0)
+	_new_man()
 
 
 ## A jet is glinting or in the air: the moment to tilt back.
@@ -230,6 +235,7 @@ func _fire_control(delta: float, p: Player) -> void:
 		held += 1
 		return
 	jet = WaterJet.fire(level, _muzzle)
+	jet.shooter = man
 	_fired += 1
 	if index == 0 and _fired == 1:
 		_hint("Tilt back ({tilt}) to put the umbrella between you.", 4.0)
@@ -240,7 +246,7 @@ func _under_arch(x: float) -> bool:
 
 
 func _muzzle() -> Transform3D:
-	var t := _umbrella.global_transform
+	var t := man.umbrella.global_transform
 	return Transform3D(t.basis, t * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0))
 
 
@@ -254,11 +260,11 @@ func _pose(delta: float) -> void:
 	var aiming: bool = jet != null and is_instance_valid(jet) and jet.phase != WaterJet.Phase.SPENT
 	_aim = move_toward(_aim, WaterJet.AIM_TILT if aiming else 0.0, delta * 4.0)
 	var raise := lerpf(1.0, WaterJet.AIM_RAISE, _aim / WaterJet.AIM_TILT)   # brought down to chest height to fire
-	_model.call("set_motion", speed, clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0))
-	_model.call("set_stopped", speed < 0.05)
-	_model.call("set_umbrella_pose", raise, _aim, 0.0)
-	_model.call("set_umbrella_open", 1.0)
-	_umbrella.set_state(1.0, Game.umbrella_radius(0), 0.0)
+	man.visual.call("set_motion", speed, clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0))
+	man.visual.call("set_stopped", speed < 0.05)
+	man.visual.call("set_umbrella_pose", raise, _aim, 0.0)
+	man.visual.call("set_umbrella_open", 1.0)
+	man.umbrella.set_state(1.0, Game.umbrella_radius(0), 0.0)
 
 
 ## The lamp's throw of him along the pavement: it lengthens through the warning and fades once he's in shot.

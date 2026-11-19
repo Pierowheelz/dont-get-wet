@@ -754,6 +754,24 @@ func _test_viaduct_road() -> void:
 	check(att.phase != att.Phase.FIRE and absf(t_out - att.GIVE_UP_S) < 0.1 and fastest <= Tun.f("walk_speed") + 0.001 and att.shots_left == shots_now,
 		"left behind out of the frame, he gives up after %.2f s (never faster than walking: %.2f m/s)" % [t_out, fastest])
 
+	# Each man is a body the walker's shots can soak: two clean hits and he gives up on his own,
+	# the attack ends, and the next man is a fresh one.
+	att._begin(0)
+	att._set_phase(att.Phase.FIRE)
+	await _idle_frames(2)
+	var first: NpcBody = att.man
+	var half := first.wet_max() * 0.5
+	first.soak(half, &"shot")
+	await _frames(2)
+	check(att.phase == att.Phase.FIRE and first.wet == half and first.get_parent() == att,
+		"one hit leaves him half soaked (%.1f) and still on" % first.wet)
+	first.soak(half, &"shot")
+	await _frames(2)
+	check(att.phase == att.Phase.OFF and not att.visible and att.man != first and att.man.wet == 0.0
+		and first.get_parent() == level and first.visible and first._dropped_umbrella,
+		"the second soaks him: he drops his umbrella and leaves on his own, and the next man is dry")
+	first.queue_free()
+
 	# A resume from the second checkpoint: the first two men are spent, the third still comes.
 	var xs: Array = level.data["attackers"].map(func(a: Dictionary) -> float: return float(a["x"]))
 	var cp_i := 0

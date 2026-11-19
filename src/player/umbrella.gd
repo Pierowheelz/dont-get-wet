@@ -11,10 +11,12 @@ const RING_STEPS := 7
 const ANGLE_OPEN := deg_to_rad(72.0)
 const ANGLE_CLOSED := deg_to_rad(174.0)
 const UMBRELLA_LAYER := 1 << 3
+const NPC_UMBRELLA_LAYER := 1 << 4   # NPCs' canopies: they stop shots, never the rain on the walker
 const HUB_R := 0.031          # canopy fabric starts on a ring just outside the shaft
 
 @export var canopy_color := Color(0.58, 0.1, 0.09)   # oxblood: reads against dark streets
 
+var layer := UMBRELLA_LAYER   # physics layer of the canopy collider; set before it enters the tree
 var open := 0.0
 var radius := 0.62          # rim radius when fully open
 var droop := 0.0
@@ -119,7 +121,7 @@ func _ready() -> void:
 	_handle.scale = Vector3(1.25, 1.0, 0.8)
 
 	_body = StaticBody3D.new()
-	_body.collision_layer = UMBRELLA_LAYER
+	_body.collision_layer = layer
 	_body.collision_mask = 0
 	_shape = ConvexPolygonShape3D.new()
 	_shape.points = PackedVector3Array([Vector3(0, SHAFT_LEN, 0), Vector3(0.1, SHAFT_LEN - 0.1, 0),

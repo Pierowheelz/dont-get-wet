@@ -3,8 +3,8 @@ extends Node3D
 ## A telegraphed shotgun splash of water fired from an umbrella's tip. For `glint` seconds a glint
 ## flashes at the muzzle (it follows the muzzle while the shooter aims), then a burst of pellets
 ## (a DropletBurst) leaves the way the umbrella points, nearly flat (SHOT_ELEV) and fast enough to
-## reach his chest where he'll be. Each pellet that reaches his body wets him (Player.soak, cause "shot", so a shot
-## that soaks him fails the attempt as SHOT); his canopy or an awning stops the ones that meet it, and
+## reach his chest where he'll be. Each pellet that reaches his body wets him (WetBody.soak, cause "shot", so a
+## shot that soaks him fails the attempt as SHOT); his canopy or an awning stops the ones that meet it, and
 ## a canopy that stops a good share is shoved aside for a moment (Player.jet_shove; Sturdy Frame
 ## tiers resist). What wets him is exactly what the player sees reach him.
 ##   var jet := WaterJet.fire(level, func() -> Transform3D: return Transform3D(umb.global_basis, tip))
@@ -30,6 +30,7 @@ const AIM_Y := 1.25           # the burst is aimed at his chest
 
 var level: Node
 var muzzle: Callable          # () -> Transform3D: origin at the muzzle, basis.y along the shaft
+var shooter: WetBody          # the one firing it, whom it never wets (null: scenery)
 var amount := -1.0            # wetness of a full hit; -1 = Tun "wet_jet_hit"
 var always_hits := false      # the canopy can't save him (the courier's parting shots)
 var glint_s := GLINT_S
@@ -137,7 +138,7 @@ func _process(delta: float) -> void:
 		Phase.TRAVEL:
 			# Decided once the burst has gone past him; strays fly on and fall, but he can lower the canopy.
 			if _t >= _flight * (1.0 + SPEED_JITTER) + 0.1:
-				_on_landed(burst.landed, burst.stopped, level.player)
+				_on_landed(burst.landed_on(level.player), burst.stopped_by(level.player), level.player)
 		Phase.SPENT:
 			if _t >= 1.0:
 				queue_free()
@@ -156,8 +157,8 @@ func _launch(p: Player) -> void:
 	starts.fill(from)
 	var full := amount if amount >= 0.0 else Tun.f("wet_jet_hit")
 	burst = DropletBurst.spawn(level, starts, vels, full,
-		{"full": HIT_FULL, "per_point": HIT_PER_POINT, "through_umbrella": always_hits, "size": 0.12, "trail": 5, "color": Color(0.78, 0.88, 1.0, 0.85)})
-	burst.hit.connect(func(wet: float) -> void: p.soak(wet, &"shot"))
+		{"full": HIT_FULL, "per_point": HIT_PER_POINT, "cause": &"shot", "shooter": shooter, "through_umbrella": always_hits,
+		"size": 0.12, "trail": 5, "color": Color(0.78, 0.88, 1.0, 0.85)})
 	phase = Phase.TRAVEL
 	_t = 0.0
 	_glint.visible = false
