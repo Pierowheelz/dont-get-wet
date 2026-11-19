@@ -1,7 +1,7 @@
 // Rain-soaked ground (sidewalk, asphalt). World-space XZ mapping so adjacent ground pieces tile
 // seamlessly; darker albedo + low roughness everywhere (wetness), plus a noise-driven puddle mask
 // where the surface becomes a near-mirror with animated rain ripples.
-// Generated alongside tools/blender/gen_materials.py (edit parameters there or in the .tres files).
+// Hand-written; its parameters are set per material by tools/blender/gen_materials.py.
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
@@ -59,19 +59,23 @@ void fragment() {
 
 	float n = texture(puddle_noise, world_pos.xz / puddle_scale).r;
 	float thr = 1.0 - puddle_amount;
-	float puddle = smoothstep(thr, thr + 0.06, n) * wetness;
+	float puddle = smoothstep(thr, thr + 0.1, n) * wetness;
 	// damp rim around puddles + cavities (dark texels) hold more water
 	float cavity = 1.0 - clamp(dot(texture(albedo_tex, uv).rgb, vec3(0.333)) * 1.6, 0.0, 1.0);
 	float damp = clamp(wetness * (0.75 + 0.25 * cavity) + smoothstep(thr - 0.12, thr, n) * 0.3, 0.0, 1.0);
 
 	alb *= mix(1.0, 0.42, damp);
 	alb = mix(alb, alb * 0.55, puddle);
-	float rough = mix(base_r, base_r * 0.22 + 0.04, damp);
+	float rough = mix(base_r, base_r * 0.1 + 0.03, damp);
 	rough = mix(rough, 0.03, puddle);
 
-	vec2 rp = ripples(world_pos.xz * ripple_density, TIME * ripple_speed) * ripple_strength * puddle;
+	// Rings only show on standing water: skip their cost on the two thirds of the ground that is merely damp.
+	vec2 rp = vec2(0.0);
+	if (puddle > 0.004) {
+		rp = ripples(world_pos.xz * ripple_density, TIME * ripple_speed) * ripple_strength * puddle;
+	}
 	vec3 flat_n = vec3(0.5, 0.5, 1.0);
-	nm = mix(nm, flat_n, clamp(puddle + damp * 0.35, 0.0, 1.0));
+	nm = mix(nm, flat_n, clamp(puddle + damp * 0.7, 0.0, 1.0));
 	nm.xy += rp * 0.5;
 
 	ALBEDO = alb;
