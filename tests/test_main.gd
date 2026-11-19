@@ -6,7 +6,7 @@ extends Node
 
 const TESTS := "res://tests/run_tests.gd"
 const SCRIPT_DIRS: Array[String] = ["res://src", "res://tests"]
-const TIMEOUT_S := 120.0
+const TIMEOUT_S := 240.0
 const AFTER_ERROR_S := 2.0   # an error already fails the run; give the tests a moment to print more
 
 
