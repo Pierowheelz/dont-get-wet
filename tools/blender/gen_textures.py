@@ -313,28 +313,89 @@ def interior_hotel():
 
 
 def interior_empty():
+    """A shop that closed and was cleared out: stripped shelving, a counter under a dust sheet, a
+    stepladder, the pale ghosts of fixtures on the wallpaper, a back door with the alley light behind
+    it. Tiles horizontally (wide modules repeat it), so nothing crosses the left/right edge."""
     rng = random.Random(7)
-    im = vgrad(W, H, (70, 64, 58), (45, 40, 36)).convert("RGBA")
+    im = vgrad(W, H, (58, 54, 50), (74, 68, 60)).convert("RGBA")
     d = ImageDraw.Draw(im)
-    # peeling wallpaper patches
-    for k in range(30):
-        x, y = rng.randint(0, W), rng.randint(0, 330)
-        d.rectangle([x, y, x + rng.randint(20, 90), y + rng.randint(20, 60)], fill=(85, 78, 66))
-    # back door with a faint light
-    d.rectangle([700, 150, 800, 400], fill=(30, 28, 25))
-    d.rectangle([712, 165, 788, 260], fill=(120, 120, 110))
-    # stacked chairs, boxes, an old counter
-    d.rectangle([80, 320, 420, 400], fill=(55, 45, 38))
-    for k in range(6):
-        x = rng.randint(450, 950)
-        s = rng.randint(40, 90)
-        d.rectangle([x, 400 - s, x + s * 1.3, 400], fill=(rng.randint(80, 110), rng.randint(65, 85), 50))
-    for k in range(3):
-        x = 150 + k * 60
-        d.line([(x, 250), (x + 10, 320)], fill=(40, 30, 25), width=6)
-        d.line([(x + 40, 250), (x + 30, 320)], fill=(40, 30, 25), width=6)
-    d.rectangle([0, 400, W, H], fill=(35, 32, 30))
-    return painterly(im, 1.1, 7)
+    FLOOR = 404
+    # faded striped wallpaper (period divides the width), darker dado below a rail
+    for x in range(0, W, 32):
+        d.rectangle([x, 0, x + 13, FLOOR], fill=(66, 61, 55))
+    d.rectangle([0, 268, W, FLOOR], fill=(47, 42, 38))
+    d.rectangle([0, 262, W, 270], fill=(84, 76, 66))
+    # damp coming down from the ceiling
+    for k in range(14):
+        x = rng.randint(0, W - 40)
+        wdt = rng.randint(14, 46)
+        ln = rng.randint(50, 190)
+        lay = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        ImageDraw.Draw(lay).polygon([(x, 0), (x + wdt, 0), (x + wdt * 0.7, ln), (x + wdt * 0.35, ln * 0.85)],
+                                    fill=(24, 22, 22, 110))
+        im.alpha_composite(lay.filter(ImageFilter.GaussianBlur(5)))
+    d = ImageDraw.Draw(im)
+    # clean rectangles where a clock, a price board and a mirror hung
+    d.ellipse([478, 60, 546, 128], fill=(92, 85, 74))
+    d.rectangle([584, 70, 760, 150], fill=(90, 83, 73))
+    d.rectangle([588, 150, 756, 153], fill=(40, 36, 33))
+    # stripped shelving on the left: uprights, bare boards, a few things nobody wanted
+    sx0, sx1 = 50, 400
+    d.rectangle([sx0, 40, sx1, FLOOR], fill=(40, 35, 31))
+    for x in (sx0, (sx0 + sx1) // 2 - 5, sx1 - 10):
+        d.rectangle([x, 34, x + 10, FLOOR], fill=(98, 80, 60))
+    for y in (40, 112, 184, 256, 328):
+        d.rectangle([sx0, y, sx1, y + 9], fill=(112, 92, 68))
+        d.rectangle([sx0, y + 9, sx1, y + 13], fill=(26, 23, 21))
+    for (x, y, w_, h_, col) in [(78, 184, 44, 38, (120, 100, 70)), (124, 184, 30, 24, (96, 70, 58)),
+                                 (262, 112, 58, 30, (104, 92, 76)), (300, 328, 26, 46, (82, 96, 92)),
+                                 (332, 328, 26, 40, (124, 96, 60)), (92, 256, 70, 16, (132, 124, 108))]:
+        d.rectangle([x, y - h_, x + w_, y], fill=col)
+    # counter under a dust sheet: the palest shape in the room
+    cx0, cx1 = 430, 700
+    d.rectangle([cx0 + 16, 330, cx1 - 16, FLOOR], fill=(52, 44, 38))
+    sheet = [(cx0, 292), (cx0 + 60, 282), (cx1 - 70, 285), (cx1, 296), (cx1 - 6, 368)]
+    n = 9
+    for k in range(n + 1):   # hem hanging in soft, uneven swags
+        x = cx1 - 6 - (cx1 - cx0 - 16) * k / n
+        sheet.append((x, 362 + 10 * math.sin(k * 2.1) + (7 if k % 2 else -5)))
+    sheet.append((cx0 + 10, 366))
+    d.polygon(sheet, fill=(126, 121, 110))
+    for x in range(cx0 + 34, cx1 - 20, 44):
+        d.line([(x, 302), (x + rng.randint(-10, 10), 356)], fill=(104, 99, 90), width=6)
+    d.line([(cx0 + 4, 295), (cx1 - 4, 297)], fill=(146, 140, 127), width=6)
+    # back door, frosted pane lit from the alley
+    bx = 780
+    d.rectangle([bx - 12, 96, bx + 118, FLOOR], fill=(92, 78, 62))
+    d.rectangle([bx, 108, bx + 106, FLOOR], fill=(34, 31, 29))
+    glow(im, bx + 53, 190, 150, (120, 150, 190), 70)
+    d = ImageDraw.Draw(im)
+    d.rectangle([bx + 16, 124, bx + 90, 250], fill=(128, 150, 172))
+    d.line([(bx + 53, 124), (bx + 53, 250)], fill=(34, 31, 29), width=5)
+    d.line([(bx + 16, 187), (bx + 90, 187)], fill=(34, 31, 29), width=5)
+    d.rectangle([bx + 16, 276, bx + 90, 384], outline=(52, 47, 43), width=5)
+    d.ellipse([bx + 88, 262, bx + 100, 274], fill=(150, 126, 70))
+    # stepladder and paint tins by the door, a stack of boxes at the far end
+    lx = 930
+    d.line([(lx, 150), (lx - 44, FLOOR)], fill=(126, 104, 72), width=9)
+    d.line([(lx + 4, 150), (lx + 40, FLOOR)], fill=(96, 78, 56), width=9)
+    for k in range(5):
+        y = 190 + k * 44
+        t = (y - 150) / (FLOOR - 150)
+        d.line([(lx - 44 * t - 2, y), (lx - 44 * t + 30 + 12 * t, y)], fill=(126, 104, 72), width=7)
+    for (x, w_, h_, col) in [(712, 34, 36, (110, 112, 108)), (748, 28, 30, (92, 60, 50))]:
+        d.rectangle([x, FLOOR - h_, x + w_, FLOOR], fill=col)
+        d.rectangle([x - 2, FLOOR - h_ - 4, x + w_ + 2, FLOOR - h_], fill=(150, 150, 144))
+    # floor: bare boards, a pale square where a display stood, litter
+    d.rectangle([0, FLOOR, W, H], fill=(38, 34, 31))
+    d.rectangle([0, FLOOR, W, FLOOR + 5], fill=(22, 20, 19))
+    for x in range(0, W, 64):
+        d.line([(x, FLOOR + 5), (x, H)], fill=(28, 25, 23), width=3)
+    for k in range(9):
+        x = rng.randint(20, W - 60)
+        d.polygon([(x, 440 + rng.randint(0, 50)), (x + rng.randint(14, 34), 436 + rng.randint(0, 50)),
+                   (x + rng.randint(8, 24), 458 + rng.randint(0, 40))], fill=(96, 92, 82))
+    return painterly(im, 0.8, 7)
 
 
 # ------------------------------------------------------------------------------------------------
