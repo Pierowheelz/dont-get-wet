@@ -1,13 +1,13 @@
 class_name WaterGun
 extends Node
 ## The shot built into the walker's umbrella, on armed streets (Game.armed). Each shot is a short,
-## wide, fast DropletBurst from the umbrella's tip along the street: forward, or behind once the
-## open canopy is tilted back past BACK_TILT (with it furled, the last tilt input picks the side).
-## It is aimed up or down at the chest of the nearest body it can reach on that side. Droplets are
+## wide, fast DropletBurst out of the shaft's tip, along the shaft: the open canopy's tilt aims it, and
+## furled, the aim input raises the shaft and points it (Player.aim). A body whose chest is within
+## ASSIST of the shaft's line pulls the shot onto it. Droplets are
 ## spent at Game.gun_range() (Long Barrel); a burst that soaks HIT_FULL of a body wets it gun_hit
 ## times Game.gun_pressure_mult() (Pressure), so two clean hits soak a man and Pressure tier 3 does it
-## in one. It holds gun_shots and refills by itself at gun_refill_idle, or at gun_refill_stream while
-## he stands stopped under a gutter stream with the umbrella open.
+## in one. It holds gun_shots and refills at gun_refill_rain while the open canopy catches the rain, or
+## at gun_refill_stream while he stands stopped under a gutter stream with the umbrella open.
 
 signal fired(burst: DropletBurst)
 
@@ -21,34 +21,32 @@ const HIT_FULL := 0.45         # share of a body (DropletBurst.exposure) a shot 
 const HIT_PER_POINT := 2.0
 const AIM_Y := 1.25            # aimed at the chest
 const BACK_TILT := 0.3         # share of the full tilt back past which it fires behind
+const ASSIST := 0.52           # rad either side of the shaft's line within which a body pulls the shot onto its chest
+const TIP := 0.09              # m past the end of the shaft the water leaves
+const HOLD_S := 0.6            # s the furled shaft stays up after a shot
 const STREAM_SHARE := 0.5      # how much of a stream the canopy must catch to refill from it
 const RECOIL_S := 0.22
-const FURLED_Y := 0.95         # furled, the shot leaves at least this high...
-const FURLED_REACH := 0.25     # ...and this far out from his fist
 
 var player: Player
 var armed := false
 var shots := 0.0               # fractional while refilling; a shot needs a whole one
-var aim_back := false          # furled: the side the last tilt input picked
+var last_side := 1.0          # the side it last fired: a shot from rest swings the furled shaft up that way
 var recoil := 0.0              # 1 the moment it fires, back to 0 over RECOIL_S
 var _cool := 0.0
+var _hold := 0.0
 
 
 func capacity() -> int:
 	return int(Tun.f("gun_shots"))
 
 
-## One physics step: aim, refill, and fire if asked and ready. `tl` is the tilt input (-1..1).
-func step(delta: float, want_fire: bool, tl: float) -> void:
+## One physics step: refill, and fire if asked and the shaft is up.
+func step(delta: float, want_fire: bool) -> void:
 	if not armed:
 		return
 	recoil = move_toward(recoil, 0.0, delta / RECOIL_S)
 	_cool -= delta
-	if player.open <= 0.0:
-		if tl < -BACK_TILT:
-			aim_back = true
-		elif tl > BACK_TILT:
-			aim_back = false
+	_hold -= delta
 	var rate := refill_rate()
 	var before := floori(shots)
 	shots = minf(shots + rate * delta, capacity())
@@ -58,27 +56,47 @@ func step(delta: float, want_fire: bool, tl: float) -> void:
 		fire()
 
 
-## Shots per second it refills at right now.
+## Shots per second it refills at right now: fast stopped under a gutter stream with the umbrella
+## open, slowly while the open canopy is out in the rain, and not at all furled or under cover.
 func refill_rate() -> float:
-	var under_stream := player.state == Player.State.STOPPED and player.open >= 0.95 \
-		and player.gutter_on_umbrella >= STREAM_SHARE
-	return Tun.f("gun_refill_stream") if under_stream else Tun.f("gun_refill_idle")
+	if player.open < 0.95:
+		return 0.0
+	if player.state == Player.State.STOPPED and player.gutter_on_umbrella >= STREAM_SHARE:
+		return Tun.f("gun_refill_stream")
+	var x := player.position.x
+	if player.level.rain_intensity(x) <= 0.0:
+		return 0.0
+	var top := player.umbrella.canopy_center()
+	return 0.0 if player._cast(top, top - player.rain_dir() * 30.0, Player.COVER_MASK) else Tun.f("gun_refill_rain")
 
 
-## +1 forward, -1 behind.
+## True for a moment after a shot: the furled shaft stays up between quick shots.
+func holding() -> bool:
+	return _hold > 0.0
+
+
+## +1 forward, -1 behind: the way the shaft leans.
 func aim_sign() -> float:
-	if player.open > 0.0:
-		return -1.0 if player.tilt < -BACK_TILT * Tun.f("umbrella_max_tilt") else 1.0
-	return -1.0 if aim_back else 1.0
+	return -1.0 if player.tilt < -BACK_TILT * Tun.f("umbrella_max_tilt") else 1.0
 
 
-## The umbrella's tip while it is up; furled (hanging tip down from his fist), the shot leaves from
-## the fist at hip height instead of the pavement.
+## The end of the shaft, where the water leaves.
 func muzzle() -> Vector3:
-	if player.open > 0.0:
-		return player.umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0)
-	var fist := player.umbrella.global_position
-	return Vector3(fist.x + aim_sign() * FURLED_REACH, maxf(fist.y, player.global_position.y + FURLED_Y), fist.z)
+	return player.umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + TIP, 0.0)
+
+
+## The shaft's direction in the street's plane, toward the tip.
+func barrel() -> Vector3:
+	var d := player.umbrella.global_basis.y
+	d.z = 0.0
+	return d.normalized() if d.length() > 0.01 else Vector3(aim_sign(), 0.0, 0.0)
+
+
+## True if `body`'s chest is within ASSIST of the shaft's line, so a shot would land on it.
+func on_line(body: WetBody) -> bool:
+	var to := body.global_position + Vector3(0.0, AIM_Y, 0.0) - muzzle()
+	to.z = 0.0
+	return to.length() > 0.01 and barrel().angle_to(to.normalized()) <= ASSIST
 
 
 ## The nearest body it can wet on the side it aims, within range of `from` (null if none).
@@ -98,15 +116,17 @@ func mark(from: Vector3, side: float) -> WetBody:
 func fire() -> DropletBurst:
 	shots -= 1.0
 	_cool = Tun.f("gun_cadence")
+	_hold = HOLD_S
 	recoil = 1.0
 	var side := aim_sign()
+	last_side = side
 	var from := muzzle()
 	var reach := Game.gun_range()
-	var at := Vector3(from.x + side * reach * 0.75, player.level.ground_y(from.x) + AIM_Y, from.z)
+	var v0 := barrel() * SPEED
 	var m := mark(from, side)
-	if m:
-		at = m.global_position + Vector3(0.0, AIM_Y, 0.0)
-	var vels := pellets(launch(from, at, side))
+	if m and on_line(m):
+		v0 = launch(from, m.global_position + Vector3(0.0, AIM_Y, 0.0), side)
+	var vels := pellets(v0)
 	var starts := PackedVector3Array()
 	starts.resize(vels.size())
 	starts.fill(from)

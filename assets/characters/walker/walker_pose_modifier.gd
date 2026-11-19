@@ -300,8 +300,10 @@ func _solve_umbrella_arm(skel: Skeleton3D, skel_from_char: Transform3D, w: float
 	var side := "Left" if umbrella_left else "Right"
 	var sway_a := (sin(time * 2.3) * 0.22 + sin(time * 3.9 + 1.0) * 0.07) * droop
 	var sway_side := sin(time * 1.7 + 0.5) * 0.12 * droop
-	# Tipped forward while being opened / closed (at least OPEN_TIP, more if the player tilts it).
-	var tilt_now := lerpf(tilt, maxf(tilt, OPEN_TIP), Umbrella.open_tip(spread))
+	# Tipped forward while being opened / closed (at least OPEN_TIP, more if the player tilts it). Raised
+	# furled to aim, it points where it's tilted.
+	var tip := Umbrella.open_tip(spread) if spread > 0.0 else 0.0
+	var tilt_now := lerpf(tilt, maxf(tilt, OPEN_TIP), tip)
 	var tilt_total := tilt_now + sway_a
 	# Hold the umbrella relative to where his chest actually is (elbow bent ~90°, hand at chest/
 	# chin height in front of the sternum), not at a fixed point he would have to reach for.

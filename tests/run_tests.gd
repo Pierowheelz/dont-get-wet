@@ -151,11 +151,20 @@ func _npc(x: float, canopy := false, over := false) -> NpcBody:
 	return npc
 
 
-## One shot from the walker, umbrella furled, aimed `side`; returns the burst once it has landed.
+## One shot from the walker, umbrella furled and its shaft raised and aimed level-ish toward `side`
+## (full tilt); returns the burst once it has landed.
 func _fire(side := 1.0) -> DropletBurst:
-	var g: WaterGun = level.player.gun
-	g.aim_back = side < 0.0
+	var p: Player = level.player
+	var g: WaterGun = p.gun
+	if p.open <= 0.0:
+		p.aim = 1.0
+		p.tilt = side * Tun.f("umbrella_max_tilt")
+		for i in 3:
+			await get_tree().process_frame   # the pose and the shaft follow
 	g.shots = g.capacity()
+	g.recoil = 0.0   # the walker's physics (which lets it settle) is off in these tests
+	for i in 2:
+		await get_tree().process_frame
 	var b := g.fire()
 	await b.done
 	await get_tree().process_frame   # out of the burst's physics step before the test moves on
@@ -184,7 +193,7 @@ func _test_umbrella_shot() -> void:
 	_unhook_defeat(p)
 	check(not p.gun.armed and Game.street_number("main_street") == 1, "the test street isn't armed: %s" % p.gun.armed)
 	var shots_was := p.gun.shots
-	p.gun.step(0.5, true, 0.0)
+	p.gun.step(0.5, true)
 	check(p.gun.shots == shots_was and p.gun.recoil == 0.0, "unarmed, the fire button does nothing")
 	check(Game.street_number("viaduct_road") == 5 and Game.street_number("atomic_avenue") == 5
 		and Game.street_number("the_bypass") == 6 and Game.street_number("rocket_row") == 6,
@@ -194,6 +203,7 @@ func _test_umbrella_shot() -> void:
 	p.gun.armed = true
 	var x0 := 162.6
 	await _place(x0, 0.0)
+	await _fire()   # raises the furled shaft, so the muzzle below is where it fires from
 	var upg_was: Dictionary = Game.run.upgrades.duplicate()
 	var direct := Tun.f("gun_hit")
 	for tier in 4:
@@ -219,8 +229,8 @@ func _test_umbrella_shot() -> void:
 		"two direct hits soak a man: %.1f after one, %.1f of %.0f after two" % [one, man.wet, man.wet_max()])
 	check(man.get_parent() == level and man._dropped_umbrella, "soaked, he drops his umbrella and walks off on his own")
 	var at := man.position.x
-	await get_tree().create_timer(1.5).timeout
-	check(is_instance_valid(man) and man.position.x < at - 0.3 and man.rotation.y > PI * 0.5,
+	await get_tree().create_timer(2.5).timeout
+	check(is_instance_valid(man) and man.position.x < at - 0.3 and man.global_basis.x.x < 0.0,
 		"... turning round to trudge off the left (%.2f m so far)" % (at - man.position.x if is_instance_valid(man) else 0.0))
 	if is_instance_valid(man):
 		man.queue_free()
@@ -236,7 +246,6 @@ func _test_umbrella_shot() -> void:
 		"his canopy, brought down at the walker, stops the shot: %d droplets stopped, %d through, wet %.1f a shot" % shield)
 	man.queue_free()
 	man = await _npc(x0 + 2.5)
-	p.gun.aim_back = false
 	await _fire(-1.0)
 	check(man.wet == 0.0, "aimed behind, a man ahead stays dry")
 	man.queue_free()
@@ -260,27 +269,30 @@ func _test_umbrella_shot() -> void:
 		"a man's open canopy over the walker's head (%s) keeps no rain off him: exposure %.2f, %.2f without it" % [over, under, bare])
 	man.queue_free()
 
-	# Refill: about one shot per 25 s by itself, one a second stopped under a stream with the umbrella open.
+	# Refill: one a second stopped under a stream with the umbrella open; about one per 25 s with the
+	# open canopy out in the rain; none furled or under cover.
 	var gx: float = level.gutters[0]
 	await _place(gx, 1.0)
 	p.state = Player.State.STOPPED
 	p._gutter_exposure()
-	p.gun.shots = 0.0
-	p.gun.step(1.0, false, 0.0)
-	var stream := p.gun.shots
+	var stream := p.gun.refill_rate()
 	p.state = Player.State.WALK
+	await _place(rx, 1.0)
+	var rain := p.gun.refill_rate()
+	await _place(rx, 0.0)
+	var furled := p.gun.refill_rate()
+	var cx := -1.0
+	for lot in level.data["lots"]:
+		if lot["cover"] == "awning" and not lot.has("tears") and lot["w"] >= 4 and cx < 0.0:
+			cx = lot["x"] + lot["w"] * 0.5
+	await _place(cx, 1.0)
+	var covered := p.gun.refill_rate()
 	p.gun.shots = 0.0
-	p.gun.step(1.0, false, 0.0)
-	var walking := p.gun.shots
-	await _place(x0, 1.0)
-	p.state = Player.State.STOPPED
-	p._gutter_exposure()
-	p.gun.shots = 0.0
-	p.gun.step(25.0, false, 0.0)
-	var idle := p.gun.shots
-	p.state = Player.State.WALK
-	check(absf(stream - 1.0) < 0.01 and absf(walking - 0.04) < 0.005 and absf(idle - 1.0) < 0.01,
-		"refill: %.2f shots in 1 s stopped under a stream, %.2f walking through it, %.2f in 25 s elsewhere" % [stream, walking, idle])
+	await _place(rx, 1.0)
+	p.gun.step(25.0, false)
+	check(absf(stream - 1.0) < 0.01 and absf(rain - 0.04) < 0.005 and furled == 0.0 and covered == 0.0
+		and absf(p.gun.shots - 1.0) < 0.01,
+		"refill: %.2f a second under a stream, %.2f open in the rain (one shot in 25 s), %.2f furled, %.2f under an awning" % [stream, rain, furled, covered])
 	await _drop_street(level)
 
 	var r := Run.new("left", Game.start_node)
@@ -1037,7 +1049,7 @@ func _test_rocket_row() -> void:
 	check(p.gun.armed, "Rocket Row is armed")
 	var hm: Node = level.henchmen
 	check(hm != null and hm.men.size() == 5 and hm.men.all(func(m) -> bool:
-		return m.body is NpcBody and m.body.umbrella.open == 0.0 and absf(m.body.rotation.y - PI) < 0.01),
+		return m.body is NpcBody and m.body.umbrella.open == 0.0 and m.body.global_basis.x.x < -0.85),
 		"five men wait at their x, umbrellas furled, facing back down the street")
 	var m = hm.men[0]
 	await _walker_at(m.x - hm.RANGE - 3.0, 30)
@@ -1064,7 +1076,6 @@ func _test_rocket_row() -> void:
 	m.jet.glint_s = 100.0
 	await get_tree().create_timer(0.5).timeout
 	await _walker_at(m.x - 3.0)
-	p.gun.aim_back = false
 	var shield := await _shots_at(m.body, 3)
 	check(shield[0] > shield[1] * 8 and shield[2] < Tun.f("gun_hit") * 0.35,
 		"aiming, his lowered canopy stops the shot (%d stopped, %d through, wet %.1f a shot)" % shield)

@@ -3,6 +3,7 @@ extends Node
 ## gamepad, keyboard/mouse and touch sources.
 
 const DEADZONE := 0.08
+const AIM_REST := 0.3            # a stick pushed less than this far leaves the furled shaft at his side
 
 ## Set by the on-screen touch controls.
 var touch_umbrella := 0.0
@@ -45,6 +46,8 @@ func _ready() -> void:
 	_axis(&"tilt_back", JOY_AXIS_RIGHT_X, -1.0)
 	_axis(&"tilt_forward_l", JOY_AXIS_LEFT_X, 1.0)
 	_axis(&"tilt_back_l", JOY_AXIS_LEFT_X, -1.0)
+	_axis(&"aim_up", JOY_AXIS_RIGHT_Y, -1.0)
+	_axis(&"aim_up_l", JOY_AXIS_LEFT_Y, -1.0)
 	_key(&"tilt_forward_key", KEY_E)
 	_key(&"tilt_back_key", KEY_Q)
 	_button(&"fire", JOY_BUTTON_RIGHT_SHOULDER)
@@ -202,19 +205,43 @@ func hurry() -> float:
 
 ## -1..1 tilt request (+ = forward).
 func tilt() -> float:
-	# Either stick tilts; if both are pushed at once, average them so they don't fight.
+	var v := _stick_x()
+	var other := _tilt_other()
+	if absf(other) > absf(v):
+		v = other
+	return clampf(v, -1.0, 1.0)
+
+
+## Where the furled shaft is aimed on an armed street: radians from upright (+ ahead, - behind,
+## within max_tilt), or NAN with every input at rest (it hangs at his side). A stick aims by its
+## direction: left behind, right ahead, up overhead. Q / E, the mouse and the touch slider aim by how
+## far they're pushed, as they tilt the open umbrella.
+func aim(max_tilt: float) -> float:
+	var up := maxf(Input.get_action_strength(&"aim_up"), Input.get_action_strength(&"aim_up_l"))
+	var stick := Vector2(_stick_x(), up)
+	if stick.length() > AIM_REST:
+		return clampf(atan2(stick.x, stick.y), -max_tilt, max_tilt)
+	var other := _tilt_other()
+	if absf(other) > 0.05:
+		return clampf(other, -1.0, 1.0) * max_tilt
+	return NAN
+
+
+## Either stick's sideways push; if both are pushed at once, average them so they don't fight.
+func _stick_x() -> float:
 	var right := Input.get_action_strength(&"tilt_forward") - Input.get_action_strength(&"tilt_back")
 	var left := Input.get_action_strength(&"tilt_forward_l") - Input.get_action_strength(&"tilt_back_l")
-	var stick := (right + left) * 0.5 if (right != 0.0 and left != 0.0) else right + left
-	var keys := Input.get_action_strength(&"tilt_forward_key") - Input.get_action_strength(&"tilt_back_key")
-	var v := stick
-	if absf(keys) > absf(v):
-		v = keys
+	return (right + left) * 0.5 if (right != 0.0 and left != 0.0) else right + left
+
+
+## The strongest of Q / E, the touch slider and the mouse.
+func _tilt_other() -> float:
+	var v := Input.get_action_strength(&"tilt_forward_key") - Input.get_action_strength(&"tilt_back_key")
 	if absf(touch_tilt) > absf(v):
 		v = touch_tilt
 	if absf(mouse_tilt) > absf(v):
 		v = mouse_tilt
-	return clampf(v, -1.0, 1.0)
+	return v
 
 
 func stop_held() -> bool:

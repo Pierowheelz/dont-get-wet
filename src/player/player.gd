@@ -23,7 +23,8 @@ const CHARACTER_SCENE := "res://assets/characters/walker/walker.tscn"
 var state := State.WALK
 var run_amount := 0.0
 var open := 0.0
-var tilt := 0.0
+var tilt := 0.0                    # rad the shaft leans from upright (+ ahead): the open canopy's tilt, or the raised furled shaft's aim
+var aim := 0.0                     # 0..1 the furled shaft raised to aim (armed streets only)
 var droop := 0.0
 var stamina := 100.0
 var exposure := 0.0                # 0..1 rain exposure this frame (for HUD/FX)
@@ -40,6 +41,8 @@ const JET_KICK_S := 0.7            # a full shove takes this long to recover fro
 const JET_KICK_TILT := 0.6         # rad the canopy is knocked forward by a full shove
 const JET_KICK_DROOP := 0.7        # and how far it sags (as when exhausted)
 const RECOIL_TILT := 0.22          # rad the canopy kicks away from a shot as it fires
+const AIM_RAISE_S := 0.2           # s to bring the furled shaft up from his side to aim, or back down
+const AIM_READY := 0.9             # how far up the furled shaft must be before it fires
 var _hit_cause := &"wet"
 var _hit_t := -INF
 
@@ -130,6 +133,8 @@ func _physics_process(delta: float) -> void:
 	var tl: float
 	var stop_req: bool
 	var fire_req: bool
+	var aim_in := NAN                # where the furled shaft is aimed (rad), NAN at rest
+	var max_tilt := Tun.f("umbrella_max_tilt")
 	if Game.autopilot:
 		var ap := _autopilot(delta)
 		if level.courier:
@@ -139,13 +144,16 @@ func _physics_process(delta: float) -> void:
 		if Game.debug_lazy:
 			ap[0] = 0.0
 		u = ap[0]; h = ap[1]; tl = ap[2]; stop_req = ap[3]
-		fire_req = _autopilot_fire()
+		fire_req = _autopilot_fire(tl)
+		if fire_req and absf(tl) > 0.3:
+			aim_in = signf(tl) * max_tilt
 	else:
 		u = Inputs.umbrella()
 		h = Inputs.hurry()
 		tl = Inputs.tilt()
 		stop_req = Inputs.stop_held()
 		fire_req = Inputs.fire_held()
+		aim_in = Inputs.aim(max_tilt)
 
 	if not is_nan(Game.debug_tilt):
 		u = 1.0; tl = Game.debug_tilt
@@ -154,12 +162,19 @@ func _physics_process(delta: float) -> void:
 	# --- umbrella open/close: same speed both ways, reverses from wherever it is ---------------
 	var open_rate := 1.0 / maxf(Game.umbrella_open_time(), 0.05)
 	open = move_toward(open, u, open_rate * delta)
-	if open <= 0.0:
+	if open <= 0.0 and not gun.armed:
 		Inputs.mouse_tilt = 0.0
-	var max_tilt := Tun.f("umbrella_max_tilt")
-	tilt = move_toward(tilt, tl * max_tilt if open > 0.0 else 0.0, Tun.f("umbrella_tilt_speed") * delta)
+	# Armed, the furled shaft is the gun: the aim raises it and points it. Firing from rest swings it
+	# up toward the side it last fired, and it stays up a moment between shots.
+	var furled := gun.armed and open <= 0.0
+	if furled and is_nan(aim_in) and (fire_req or gun.holding()):
+		aim_in = gun.last_side * max_tilt
+	var raised := furled and not is_nan(aim_in)
+	aim = move_toward(aim, 1.0 if raised else 0.0, delta / AIM_RAISE_S)
+	var tilt_to := tl * max_tilt if open > 0.0 else (aim_in if raised else 0.0)
+	tilt = move_toward(tilt, tilt_to, Tun.f("umbrella_tilt_speed") * delta)
 
-	gun.step(delta, fire_req, tl)
+	gun.step(delta, fire_req and (open > 0.0 or aim >= AIM_READY and absf(tilt - tilt_to) < 0.15))
 
 	# --- stop -------------------------------------------------------------------------------
 	if state == State.WALK or state == State.STOPPED:
@@ -250,9 +265,10 @@ func _process(delta: float) -> void:
 	_update_umbrella()
 
 
-## The arm comes up during the first part of the opening; the canopy spreads after (Umbrella).
+## The arm comes up during the first part of the opening (the canopy spreads after, Umbrella), or
+## to aim the furled shaft.
 func arm_raise() -> float:
-	return Umbrella.arm_raise(open)
+	return maxf(Umbrella.arm_raise(open), aim)
 
 
 func _wind() -> float:
@@ -266,7 +282,7 @@ func rain_dir() -> Vector3:
 func _update_umbrella() -> void:
 	if _dropped_umbrella or visual == null:
 		return
-	var hand: StringName = &"right" if open > 0.0 else &"left"
+	var hand: StringName = &"right" if open > 0.0 or aim > 0.0 else &"left"
 	var grip: Node3D = visual.get_grip(hand)
 	if grip:
 		umbrella.global_transform = grip.global_transform
@@ -612,9 +628,9 @@ func _autopilot(delta: float) -> Array:
 		var ahead := _ap_mark(1.0)
 		var behind := _ap_mark(-1.0)
 		if behind and not ahead:
-			tl = minf(tl, -0.6) if open > 0.0 else -1.0
+			tl = minf(tl, -0.85) if open > 0.0 else -1.0
 		elif ahead:
-			tl = maxf(tl, 0.0) if open > 0.0 else 1.0
+			tl = maxf(tl, 0.85) if open > 0.0 else 1.0
 	# Put the canopy between him and the jet: well over toward it, not quite flat (that lets the rain in).
 	var brace: float = hm.brace_side() if hm else 0.0
 	if att != null and att.brace():
@@ -630,14 +646,18 @@ func _autopilot(delta: float) -> Array:
 
 ## Fires whenever a man in shot is in range on the side it aims and his canopy isn't in the way, but
 ## never while a jet is coming: the recoil would knock the canopy off it.
-func _autopilot_fire() -> bool:
+func _autopilot_fire(tl := 0.0) -> bool:
 	if not gun.armed or gun.shots < 1.0:
 		return false
 	for shooter: Node in [level.get("attackers"), level.get("henchmen")]:
 		if shooter and shooter.incoming():
 			return false
-	var m := _ap_mark(gun.aim_sign())
-	return m != null and not _cast(gun.muzzle(), m.global_position + Vector3(0.0, WaterGun.AIM_Y, 0.0), m.canopy_mask())
+	# Open, the canopy's tilt aims; furled, the side it is about to swing the shaft up to.
+	var side := gun.aim_sign() if open > 0.0 or absf(tl) <= 0.3 else signf(tl)
+	var m := _ap_mark(side)
+	if m == null or open > 0.0 and not gun.on_line(m):
+		return false   # furled, the shaft swings up onto him before it fires
+	return not _cast(gun.muzzle(), m.global_position + Vector3(0.0, WaterGun.AIM_Y, 0.0), m.canopy_mask())
 
 
 ## The man the shot would aim at on `side`, if the player could see him.

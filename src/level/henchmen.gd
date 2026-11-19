@@ -146,7 +146,11 @@ func _on_screen(m: Man) -> bool:
 
 
 func _yaw(m: Man) -> float:
-	return PI if m.facing < 0.0 else 0.0
+	# Squared up to the walker's lane, so the canopy he brings down faces the shot that comes at it.
+	var p: Node3D = level.player
+	var dx := maxf(absf(p.position.x - m.body.position.x), 1.0)
+	var turn := clampf(atan2(p.position.z - m.body.position.z, dx), -0.45, 0.45)
+	return PI + turn if m.facing < 0.0 else -turn
 
 
 ## Furled at his side while he waits; open overhead between shots; brought down at the walker to aim.

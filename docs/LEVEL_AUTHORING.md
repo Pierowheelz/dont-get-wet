@@ -381,9 +381,13 @@ touch controls. Below that it is locked and the HUD shows no water meter. The fi
 run walks shows "There's a reason the umbrella is heavy. ({fire})". `--armed` arms any street for
 testing.
 
-- **Aim:** along the street, forward, or behind once the open canopy is tilted back past 30% of full
-  tilt. Furled, the last tilt input picks the side (default forward) and the shot leaves from his
-  fist at hip height. It is aimed up or down at the chest of the nearest body it can reach.
+- **Aim:** the shot leaves the end of the shaft, along the shaft. Open, the canopy's tilt aims it.
+  Furled, the aim input raises the shaft from his side and points it (`Player.aim`, `Inputs.aim`): a
+  stick by its direction (left behind, right ahead, up overhead, within `umbrella_max_tilt` of
+  upright), Q / E, the mouse and the touch slider by how far they're pushed. At rest it hangs at his
+  side; firing from rest swings it up toward the side it last fired, and it stays up 0.6 s after a
+  shot. A body whose chest is within 30° of the shaft's line (`WaterGun.ASSIST`) pulls the shot onto
+  it.
 - **The burst:** 40 droplets (`WaterGun`, a `DropletBurst` with cause `shot`) at 15 m/s from the
   umbrella's tip, fanned ±0.08 rad up and down. Droplets are spent at the range, `gun_range` 4 m plus
   `upgrade_barrel_range_add` per Long Barrel tier ([0, 2, 4, 6]), each up to 10% short of it; spent
@@ -393,7 +397,8 @@ testing.
   a man, one at Pressure tier 3. A canopy the droplets meet stops them, so a man whose umbrella is
   between takes proportionally less.
 - **Water:** `gun_shots` 4, one every `gun_cadence` 0.35 s while the button is held. It refills at
-  `gun_refill_idle` (0.04 a second, one shot in 25 s), and at `gun_refill_stream` (one a second, with
+  `gun_refill_rain` (0.04 a second, one shot in 25 s) while the open canopy is out in the rain (not
+  furled, not under cover), and at `gun_refill_stream` (one a second, with
   a rising splash per shot) while the walker is stopped with the umbrella fully open under a gutter
   stream that lands on at least half the canopy. A gutter is a refill point: put one before a fight.
 - **Shop:** Long Barrel (`barrel`) and Pressure (`pressure`), 3 tiers each at `upgrade_costs`, are
