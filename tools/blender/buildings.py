@@ -422,13 +422,37 @@ def gm_boarded(mid, W, wall, frame="trim_green"):
 
 
 def steel_door(B, x0, x1, h, mat, z=-0.12):
+    """Back-of-house steel door: pressed lower panel, wired-glass vision panel, worn kick and push
+    plates. The plates and the glass are what read at night; relief in one colour does not."""
     frame_ring(B, x0 - 0.06, x1 + 0.06, 0.0, h + 0.06, z - 0.04, z + 0.05, 0.06, "metal_dark", bottom=False)
     B.box(x0, x1, 0.0, h, z - 0.04, z, mat, 0.006)
-    for (a, b) in ((0.15, 1.0), (1.15, h - 0.15)):
-        B.box(x0 + 0.12, x1 - 0.12, a, b, z, z + 0.012, mat, 0.004)
-    B.box(x0 + 0.02, x1 - 0.02, 0.02, 0.25, z, z + 0.006, "metal_rust", 0.003)
-    B.tube((x1 - 0.12, 1.0, z), (x1 - 0.12, 1.0, z + 0.06), 0.012, "chrome", segs=8)
-    B.box(x1 - 0.16, x1 - 0.06, 0.98, 1.02, z + 0.05, z + 0.07, "chrome", 0.005)
+    B.box(x0 + 0.12, x1 - 0.12, 0.38, 1.0, z, z + 0.012, mat, 0.004)
+    B.box(x0 + 0.03, x1 - 0.03, 0.03, 0.3, z, z + 0.008, "galvanized", 0.003)            # kick plate
+    # vision panel
+    vx0, vx1 = (x0 + x1) / 2 - 0.17, (x0 + x1) / 2 + 0.17
+    vy0, vy1 = h - 0.72, h - 0.22
+    frame_ring(B, vx0 - 0.04, vx1 + 0.04, vy0 - 0.04, vy1 + 0.04, z, z + 0.014, 0.04, "galvanized", bevel=0.004)
+    B.rect_z(vx0, vx1, vy0, vy1, z + 0.004, "glass_dark")
+    for k in (1, 2):
+        xm = vx0 + (vx1 - vx0) * k / 3
+        B.box(xm - 0.004, xm + 0.004, vy0, vy1, z + 0.004, z + 0.009, "galvanized")
+    # push plate, knob, lock
+    B.box(x1 - 0.2, x1 - 0.06, 0.88, 1.24, z, z + 0.006, "galvanized", 0.003)
+    B.tube((x1 - 0.13, 1.0, z), (x1 - 0.13, 1.0, z + 0.06), 0.012, "chrome", segs=8)
+    B.box(x1 - 0.17, x1 - 0.07, 0.98, 1.02, z + 0.05, z + 0.07, "chrome", 0.005)
+    B.tube((x1 - 0.13, 1.14, z), (x1 - 0.13, 1.14, z + 0.012), 0.018, "brass", segs=8)
+    for y in (0.22, h / 2, h - 0.22):                                                     # hinges
+        B.box(x0 - 0.012, x0 + 0.03, y - 0.06, y + 0.06, z, z + 0.012, "galvanized", 0.003)
+
+
+def dead_lamp(B, x, y, z=0.0, reach=0.26):
+    """Gooseneck with a tin shade over a doorway, bulb long gone (no light, silhouette only)."""
+    B.box(x - 0.05, x + 0.05, y + 0.08, y + 0.2, z, z + 0.02, "metal_dark", 0.005)
+    B.tube((x, y + 0.14, z), (x, y + 0.2, z + reach * 0.6), 0.012, "metal_dark", segs=6)
+    B.tube((x, y + 0.2, z + reach * 0.6), (x, y + 0.1, z + reach), 0.012, "metal_dark", segs=6)
+    B.lathe([(0.0, y + 0.1), (0.035, y + 0.1), (0.05, y + 0.06), (0.14, y), (0.15, y - 0.02), (0.0, y + 0.03)],
+            x, z + reach, "metal_dark", segs=12)
+    B.lathe([(0.0, y - 0.05), (0.03, y - 0.03), (0.03, y + 0.02), (0.0, y + 0.03)], x, z + reach, "trim_cream", segs=8)
 
 
 def barred_window(B, x0, x1, y0, y1, glass="glass_dirty", depth=0.18):
@@ -459,6 +483,7 @@ def gm_wall(mid, W, wall, door_x=None, window=True, extras=True):
     steel_door(B, door_x + 0.06, door_x + 0.94, 2.19, rng.choice(["trim_green", "metal_rust", "trim_blue"]))
     B.box(door_x - 0.1, door_x + 1.1, 2.25, 2.37, -0.02, 0.04, "stone_trim", 0.012)   # lintel
     B.box(door_x - 0.05, door_x + 1.05, 0.0, 0.08, -0.12, 0.22, "concrete", 0.015)    # step
+    dead_lamp(B, door_x + 0.5, 2.52)
     if window:
         barred_window(B, wx0, wx0 + 1.2, 1.7, 2.5)
     if extras:
