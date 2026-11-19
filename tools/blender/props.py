@@ -76,10 +76,19 @@ def hydrant():
     B.tube((0, 0.4, 0.1), (0, 0.4, 0.2), 0.065, m, segs=16)                         # pumper nozzle
     B.tube((0, 0.4, 0.2), (0, 0.4, 0.235), 0.075, "galvanized", segs=6)
     B.tube((0, 0.4, 0.235), (0, 0.4, 0.255), 0.025, "galvanized", segs=5)
-    # chain
-    for k in range(6):
-        t = k / 5
-        B.tube((0.2 * (1 - t), 0.36 - 0.08 * math.sin(t * math.pi), 0.2 * t), (0.2 * (1 - t) - 0.03, 0.355 - 0.08 * math.sin(t * math.pi), 0.2 * t + 0.03), 0.006, "galvanized", segs=5)
+    # cap chains: each hangs in a loop from its cap's nut back to a lug on the barrel
+    def chain(p0, p1, sag, n=7):
+        pts = []
+        for k in range(n + 1):
+            t = k / n
+            pts.append(tuple(p0[i] + (p1[i] - p0[i]) * t - (sag * math.sin(t * math.pi) if i == 1 else 0.0) for i in range(3)))
+        for u, w in zip(pts[:-1], pts[1:]):
+            B.tube(u, w, 0.007, "galvanized", segs=5, caps=False)
+    for sx in (-1, 1):
+        chain((0.235 * sx, 0.405, 0.0), (0.1 * sx, 0.5, 0.075), 0.1)
+    chain((0.0, 0.38, 0.25), (0.075, 0.5, 0.1), 0.09)
+    for (lx, lz) in ((-0.1, 0.075), (0.1, 0.075)):
+        B.tube((lx, 0.5, lz), (lx * 1.25, 0.5, lz * 1.25), 0.012, "galvanized", segs=6)
     export(B, "hydrant")
     register("hydrant", "curb", (0.5, 0.5), [], height=0.8)
 
