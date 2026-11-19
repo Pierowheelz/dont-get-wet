@@ -22,6 +22,10 @@ const BODY_TOP := 1.75        # ...to the top of his head
 const NEAR := 1.6             # within this of him (x and z) a droplet is checked each step
 const LIFE := 2.5
 const SPENT_KEEP := 0.2       # share of its speed along the street a spent droplet keeps
+const STREAK_S := 0.03         # s of flight a droplet's streak covers
+const STREAK_MAX := 5.0        # at most this many droplet widths long
+const STREAK_WIDTH := 0.6      # of the droplet's size
+const STREAK_ALPHA := 0.75
 
 var level: Node
 var amount := 1.0             # wetness once `full` of a body is soaked
@@ -100,15 +104,14 @@ func _ready() -> void:
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	var q := QuadMesh.new()
-	q.size = Vector2(size, size)
+	q.size = Vector2.ONE          # each instance is scaled into a streak along its flight (_draw)
 	var dm := StandardMaterial3D.new()
 	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	dm.vertex_color_use_as_albedo = true
 	dm.albedo_texture = CarHazard._droplet_tex()
-	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	dm.billboard_keep_scale = true
+	dm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	q.material = dm
 	mm.mesh = q
 	mm.instance_count = _pos.size() * (trail + 1)
@@ -131,6 +134,8 @@ func _ready() -> void:
 	var sq := QuadMesh.new()
 	sq.size = Vector2(0.05, 0.05)
 	var sm := dm.duplicate() as StandardMaterial3D
+	sm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	sm.billboard_keep_scale = true
 	sm.vertex_color_use_as_albedo = false
 	sm.albedo_color = color
 	sq.material = sm
@@ -310,6 +315,12 @@ func _draw() -> void:
 				mm.set_instance_transform(idx, Transform3D(Basis.from_scale(Vector3.ZERO), Vector3.ZERO))
 				continue
 			var back := _vel[i] * (trail_dt * j)
-			var s := _scale[i] * (1.0 - 0.14 * j)
-			mm.set_instance_transform(idx, Transform3D(Basis.from_scale(Vector3.ONE * s), _pos[i] - back))
-			mm.set_instance_color(idx, Color(color.r, color.g, color.b, color.a * (1.0 - 0.15 * j)))
+			var s := size * _scale[i] * (1.0 - 0.14 * j)
+			# A soft streak along its flight, facing the street's camera: round dots pile up into
+			# white specks, and the painterly filter hardens them; streaks read as thrown water.
+			var flight := Vector2(_vel[i].x, _vel[i].y)
+			var along := flight.normalized() if flight.length() > 0.05 else Vector2.DOWN
+			var length := s * clampf(flight.length() * STREAK_S / size, 1.0, STREAK_MAX)
+			mm.set_instance_transform(idx, Transform3D(Basis(Vector3(along.x, along.y, 0.0) * length,
+				Vector3(-along.y, along.x, 0.0) * s * STREAK_WIDTH, Vector3.BACK), _pos[i] - back))
+			mm.set_instance_color(idx, Color(color.r, color.g, color.b, color.a * STREAK_ALPHA * (1.0 - 0.15 * j)))
