@@ -10,7 +10,7 @@ tools/blender/build_all.sh          # ~40 s: textures, materials, buildings, pro
 | Script | Runs with | Output |
 |---|---|---|
 | `gen_textures.py` | `python3` (Pillow) | painted interiors, lit windows, posters, ghost sign, awning canvas, optional shop signs |
-| `gen_materials.py` | `python3` (Pillow) | `assets/materials/*.tres` from `materials_def.py` (+ greyscale albedo copies) |
+| `gen_materials.py` | `python3` (Pillow, NumPy) | `assets/materials/*.tres` from `materials_def.py` (+ greyscale albedo copies, `*_wide.jpg` re-laid texture sets) |
 | `buildings.py` | `blender -b --factory-startup --python` | `assets/buildings/*.glb` + `kit.json` |
 | `props.py` | `blender -b --factory-startup --python` | `assets/props/*.glb` + `props.json` |
 | `configure_imports.py` | `python3` | sets `import_script/path` of every kit `.glb.import` to `assets/buildings/kit_import.gd` |

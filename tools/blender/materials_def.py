@@ -12,6 +12,7 @@ Keys:
   kind     pbr | flat | glass | emissive | image | wet | decal
   tex      Poly Haven texture folder in assets/textures/ (pbr / wet)
   tile     metres covered by one texture repeat (UVs are generated in metres)
+  wide     N: no visible repeat within N x tile metres; mapped in world space (pbr, see gen_materials)
   tint     albedo multiplier (pbr) or albedo colour (flat/glass)
   rough    roughness (flat) or roughness multiplier (pbr)
   metal    metallic
@@ -27,9 +28,9 @@ MATS = {
     "brick_brown":    dict(kind="pbr", tex="brick_wall_02", tile=2.0, tint=(0.78, 0.68, 0.60), rough=1.0, preview=(0.35, 0.25, 0.2)),
     "brick_dark":     dict(kind="pbr", tex="brick_wall_02", tile=2.0, tint=(0.42, 0.38, 0.36), rough=1.0, preview=(0.2, 0.17, 0.15)),
     "brick_painted":  dict(kind="pbr", tex="red_brick", tile=1.4, tint=(0.62, 0.66, 0.62), rough=1.0, preview=(0.5, 0.52, 0.5), desat=True),
-    "plaster":        dict(kind="pbr", tex="worn_plaster_wall", tile=1.8, tint=(0.82, 0.78, 0.70), rough=1.0, preview=(0.6, 0.57, 0.5)),
-    "plaster_teal":   dict(kind="pbr", tex="worn_plaster_wall", tile=1.8, tint=(0.45, 0.62, 0.60), rough=1.0, preview=(0.3, 0.45, 0.43)),
-    "plaster_ochre":  dict(kind="pbr", tex="worn_plaster_wall", tile=1.8, tint=(0.92, 0.72, 0.45), rough=1.0, preview=(0.7, 0.5, 0.3)),
+    "plaster":        dict(kind="pbr", tex="worn_plaster_wall", tile=1.8, wide=4, tint=(0.82, 0.78, 0.70), rough=1.0, preview=(0.6, 0.57, 0.5)),
+    "plaster_teal":   dict(kind="pbr", tex="worn_plaster_wall", tile=1.8, wide=4, tint=(0.45, 0.62, 0.60), rough=1.0, preview=(0.3, 0.45, 0.43)),
+    "plaster_ochre":  dict(kind="pbr", tex="worn_plaster_wall", tile=1.8, wide=4, tint=(0.92, 0.72, 0.45), rough=1.0, preview=(0.7, 0.5, 0.3)),
     "concrete":       dict(kind="pbr", tex="concrete_wall_006", tile=2.0, tint=(0.85, 0.84, 0.82), rough=1.0, preview=(0.5, 0.5, 0.48)),
     "stone_trim":     dict(kind="pbr", tex="concrete_wall_006", tile=1.2, tint=(1.15, 1.10, 1.00), rough=0.9, preview=(0.7, 0.68, 0.62)),
     "terrazzo":       dict(kind="pbr", tex="terrazzo_tiles", tile=1.0, tint=(0.95, 0.92, 0.88), rough=0.6, preview=(0.55, 0.45, 0.4)),
