@@ -229,7 +229,7 @@ func _vent(x: float) -> void:
 		mi.material_override = m
 		mi.position = Vector3(x, 2.2, 0.3)
 		root.add_child(mi)
-	var steam := _steam(Vector3(x, 2.0, 0.65), Vector3(0, -0.5, 1.0), Color(1.0, 0.85, 0.7, 0.05))
+	var steam := _steam(Vector3(x, 2.0, 0.65), Vector3(0, -0.5, 1.0), Color(1.0, 0.8, 0.62, 0.035))
 	root.add_child(steam)
 	var warm := OmniLight3D.new()
 	warm.light_color = Color(1.0, 0.55, 0.3)
@@ -273,7 +273,7 @@ func _steam(pos: Vector3, dir: Vector3, color: Color) -> GPUParticles3D:
 	var dm := StandardMaterial3D.new()
 	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	dm.albedo_color = color
-	dm.roughness = 1.0
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED   # lit, it vanished against a dark wall
 	dm.vertex_color_use_as_albedo = true
 	dm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	dm.albedo_texture = _soft_texture()
