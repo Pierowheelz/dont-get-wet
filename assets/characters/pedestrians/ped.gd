@@ -163,8 +163,8 @@ func _make_cigarette() -> Node3D:
 func _setup_materials() -> void:
 	for mi in _skel.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
-		if m.get_parent() is BoneAttachment3D or m.mesh == null:
-			continue
+		if m.get_parent() != _skel or m.mesh == null:
+			continue    # the body and clothes only: what he carries keeps its own materials
 		var n := String(m.name).to_lower()
 		var is_hair := _is_hair(n)
 		for s in m.mesh.get_surface_count():
