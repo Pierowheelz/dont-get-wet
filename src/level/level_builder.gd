@@ -927,41 +927,51 @@ func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color, collapses
 			var n := maxi(2, roundi(w / 3.0) + 1)
 			for i in n:
 				var t := float(i) / (n - 1)
-				_tail_fin(lerpf(x + 0.45, x + w - 0.45, t), fy, -1.0 if t < 0.5 else 1.0, glow_col, chrome)
+				_tail_fin(lerpf(x + 0.7, x + w - 0.6, t), fy, glow_col)
 	if s["glow"]:
 		var strip := _box(Vector3(w - 0.1, 0.03, 0.03), Vector3(x + w * 0.5, _awning_drip_y(s) + 0.005, AWNING_DEPTH + 0.04),
 			_neon_mat(glow_col.lerp(Color(1, 1, 1), 0.35), 2.4))
 		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
-## A swept chrome tail fin standing on a canopy's front edge at x, raked out toward `out` (-1 / +1),
-## with a neon tube up its leading edge.
-func _tail_fin(x: float, fy: float, out: float, glow_col: Color, chrome: Material) -> void:
-	var outline := [Vector2(-0.4, 0.0), Vector2(0.35, 0.0), Vector2(0.1, 0.22), Vector2(0.42, 0.78)]
+## A rocket's tail fin standing on a canopy's front edge at x: a swept blade of brushed metal, its
+## point raked back down the street (every fin the same way, so a row of them reads as one rhythm),
+## with a neon tube up its leading edge and a lamp on its tip.
+const FIN_LEAD: Array[Vector2] = [Vector2(0.5, 0.0), Vector2(0.2, 0.2), Vector2(-0.16, 0.46), Vector2(-0.56, 0.72)]
+const FIN_TRAIL: Array[Vector2] = [Vector2(-0.3, 0.0), Vector2(-0.3, 0.13), Vector2(-0.37, 0.36), Vector2(-0.56, 0.72)]
+
+
+func _tail_fin(x: float, fy: float, glow_col: Color) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var zf := AWNING_DEPTH - 0.06
-	var zb := AWNING_DEPTH - 0.14
-	var v := func(p: Vector2, z: float) -> Vector3: return Vector3(p.x * out, fy + p.y, z)
-	for z in [zf, zb]:
-		_quad(st, v.call(outline[0], z), v.call(outline[1], z), v.call(outline[2], z), v.call(outline[3], z), Vector2.ZERO, Vector2.ONE)
-	for i in outline.size():
-		var a: Vector2 = outline[i]
-		var b: Vector2 = outline[(i + 1) % outline.size()]
-		_quad(st, v.call(a, zf), v.call(b, zf), v.call(b, zb), v.call(a, zb), Vector2.ZERO, Vector2.ONE)
+	var zf := AWNING_DEPTH - 0.04
+	var zb := AWNING_DEPTH - 0.13
+	var v := func(p: Vector2, z: float) -> Vector3: return Vector3(p.x, fy + p.y, z)
+	for i in FIN_LEAD.size() - 1:
+		for z in [zf, zb]:
+			_quad(st, v.call(FIN_LEAD[i], z), v.call(FIN_LEAD[i + 1], z), v.call(FIN_TRAIL[i + 1], z), v.call(FIN_TRAIL[i], z),
+				Vector2.ZERO, Vector2.ONE)
+		for edge: Array[Vector2] in [FIN_LEAD, FIN_TRAIL]:
+			_quad(st, v.call(edge[i], zf), v.call(edge[i + 1], zf), v.call(edge[i + 1], zb), v.call(edge[i], zb), Vector2.ZERO, Vector2.ONE)
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
-	var m: StandardMaterial3D = (chrome as StandardMaterial3D).duplicate()
+	# Mirror chrome has only the night to reflect and goes black: brushed metal takes the tube's glow.
+	var m: StandardMaterial3D = _mat("fin_metal", Color(0.74, 0.77, 0.82), 0.36, 0.7).duplicate()
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = m
 	mi.position = Vector3(x, 0.0, 0.0)
 	root.add_child(mi)
-	var edge: Vector2 = outline[3] - outline[0]
-	var tube := _box(Vector3(0.035, edge.length(), 0.035), Vector3(x + (outline[0].x + edge.x * 0.5) * out,
-		fy + edge.y * 0.5, zf + 0.03), _neon_mat(glow_col.lerp(Color(1, 1, 1), 0.3), 3.0))
-	tube.rotation.z = -atan2(edge.x * out, edge.y)
-	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var neon := _neon_mat(glow_col.lerp(Color(1, 1, 1), 0.3), 3.0)
+	for i in FIN_LEAD.size() - 1:
+		var edge: Vector2 = FIN_LEAD[i + 1] - FIN_LEAD[i]
+		var mid: Vector2 = FIN_LEAD[i] + edge * 0.5
+		var tube := _box(Vector3(0.035, edge.length() + 0.02, 0.035), Vector3(x + mid.x, fy + mid.y, zf + 0.03), neon)
+		tube.rotation.z = -atan2(edge.x, edge.y)
+		tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var tip: Vector2 = FIN_LEAD[FIN_LEAD.size() - 1]
+	var lamp := _box(Vector3(0.07, 0.07, 0.07), Vector3(x + tip.x, fy + tip.y, zf - 0.02), _neon_mat(Color(1.0, 0.9, 0.75), 3.5))
+	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## Two staggered rows of lit bulbs on a marquee fascia, as one mesh.
