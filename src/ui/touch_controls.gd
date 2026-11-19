@@ -1,6 +1,7 @@
 extends Control
 ## On-screen touch controls: hold right pad = umbrella (drag up/down within it to tilt),
-## hold left pad = hurry (higher = faster), hold stop button = stand still.
+## hold left pad = hurry (higher = faster), hold stop button = stand still; on armed streets, a fire
+## button beside the umbrella pad.
 
 var _umb_touch := -1
 var _hur_touch := -1
@@ -9,6 +10,9 @@ var _hur_rect: Rect2
 var _stop_rect: Rect2
 var _umb_start := Vector2.ZERO
 var _stop_touch := -1
+var _fire_rect: Rect2
+var _fire_touch := -1
+var armed := false
 
 
 func _ready() -> void:
@@ -22,6 +26,7 @@ func _layout() -> void:
 	_umb_rect = Rect2(s.x - r * 2.2, s.y - r * 2.2, r * 2.0, r * 2.0)
 	_hur_rect = Rect2(r * 0.2, s.y - r * 2.2, r * 1.6, r * 2.0)
 	_stop_rect = Rect2(r * 2.0, s.y - r * 0.9, r * 0.8, r * 0.7)
+	_fire_rect = Rect2(_umb_rect.position.x - r * 1.0, s.y - r * 0.9, r * 0.8, r * 0.7)
 
 
 func _input(event: InputEvent) -> void:
@@ -38,6 +43,9 @@ func _input(event: InputEvent) -> void:
 			elif _stop_rect.has_point(event.position):
 				_stop_touch = event.index
 				Inputs.touch_stop = true
+			elif armed and _fire_rect.has_point(event.position):
+				_fire_touch = event.index
+				Inputs.touch_fire = true
 		else:
 			if event.index == _umb_touch:
 				_umb_touch = -1
@@ -49,6 +57,9 @@ func _input(event: InputEvent) -> void:
 			elif event.index == _stop_touch:
 				_stop_touch = -1
 				Inputs.touch_stop = false
+			elif event.index == _fire_touch:
+				_fire_touch = -1
+				Inputs.touch_fire = false
 	elif event is InputEventScreenDrag:
 		if event.index == _umb_touch:
 			Inputs.touch_tilt = clampf((event.position.x - _umb_start.x) / (_umb_rect.size.x * 0.4), -1.0, 1.0)
@@ -103,6 +114,10 @@ func _draw() -> void:
 	var held := _stop_touch != -1
 	_rounded(_stop_rect, Color(UIStyle.DANGER, 0.55) if held else base, Color(UIStyle.CREAM, 0.78 if held else 0.28), 2.5)
 	_label(f, _stop_rect.get_center() + Vector2(0, 8), "STOP", Color(UIStyle.CREAM, 0.8))
+	if armed:
+		var firing := _fire_touch != -1
+		_rounded(_fire_rect, Color(UIStyle.RAIN, 0.55) if firing else base, Color(UIStyle.CREAM, 0.78 if firing else 0.28), 2.5)
+		_label(f, _fire_rect.get_center() + Vector2(0, 8), "FIRE", Color(UIStyle.CREAM, 0.8))
 
 
 func _rounded(r: Rect2, fill: Color, border: Color, width: float) -> void:

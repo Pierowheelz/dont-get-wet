@@ -132,6 +132,157 @@ func _test_fail_cause() -> void:
 	await _drop_street(lv)
 
 
+## A man to shoot at (or stand under), on the back lane at x, facing the walker. With `canopy` he
+## holds his umbrella open and brought down at the walker as when he fires; `over` holds it upright
+## overhead instead.
+func _npc(x: float, canopy := false, over := false) -> NpcBody:
+	var npc := NpcBody.new()
+	npc.level = level
+	level.add_child(npc)
+	npc.position = Vector3(x, level.ground_y(x), 1.25)
+	npc.rotation.y = PI if x > level.player.position.x else 0.0
+	var aim := 0.0 if over or not canopy else WaterJet.AIM_TILT
+	npc.visual.call("set_umbrella_pose", 1.0 if over else (WaterJet.AIM_RAISE if canopy else 0.0), aim, 0.0)
+	npc.visual.call("set_umbrella_open", 1.0 if canopy or over else 0.0)
+	npc.umbrella.set_state(1.0 if canopy or over else 0.0, Game.umbrella_radius(0), 0.0)
+	for i in 3:
+		await get_tree().process_frame
+	await _frames(2)
+	return npc
+
+
+## One shot from the walker, umbrella furled, aimed `side`; returns the burst once it has landed.
+func _fire(side := 1.0) -> DropletBurst:
+	var g: WaterGun = level.player.gun
+	g.aim_back = side < 0.0
+	g.shots = g.capacity()
+	var b := g.fire()
+	await b.done
+	await get_tree().process_frame   # out of the burst's physics step before the test moves on
+	return b
+
+
+## The walker's shot: range per Long Barrel tier, two clean hits soak a man (one at Pressure tier 3),
+## a man's canopy stops it, and his canopy never keeps the rain off the walker. The water refills
+## slowly by itself and fast stopped under a stream, and the shot is locked before the sixth street.
+func _test_umbrella_shot() -> void:
+	level = await _street_with({})
+	var p: Player = level.player
+	_unhook_defeat(p)
+	check(not p.gun.armed and Game.street_number("main_street") == 1, "the test street isn't armed: %s" % p.gun.armed)
+	var shots_was := p.gun.shots
+	p.gun.step(0.5, true, 0.0)
+	check(p.gun.shots == shots_was and p.gun.recoil == 0.0, "unarmed, the fire button does nothing")
+	check(Game.street_number("viaduct_road") == 5 and Game.street_number("atomic_avenue") == 5
+		and Game.street_number("the_bypass") == 6 and Game.street_number("rocket_row") == 6,
+		"streets are numbered from Main Street: the level-5 and level-6 streets on both paths")
+	check(not Game.armed("viaduct_road") and not Game.armed("atomic_avenue") and Game.armed("the_bypass") and Game.armed("rocket_row"),
+		"the shot is locked before level 6 and armed from it")
+	p.gun.armed = true
+	var x0 := 162.6
+	await _place(x0, 0.0)
+	var upg_was: Dictionary = Game.run.upgrades.duplicate()
+	var direct := Tun.f("gun_hit")
+	for tier in 4:
+		Game.run.upgrades[&"barrel"] = tier
+		var reach := Game.gun_range()
+		var mx := p.gun.muzzle().x
+		var near := await _npc(mx + reach - 1.0)
+		var near_landed := (await _fire()).landed_on(near)
+		var near_wet := near.wet
+		near.queue_free()
+		var far := await _npc(mx + reach + 0.6)
+		var far_landed := (await _fire()).landed_on(far)
+		check(near_wet >= direct * 0.95 and far.wet == 0.0 and far_landed == 0,
+			"Long Barrel tier %d: a man %.1f m off takes a full hit (%.1f, %d droplets), one %.1f m off stays dry" % [tier, reach - 1.0, near_wet, near_landed, reach + 0.6])
+		far.queue_free()
+	Game.run.upgrades[&"barrel"] = 0
+	var man := await _npc(p.gun.muzzle().x + 3.0)
+	await _fire()
+	var one := man.wet
+	await _fire()
+	await _frames(2)
+	check(one >= direct * 0.95 and one < man.wet_max() and man.wet >= man.wet_max() and not man.wettable(),
+		"two direct hits soak a man: %.1f after one, %.1f of %.0f after two" % [one, man.wet, man.wet_max()])
+	check(man.get_parent() == level and man._dropped_umbrella, "soaked, he drops his umbrella and walks off on his own")
+	var at := man.position.x
+	await get_tree().create_timer(1.5).timeout
+	check(is_instance_valid(man) and man.position.x < at - 0.3 and man.rotation.y > PI * 0.5,
+		"... turning round to trudge off the left (%.2f m so far)" % (at - man.position.x if is_instance_valid(man) else 0.0))
+	if is_instance_valid(man):
+		man.queue_free()
+	Game.run.upgrades[&"pressure"] = 3
+	man = await _npc(p.gun.muzzle().x + 3.0)
+	await _fire()
+	check(man.wet >= man.wet_max(), "Pressure tier 3: one direct hit soaks him (%.1f)" % man.wet)
+	man.queue_free()
+	Game.run.upgrades[&"pressure"] = 0
+	man = await _npc(p.gun.muzzle().x + 3.0, true)
+	var blocked := await _fire()
+	var stopped := blocked.stopped_by(man)
+	var through := blocked.landed_on(man)
+	check(man.wet < direct * 0.35 and stopped > through * 2,
+		"his canopy, brought down at the walker, stops the shot: %d droplets stopped, %d through, wet %.1f" % [stopped, through, man.wet])
+	man.queue_free()
+	man = await _npc(x0 + 2.5)
+	p.gun.aim_back = false
+	await _fire(-1.0)
+	check(man.wet == 0.0, "aimed behind, a man ahead stays dry")
+	man.queue_free()
+	man = await _npc(p.gun.muzzle().x - 3.0)
+	await _fire(-1.0)
+	check(man.wet >= direct * 0.95, "aimed behind, it soaks a man behind (%.1f)" % man.wet)
+	man.queue_free()
+	Game.run.upgrades = upg_was
+
+	# Rain: a man under an open umbrella right over the walker keeps none of it off him.
+	var rx := 43.5   # an open lot in the rain
+	var bare := await _place(rx, 0.0)
+	man = await _npc(rx, false, true)
+	man.position.z = p.position.z
+	await _frames(3)
+	var head := p.sample_world(WetBody.SAMPLES[0][0])
+	var q := PhysicsRayQueryParameters3D.create(head, head + Vector3.UP * 3.0, Umbrella.NPC_UMBRELLA_LAYER)
+	var over := not p.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	var under := await _place(rx, 0.0)
+	check(over and bare > 0.95 and absf(under - bare) < 0.001,
+		"a man's open canopy over the walker's head (%s) keeps no rain off him: exposure %.2f, %.2f without it" % [over, under, bare])
+	man.queue_free()
+
+	# Refill: about one shot per 25 s by itself, one a second stopped under a stream with the umbrella open.
+	var gx: float = level.gutters[0]
+	await _place(gx, 1.0)
+	p.state = Player.State.STOPPED
+	p._gutter_exposure()
+	p.gun.shots = 0.0
+	p.gun.step(1.0, false, 0.0)
+	var stream := p.gun.shots
+	p.state = Player.State.WALK
+	p.gun.shots = 0.0
+	p.gun.step(1.0, false, 0.0)
+	var walking := p.gun.shots
+	await _place(x0, 1.0)
+	p.state = Player.State.STOPPED
+	p._gutter_exposure()
+	p.gun.shots = 0.0
+	p.gun.step(25.0, false, 0.0)
+	var idle := p.gun.shots
+	p.state = Player.State.WALK
+	check(absf(stream - 1.0) < 0.01 and absf(walking - 0.04) < 0.005 and absf(idle - 1.0) < 0.01,
+		"refill: %.2f shots in 1 s stopped under a stream, %.2f walking through it, %.2f in 25 s elsewhere" % [stream, walking, idle])
+	await _drop_street(level)
+
+	var r := Run.new("left", Game.start_node)
+	var run_was := Game.run
+	Game.run = r
+	r.completed = [Game.start_node, "canal_row", "mill_road", "kiln_street"]
+	check(not Game.upgrade_offered(&"barrel") and not Game.upgrade_offered(&"pressure") and Game.upgrade_offered(&"sturdy"),
+		"the shop holds back Long Barrel and Pressure until a level-5 street is walked")
+	r.completed.append("viaduct_road")
+	check(Game.upgrade_offered(&"barrel") and Game.upgrade_offered(&"pressure"), "... and offers them once it is")
+	Game.run = run_was
+
+
 ## The level quits the game on defeat under --autopilot; tests that defeat him keep it running.
 func _unhook_defeat(p: Player) -> void:
 	for c in p.defeated.get_connections():
@@ -514,6 +665,7 @@ func _run() -> void:
 	await _test_follower()
 	await _test_courier()
 	await _test_fail_cause()
+	await _test_umbrella_shot()
 	await _test_viaduct()
 	await _test_viaduct_road()
 	_test_dynamic_resolution()
@@ -962,24 +1114,24 @@ func _run_tests() -> void:
 	reload.call()
 	var right_upg: Array = upg.call(Game.runs["right"])
 	var right_tokens: int = Game.runs["right"].tokens
-	check(right_upg == [0, 1, 0], "undecided run's upgrade commits with it to the right: %s" % [right_upg])
+	check(right_upg == [0, 1, 0, 0, 0], "undecided run's upgrade commits with it to the right: %s" % [right_upg])
 	Game.new_run("left")
-	check(upg.call(Game.run) == [0, 0, 0] and Game.run.tokens == 0, "a new left run starts with no upgrades or tokens")
+	check(upg.call(Game.run) == [0, 0, 0, 0, 0] and Game.run.tokens == 0, "a new left run starts with no upgrades or tokens")
 	Game.run.tokens = 20
 	Game.buy_upgrade(&"sturdy")
 	Game.buy_upgrade(&"light")
 	Game.finish_level(start, 0.0, 10.0, 10.0)
 	Game.choose(lnb)
 	reload.call()
-	check(Game.run.direction == "left" and upg.call(Game.run) == [1, 0, 1], "left run keeps its own upgrades: %s" % [upg.call(Game.run)])
+	check(Game.run.direction == "left" and upg.call(Game.run) == [1, 0, 1, 0, 0], "left run keeps its own upgrades: %s" % [upg.call(Game.run)])
 	check(upg.call(Game.runs["right"]) == right_upg and Game.runs["right"].tokens == right_tokens,
 		"buying and scoring on the left leaves the right run untouched: %s" % [upg.call(Game.runs["right"])])
 	Game.resume_run("right")
 	Game.run.tokens += 20
 	Game.buy_upgrade(&"wide")
 	reload.call()
-	check(Game.run.direction == "right" and upg.call(Game.run) == [0, 2, 0], "right run upgrades on top of its own: %s" % [upg.call(Game.run)])
-	check(upg.call(Game.runs["left"]) == [1, 0, 1], "and the left run still has only its own: %s" % [upg.call(Game.runs["left"])])
+	check(Game.run.direction == "right" and upg.call(Game.run) == [0, 2, 0, 0, 0], "right run upgrades on top of its own: %s" % [upg.call(Game.run)])
+	check(upg.call(Game.runs["left"]) == [1, 0, 1, 0, 0], "and the left run still has only its own: %s" % [upg.call(Game.runs["left"])])
 	Game.resume_run("left")
 	check(Game.umbrella_radius() == Game.umbrella_radius(0) and Game.umbrella_drain_mult() == Game.umbrella_drain_mult(1),
 		"the walker uses the active run's upgrades after switching")

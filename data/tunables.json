@@ -31,6 +31,12 @@
   "wet_car_splash": 25.0,
   "wet_jet_hit": 12.0,
   "jet_shove": 1.0,
+  "gun_shots": 4,
+  "gun_range": 4.0,
+  "gun_hit": 25.0,
+  "gun_cadence": 0.35,
+  "gun_refill_idle": 0.04,
+  "gun_refill_stream": 1.0,
   "dry_sun_rate": 3.0,
   "dry_vent_rate": 4.5,
   "dry_full_above": 0.9,
@@ -56,5 +62,7 @@
   "upgrade_sturdy_drain_mult": [1.0, 0.8, 0.65, 0.5],
   "upgrade_sturdy_jet_shove": [1.0, 0.7, 0.45, 0.25],
   "upgrade_wide_radius_add": [0.0, 0.06, 0.12, 0.18],
-  "upgrade_light_time_mult": [1.0, 0.82, 0.68, 0.55]
+  "upgrade_light_time_mult": [1.0, 0.82, 0.68, 0.55],
+  "upgrade_barrel_range_add": [0.0, 2.0, 4.0, 6.0],
+  "upgrade_pressure_mult": [1.0, 1.25, 1.5, 2.0]
 }

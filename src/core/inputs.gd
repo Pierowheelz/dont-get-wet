@@ -9,6 +9,7 @@ var touch_umbrella := 0.0
 var touch_hurry := 0.0
 var touch_tilt := 0.0
 var touch_stop := false
+var touch_fire := false
 
 ## Mouse tilt is sticky: sideways mouse motion moves it (left = back, right = forward) and it
 ## resets when the umbrella closes. Only counts while gameplay has the mouse captured.
@@ -46,6 +47,9 @@ func _ready() -> void:
 	_axis(&"tilt_back_l", JOY_AXIS_LEFT_X, -1.0)
 	_key(&"tilt_forward_key", KEY_E)
 	_key(&"tilt_back_key", KEY_Q)
+	_button(&"fire", JOY_BUTTON_RIGHT_SHOULDER)
+	_key(&"fire", KEY_F)
+	_mouse(&"fire", MOUSE_BUTTON_LEFT)
 	_button(&"pause", JOY_BUTTON_START)
 	_key(&"pause", KEY_ESCAPE)
 	_key(&"pause", KEY_P)
@@ -146,12 +150,13 @@ func prompt(action: String) -> String:
 		"tilt": return "Either stick" if pad else "Move the mouse or Q / E"
 		"tilt_forward": return "stick →" if pad else "mouse right / E"
 		"stop": return "LB" if pad else "S"
+		"fire": return "RB" if pad else "F / Left Mouse"
 	return action
 
 
 ## Fills {action} tokens in a hint with prompts for the current device.
 func format_prompts(text: String) -> String:
-	for a in ["umbrella", "hurry", "tilt_forward", "tilt", "stop"]:
+	for a in ["umbrella", "hurry", "tilt_forward", "tilt", "stop", "fire"]:
 		text = text.replace("{%s}" % a, prompt(a))
 	return text
 
@@ -214,3 +219,8 @@ func tilt() -> float:
 
 func stop_held() -> bool:
 	return Input.is_action_pressed(&"stop") or touch_stop
+
+
+## The shot's button is down (held, it fires again at the gun's cadence).
+func fire_held() -> bool:
+	return Input.is_action_pressed(&"fire") or Input.is_action_just_pressed(&"fire") or touch_fire

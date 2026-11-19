@@ -4,13 +4,14 @@ extends RefCounted
 ## umbrella upgrades. Each direction out of the start street is its own run.
 
 const DIRECTIONS := ["left", "right"]
-const UPGRADES := [&"sturdy", &"wide", &"light"]
+const UPGRADES := [&"sturdy", &"wide", &"light", &"barrel", &"pressure"]
+const GUN_UPGRADES := [&"barrel", &"pressure"]   # offered once the gun is (Game.gun_upgrades_open)
 
 var direction := ""            # "" until the first street off the start, then "left" / "right"
 var current_node := ""         # where the player is on the map (last completed / start)
 var best: Dictionary = {}      # id -> {score, wet, time, grade}
 var tokens := 0
-var upgrades := {&"sturdy": 0, &"wide": 0, &"light": 0}
+var upgrades := {&"sturdy": 0, &"wide": 0, &"light": 0, &"barrel": 0, &"pressure": 0}
 var completed: Array = []
 
 
@@ -20,9 +21,11 @@ func _init(dir := "", start := "") -> void:
 
 
 func to_dict() -> Dictionary:
+	var u := {}
+	for k: StringName in UPGRADES:
+		u[String(k)] = upgrades[k]
 	return {"direction": direction, "current_node": current_node, "best": best, "tokens": tokens,
-		"upgrades": {"sturdy": upgrades[&"sturdy"], "wide": upgrades[&"wide"], "light": upgrades[&"light"]},
-		"completed": completed}
+		"upgrades": u, "completed": completed}
 
 
 ## Parses saved run data, dropping anything that no longer fits the map. Null if the direction is unknown.

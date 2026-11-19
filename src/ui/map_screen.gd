@@ -16,6 +16,8 @@ const UPGRADE_INFO := {
 	&"sturdy": ["Sturdy frame", "Less stamina drain, less wind load."],
 	&"wide": ["Wide canopy", "Covers more of you."],
 	&"light": ["Featherweight", "Opens and closes faster."],
+	&"barrel": ["Long barrel", "The shot carries further."],
+	&"pressure": ["Pressure", "The shot hits harder."],
 }
 
 ## The stat each upgrade changes: label, display format, display scale, and the Game function
@@ -24,6 +26,8 @@ const UPGRADE_STATS := {
 	&"wide": ["CANOPY", "%.2f m", 1.0, &"umbrella_radius"],
 	&"light": ["OPENS IN", "%.2f s", 1.0, &"umbrella_open_time"],
 	&"sturdy": ["STRAIN", "%d%%", 100.0, &"umbrella_drain_mult"],
+	&"barrel": ["RANGE", "%d m", 1.0, &"gun_range"],
+	&"pressure": ["PRESSURE", "%d%%", 100.0, &"gun_pressure_mult"],
 }
 
 var _map: Control             # visible map area; clips the strip
@@ -537,7 +541,9 @@ func _build_shop() -> void:
 	panel.offset_bottom = -110
 	add_child(panel)
 	_shop = VBoxContainer.new()
-	_shop.add_theme_constant_override("separation", 14)
+	var offered: Array = Run.UPGRADES.filter(Game.upgrade_offered)
+	var compact := offered.size() > 3   # the shot's upgrades too: tighter rows so the panel still fits
+	_shop.add_theme_constant_override("separation", 8 if compact else 14)
 	panel.add_child(_shop)
 	var head := HBoxContainer.new()
 	var hv := VBoxContainer.new()
@@ -558,10 +564,11 @@ func _build_shop() -> void:
 	_shop.add_child(motto)
 	var note := UIStyle.label("Tokens come from beating your best score on a street.", &"MutedLabel", 20)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.visible = not compact
 	_shop.add_child(note)
 	_shop.add_child(HSeparator.new())
-	for u: StringName in Run.UPGRADES:
-		var b := _upgrade_button(u)
+	for u: StringName in offered:
+		var b := _upgrade_button(u, 98.0 if compact else 112.0)
 		_shop_buttons.append(b)
 		_shop.add_child(b)
 	var spacer := Control.new()
@@ -582,17 +589,17 @@ func _build_shop() -> void:
 	_shop.add_child(_menu_btn)
 
 
-func _upgrade_button(u: StringName) -> Button:
+func _upgrade_button(u: StringName, height: float) -> Button:
 	var b := Button.new()
 	b.theme_type_variation = &"RowButton"
-	b.custom_minimum_size = Vector2(0, 112)
+	b.custom_minimum_size = Vector2(0, height)
 	var info: Array = UPGRADE_INFO.get(u, [String(u), ""])
 	var h := HBoxContainer.new()
 	h.set_anchors_preset(Control.PRESET_FULL_RECT)
 	h.offset_left = 22
 	h.offset_right = -18
-	h.offset_top = 10
-	h.offset_bottom = -10
+	h.offset_top = 10 if height > 100.0 else 4
+	h.offset_bottom = -h.offset_top
 	h.add_theme_constant_override("separation", 14)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(h)
@@ -719,7 +726,7 @@ func _refresh_tokens() -> void:
 	_tokens_lbl.text = str(Game.run.tokens)
 	for c in _umb_stats.get_children():
 		c.queue_free()
-	for u: StringName in UPGRADE_STATS:
+	for u: StringName in UPGRADE_STATS.keys().filter(Game.upgrade_offered):
 		_stat(_umb_stats, UPGRADE_STATS[u][0], _stat_text(u))
 	for b in _shop_buttons:
 		(b.get_meta(&"refresh") as Callable).call()

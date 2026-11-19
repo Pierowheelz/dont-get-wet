@@ -1,5 +1,6 @@
 extends CanvasLayer
-## In-level UI: wetness & stamina meters, progress, timer, pause, fail and result screens.
+## In-level UI: wetness & stamina meters (and the shot's water pips on armed streets), progress,
+## timer, pause, fail and result screens.
 ## Public API used by Level: `level`, hint(text, duration), show_fail(), show_result(result).
 
 const Drips := preload("res://src/ui/title_drips.gd")
@@ -72,7 +73,7 @@ func _ready() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(shade)
 
-	_meters = DrawBox.new(_draw_meters, Vector2(480, 170), true)
+	_meters = DrawBox.new(_draw_meters, Vector2(480, 200), true)
 	_meters.position = Vector2(40, 28)
 	_root.add_child(_meters)
 
@@ -137,6 +138,7 @@ func _ready() -> void:
 	if Game.settings.get("touch_controls", false) or DisplayServer.is_touchscreen_available():
 		_touch = preload("res://src/ui/touch_controls.gd").new()
 		_root.add_child(_touch)
+		_touch.armed = level.player.gun.armed
 
 	Inputs.device_changed.connect(_on_device_changed)
 	if level.level_id == Game.start_node and not Game.run.completed.has(level.level_id) and not level.resumed:
@@ -246,15 +248,27 @@ func _draw_meters(ci: Control) -> void:
 	_caption(ci, Vector2(bar_x, y0 + 8), "EXHAUSTED" if p.exhausted else "STAMINA", fc, 20, Color(sta_col if p.exhausted else C_TEXT, 0.85), shadow)
 	_bar(ci, Rect2(bar_x, y0 + 18, bar_w, 12), _sta, sta_col)
 
+	# The shot's water: a pip a shot, the next one filling as it refills.
+	var dry_y := 150.0
+	if p.gun.armed:
+		var wy := 142.0
+		var shots: float = p.gun.shots
+		UIStyle.draw_drop(ci, Vector2(34, wy), 30.0, Color(C_TEXT, 0.8), C_WET, clampf(shots / p.gun.capacity(), 0.0, 1.0))
+		_caption(ci, Vector2(bar_x, wy + 7), "WATER", fc, 20, Color(C_TEXT, 0.85), shadow)
+		for i in p.gun.capacity():
+			var r := Rect2(bar_x + 84 + i * 46, wy - 6, 38, 14)
+			_bar(ci, r, clampf(shots - i, 0.0, 1.0), C_WET if shots >= i + 1 else Color(C_WET, 0.45))
+		dry_y = 184.0
+
 	# Drying off (sun patches, vents).
 	if _drying_a > 0.01:
 		var dc := Color(1.0, 0.78, 0.45, _drying_a)
-		var sc := Vector2(34, 150)
+		var sc := Vector2(34, dry_y)
 		ci.draw_circle(sc, 7.0, dc)
 		for i in 8:
 			var a := TAU * float(i) / 8.0 + _t * 0.8
 			ci.draw_line(sc + Vector2(cos(a), sin(a)) * 10.0, sc + Vector2(cos(a), sin(a)) * 14.0, dc, 2.0, true)
-		_caption(ci, Vector2(bar_x, 157), "DRYING OFF…", fc, 22, dc, Color(0, 0, 0, 0.55 * _drying_a))
+		_caption(ci, Vector2(bar_x, dry_y + 7), "DRYING OFF…", fc, 22, dc, Color(0, 0, 0, 0.55 * _drying_a))
 
 
 func _bar(ci: Control, r: Rect2, v: float, col: Color) -> void:

@@ -26,6 +26,7 @@ const RANGE := 9.0           # further back than this he can't reach, and the sh
 const MAX_SPEED := 2.8         # coming up behind him, before he has closed in
 const BRACE_S := 0.35          # how long before a shot leaves the bots tilt back for it
 const GIVE_UP_S := 1.0         # out of the frame this long after the warning, he gives up
+const SOAKED_HOLD_S := 2.5     # the camera keeps a soaked man in shot this long as he gives up
 const SHADOW_W := 2.6         # across the pavement: the lamp is off to the kerb side, so it fans out
 const SHADOW_Z := 1.2
 const SHADOW_LEN := [3.5, 11.0]   # the lamp shadow's length as the warning starts and ends
@@ -114,8 +115,14 @@ func _on_soaked() -> void:
 	_set_phase(Phase.OFF)
 	visible = false
 	speed = 0.0
-	level.set("camera_bias", 0.0)
 	_new_man()
+	get_tree().create_timer(SOAKED_HOLD_S, false).timeout.connect(_release_camera)
+
+
+## The camera held back a moment so the walker saw him give up; it comes forward unless the next is on.
+func _release_camera() -> void:
+	if phase == Phase.OFF:
+		level.set("camera_bias", 0.0)
 
 
 ## A jet is glinting or in the air: the moment to tilt back.

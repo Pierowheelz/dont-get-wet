@@ -54,6 +54,8 @@ func _soaked() -> void:
 	visual.call("set_umbrella_pose", 0.0, 0.0, 0.0)
 	visual.call("set_umbrella_open", 0.0)
 	set_process(true)
+	if Game.autopilot:
+		print("NPC_SOAKED x=%.1f t=%.1f" % [global_position.x, level.elapsed])
 	soaked.emit()
 
 

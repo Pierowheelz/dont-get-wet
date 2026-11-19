@@ -460,6 +460,10 @@ func _first_encounters() -> void:
 	if not _seen.has("wind") and absf(wind(x)) > 0.18:
 		_seen["wind"] = true
 		hud.hint("The wind is slanting the rain — tilt the umbrella into it ({tilt}).", 4.0)
+	if not _seen.has("gun") and player.gun.armed and elapsed > 1.5:
+		_seen["gun"] = true
+		if not Game.run.completed.any(func(id: String) -> bool: return Game.street_number(id) >= Game.GUN_FROM):
+			hud.hint("There's a reason the umbrella is heavy. ({fire})", 5.0)
 	if not _seen.has("stop") and player.stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") and player.sheltered:
 		_seen["stop"] = true
 		hud.hint("Puffed out? Hold {stop} to stand still under cover and catch your breath.", 3.5)

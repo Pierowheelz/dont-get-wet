@@ -5,6 +5,7 @@ const SAVE_VERSION := 2
 const FEEDBACK_URL := "https://github.com/Pierowheelz/dont-get-wet/issues/new?template=feedback.yml"
 const INDEX_PATH := "res://levels/index.json"
 const AUTOPILOT_TRAIN_SEED := 1     # bot runs and tests roll the same trains, so their numbers compare
+const GUN_FROM := 6                 # street number (Main Street is 1) from which the umbrella shot is armed
 
 signal tokens_changed(tokens: int)
 
@@ -28,6 +29,7 @@ var debug_clock := 0.0              # --clock=S starts the level clock at S, whi
 var debug_train_seed := -1          # --train-seed=N rolls the same train departures every attempt (testing)
 var debug_wash_always := false      # --wash-always: a train's sheet falls everywhere on the track at once (testing)
 var debug_resume_cp := -1          # --resume-checkpoint=N starts the level resumed from its checkpoint N (testing; --wet= sets the wetness)
+var debug_armed := false            # --armed: the umbrella shot works on any street (testing)
 var last_result: Dictionary = {}
 var checkpoint: Dictionary = {}     # latest checkpoint of the level being played (Level._take_checkpoint); memory only, never saved
 var resuming := false               # play_level(id, true) asked the next Level to restore `checkpoint`
@@ -45,6 +47,7 @@ func _ready() -> void:
 	debug_human = args.has("--human")
 	debug_wash_always = args.has("--wash-always")
 	debug_auto_continue = args.has("--auto-continue")
+	debug_armed = args.has("--armed")
 	if args.has("--low"):
 		settings["low_quality"] = true
 	for a in args:
@@ -194,6 +197,33 @@ func neighbors(id: String) -> Array:
 	return nodes.get(id, {}).get("neighbors", [])
 
 
+## A street's place on its path: Main Street is 1, its neighbours 2, and so on outward (0 if off the map).
+func street_number(id: String) -> int:
+	var dist := {start_node: 1}
+	var queue: Array = [start_node]
+	while not queue.is_empty():
+		var at: String = queue.pop_front()
+		for nb: String in neighbors(at):
+			if nodes.has(nb) and not dist.has(nb):
+				dist[nb] = dist[at] + 1
+				queue.append(nb)
+	return dist.get(id, 0)
+
+
+## The walker can fire the umbrella shot on this street.
+func armed(id: String) -> bool:
+	return debug_armed or street_number(id) >= GUN_FROM
+
+
+## The shop offers the shot's upgrades once the run has walked the street before the first armed one.
+func gun_upgrades_open() -> bool:
+	return run.completed.any(func(id: String) -> bool: return street_number(id) >= GUN_FROM - 1)
+
+
+func upgrade_offered(u: StringName) -> bool:
+	return not Run.GUN_UPGRADES.has(u) or gun_upgrades_open()
+
+
 ## True for a street on the other side of the start from the active run's direction.
 func other_way(id: String) -> bool:
 	var side: String = branch.get(id, "")
@@ -309,6 +339,16 @@ func jet_shove_mult(level := -1) -> float:
 
 func umbrella_open_time(level := -1) -> float:
 	return Tun.f("umbrella_open_time") * float(Tun.arr("upgrade_light_time_mult")[_lvl(&"light", level)])
+
+
+## Metres the umbrella shot carries before it is spent (Long Barrel adds to it).
+func gun_range(level := -1) -> float:
+	return Tun.f("gun_range") + float(Tun.arr("upgrade_barrel_range_add")[_lvl(&"barrel", level)])
+
+
+## What a direct hit does, as a multiple of gun_hit (Pressure).
+func gun_pressure_mult(level := -1) -> float:
+	return float(Tun.arr("upgrade_pressure_mult")[_lvl(&"pressure", level)])
 
 
 func _lvl(u: StringName, level: int) -> int:

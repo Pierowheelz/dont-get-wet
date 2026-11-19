@@ -1,8 +1,8 @@
 class_name Player
 extends WetBody
-## The walker: auto-walks along +X, the player only controls the umbrella, hurry, stop and tilt.
-## Owns stamina, wetness and the analytic rain-exposure model (docs/DESIGN.md §5); splashes and
-## shots wet him through WetBody.
+## The walker: auto-walks along +X, the player only controls the umbrella, hurry, stop and tilt
+## (and, on armed streets, the water shot: WaterGun). Owns stamina, wetness and the analytic
+## rain-exposure model (docs/DESIGN.md §5); splashes and shots wet him through WetBody.
 
 signal defeated
 signal arrived
@@ -39,14 +39,17 @@ var jet_kick := 0.0                # 0..1: a blocked jet has knocked the canopy 
 const JET_KICK_S := 0.7            # a full shove takes this long to recover from
 const JET_KICK_TILT := 0.6         # rad the canopy is knocked forward by a full shove
 const JET_KICK_DROOP := 0.7        # and how far it sags (as when exhausted)
+const RECOIL_TILT := 0.22          # rad the canopy kicks away from a shot as it fires
 var _hit_cause := &"wet"
 var _hit_t := -INF
 
+var gun: WaterGun
 var _prev_x := 0.0
 var _step_phase := 0.0
 var _ap_hold := 0.0
 var _ap_resting := false          # autopilot is holding Stop until stamina is full
 var _ap_no_rest_before := -INF      # autopilot won't settle to rest again before this x
+var _ap_filling := false          # autopilot is stopped under a stream, refilling the shot
 var _drips: GPUParticles3D                 # autopilot: keep umbrella up a little after leaving rain
 
 
@@ -70,6 +73,11 @@ func _ready() -> void:
 	# Umbrella lives in world space (it is positioned from the grip each frame, and can be dropped).
 	umbrella.top_level = true
 	add_child(umbrella)
+	gun = WaterGun.new()
+	gun.player = self
+	gun.armed = Game.armed(level.level_id)
+	gun.shots = gun.capacity()
+	add_child(gun)
 	_prev_x = position.x
 	# Soft fill light so the walker reads against the dark street.
 	var fill := OmniLight3D.new()
@@ -119,6 +127,7 @@ func _physics_process(delta: float) -> void:
 	var h: float
 	var tl: float
 	var stop_req: bool
+	var fire_req: bool
 	if Game.autopilot:
 		var ap := _autopilot(delta)
 		if level.courier:
@@ -128,11 +137,13 @@ func _physics_process(delta: float) -> void:
 		if Game.debug_lazy:
 			ap[0] = 0.0
 		u = ap[0]; h = ap[1]; tl = ap[2]; stop_req = ap[3]
+		fire_req = _autopilot_fire()
 	else:
 		u = Inputs.umbrella()
 		h = Inputs.hurry()
 		tl = Inputs.tilt()
 		stop_req = Inputs.stop_held()
+		fire_req = Inputs.fire_held()
 
 	if not is_nan(Game.debug_tilt):
 		u = 1.0; tl = Game.debug_tilt
@@ -145,6 +156,8 @@ func _physics_process(delta: float) -> void:
 		Inputs.mouse_tilt = 0.0
 	var max_tilt := Tun.f("umbrella_max_tilt")
 	tilt = move_toward(tilt, tl * max_tilt if open > 0.0 else 0.0, Tun.f("umbrella_tilt_speed") * delta)
+
+	gun.step(delta, fire_req, tl)
 
 	# --- stop -------------------------------------------------------------------------------
 	if state == State.WALK or state == State.STOPPED:
@@ -224,7 +237,8 @@ func _process(delta: float) -> void:
 		position.y = level.ground_y(position.x)
 	visual.set_motion(speed, run_amount)
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
-	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt + jet_kick * JET_KICK_TILT, maxf(droop, jet_kick * JET_KICK_DROOP))
+	var kick := jet_kick * JET_KICK_TILT - gun.recoil * RECOIL_TILT * gun.aim_sign()
+	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt + kick, maxf(droop, jet_kick * JET_KICK_DROOP))
 	if visual.has_method("set_umbrella_open"):
 		visual.set_umbrella_open(open if not _dropped_umbrella else 0.0)
 	visual.set_wetness(wet / Tun.f("wet_max"))
@@ -528,6 +542,9 @@ func _autopilot(delta: float) -> Array:
 	# delayed replay). Rest through a light sprinkle at the cover's edge, but if a gust drives real
 	# rain in, give up the rest and don't settle again until he has moved on a little.
 	var car_coming: bool = level.car_threat(position.x)   # its splash takes a moment to land: no resting through it
+	var fill := _autopilot_refill(under_fire or car_coming or jet_in)
+	if not fill.is_empty():
+		return fill
 	if _ap_resting:
 		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5 or under_fire or car_coming:
 			_ap_resting = false
@@ -585,4 +602,39 @@ func _autopilot(delta: float) -> Array:
 			if level.track and level.track.on_track(position.x + off) and not _under_lot_cover(position.x + off):
 				stop = false
 	_ap_resting = stop
+	if gun.armed and gun.shots >= 1.0:
+		# Turn the shot toward the nearest man in range: tilt back for one behind, not back for one ahead.
+		var ahead := _ap_mark(1.0)
+		var behind := _ap_mark(-1.0)
+		if behind and not ahead:
+			tl = minf(tl, -0.6) if open > 0.0 else -1.0
+		elif ahead:
+			tl = maxf(tl, 0.0) if open > 0.0 else 1.0
 	return [u, h, tl, stop]
+
+
+## Fires whenever a man in shot is in range on the side it aims.
+func _autopilot_fire() -> bool:
+	return gun.armed and gun.shots >= 1.0 and _ap_mark(gun.aim_sign()) != null
+
+
+## The man the shot would aim at on `side`, if the player could see him.
+func _ap_mark(side: float) -> WetBody:
+	var m := gun.mark(gun.muzzle(), side)
+	return m if m and level.camera.is_position_in_frustum(m.global_position + Vector3(0.0, 1.2, 0.0)) else null
+
+
+## Low on water and right under a stream with nothing coming: stop there, umbrella up and level,
+## until the shot is full. Returns the controls, or [] to carry on.
+func _autopilot_refill(threat: bool) -> Array:
+	if not gun.armed or threat:
+		_ap_filling = false
+		return []
+	if _ap_filling and gun.shots >= gun.capacity():
+		_ap_filling = false
+		_ap_no_rest_before = position.x + 1.0
+	if not _ap_filling and gun.shots <= gun.capacity() - 2 and position.x >= _ap_no_rest_before:
+		for g in level.gutters:
+			if absf(g - position.x) < 0.15:
+				_ap_filling = true
+	return [1.0, 0.0, 0.0, true] if _ap_filling else []
