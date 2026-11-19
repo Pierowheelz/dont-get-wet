@@ -2,11 +2,14 @@ class_name DropletBurst
 extends Node3D
 ## A burst of water droplets flown one by one, so what wets the walker is exactly what the player
 ## sees reach him. Each droplet falls under gravity; near the walker every step is checked against
-## his open canopy and lot cover (it stops there) and against his body from the knees up (a capsule:
-## it lands, and he gets `wet_per_drop` wetter, TORSO_WEIGHT times that on his torso; his shins, which no umbrella can cover, don't count). Droplets that miss fall to the street. A car's splash and a fired
-## water shot are both bursts.
-##   var b := DropletBurst.spawn(level, starts, velocities, wet_per_drop)
-##   b.hit.connect(func(amount: float) -> void: ...)        # each step's landed droplets
+## his open canopy and lot cover (it stops there) and against his body from the knees up (a capsule).
+## A droplet on his body wets the body sample nearest it (Player.SAMPLES, the same weighted points
+## rain is measured on); a sample is soaked once PER_POINT droplets reach it. The burst's exposure is
+## the weighted share of samples soaked, as rain's is, and it wets him `amount` once that share
+## reaches `full`. Droplets that miss fall to the street. A car's splash and a fired water shot are
+## both bursts.
+##   var b := DropletBurst.spawn(level, starts, velocities, amount)
+##   b.hit.connect(func(wet: float) -> void: ...)           # each step's added wetness
 ##   b.done.connect(func(landed: int, stopped: int) -> void: ...)
 
 signal hit(amount: float)
@@ -16,19 +19,19 @@ const GRAVITY := 9.8
 const BODY_R := 0.2           # the walker as a capsule round his line, from his knees (no umbrella can
 const BODY_LOW := 0.55        # cover his shins, so droplets there don't count)...
 const BODY_TOP := 1.75        # ...to the top of his head
-const TORSO := [0.95, 1.45]   # waist to shoulders: what soaks through first, so a droplet there counts
-const TORSO_WEIGHT := 1.2     # TORSO_WEIGHT times
 const NEAR := 1.6             # within this of him (x and z) a droplet is checked each step
 const LIFE := 2.5
 
 var level: Node
-var wet_per_drop := 1.0
+var amount := 1.0             # wetness once `full` of his body is soaked
+var full := 0.6               # weighted share of body samples that counts as a full hit
+var per_point := 4.0          # droplets that soak one body sample
 var through_umbrella := false # the canopy doesn't stop these (a parting shot that can't be blocked)
 var landed := 0               # droplets that reached his body
 var stopped := 0              # droplets his canopy stopped
 var stopped_cover := 0        # droplets an awning or other lot cover stopped
-var max_wet := INF            # the most the whole burst can add
 var wet_given := 0.0
+var _soak := {}               # sample index -> droplets that reached it
 var size := 0.09
 var trail := 0                # ghost copies behind each droplet, so a fast one reads as a streak
 var trail_dt := 0.014
@@ -43,11 +46,11 @@ var _mm: MultiMeshInstance3D
 var _splash: GPUParticles3D
 
 
-static func spawn(p_level: Node, starts: PackedVector3Array, velocities: PackedVector3Array, p_wet_per_drop: float,
+static func spawn(p_level: Node, starts: PackedVector3Array, velocities: PackedVector3Array, p_amount: float,
 		opts := {}) -> DropletBurst:
 	var b := DropletBurst.new()
 	b.level = p_level
-	b.wet_per_drop = p_wet_per_drop
+	b.amount = p_amount
 	for k in opts:
 		b.set(k, opts[k])
 	b._pos = starts.duplicate()
@@ -129,7 +132,8 @@ func _physics_process(delta: float) -> void:
 	var foot := p.global_position.y
 	var space := get_world_3d().direct_space_state
 	var mask := Player.COVER_MASK | (0 if through_umbrella else Player.UMBRELLA_MASK)
-	var got := 0.0
+	var got := false
+	var samples := []
 	for i in _pos.size():
 		if not _alive[i]:
 			continue
@@ -153,17 +157,21 @@ func _physics_process(delta: float) -> void:
 			var on := _body_hit(a, b, Vector3(near_x, foot, near_z))
 			if p.state != Player.State.DEFEATED and on >= 0.0:
 				landed += 1
-				got += TORSO_WEIGHT if on >= TORSO[0] and on <= TORSO[1] else 1.0
+				if samples.is_empty():
+					samples = p.body_samples()
+				_wet_nearest(samples, pts_on(a, b, Vector3(near_x, foot, near_z)), p.global_basis.z.normalized())
+				got = true
 				_kill(i, b)
 				continue
 		if (v.y < 0.0 and b.y < level.ground_y(b.x)) or _t > LIFE:   # falling onto the street (the kerb lip doesn't catch a rising one)
 			_kill(i, b if b.y >= level.ground_y(b.x) else Vector3(b.x, level.ground_y(b.x) + 0.02, b.z))
 			continue
 		_pos[i] = b
-	if got > 0 and wet_given < max_wet:
-		var amount := minf(got * wet_per_drop, max_wet - wet_given)
-		wet_given += amount
-		hit.emit(amount)
+	if got:
+		var wet := amount * minf(exposure() / full, 1.0)
+		if wet > wet_given:
+			hit.emit(wet - wet_given)
+			wet_given = wet
 	_draw()
 	if _live == 0:
 		set_physics_process(false)
@@ -176,6 +184,39 @@ func _kill(i: int, at: Vector3) -> void:
 	_live -= 1
 	_splash.emit_particle(Transform3D(Basis(), at), Vector3.ZERO, Color.WHITE, Color.WHITE,
 		GPUParticles3D.EMIT_FLAG_POSITION)
+
+
+## The weighted share (0..1) of his body samples this burst has soaked so far.
+func exposure() -> float:
+	var total := 0.0
+	var wet := 0.0
+	for i in Player.SAMPLES.size():
+		var w: float = Player.SAMPLES[i][1]
+		total += w
+		wet += w * minf(_soak.get(i, 0) / per_point, 1.0)
+	return wet / total
+
+
+## A droplet reached his body at `at`: it wets the sample nearest it, measured in his side-on plane
+## (left and right are the same distance, so a droplet between his shoulders wets both).
+func _wet_nearest(samples: Array, at: Vector3, across: Vector3) -> void:
+	var best := INF
+	var d := []
+	for s in samples:
+		var off: Vector3 = at - s[0]
+		off -= across * off.dot(across)
+		d.append(off.length())
+		best = minf(best, d[-1])
+	for i in d.size():
+		if d[i] <= best + 0.01:
+			_soak[i] = _soak.get(i, 0) + 1
+
+
+## Where on his line the step a-b comes nearest (the point the droplet meets him).
+static func pts_on(a: Vector3, b: Vector3, foot: Vector3) -> Vector3:
+	var pts := Geometry3D.get_closest_points_between_segments(a, b,
+		foot + Vector3(0.0, BODY_LOW, 0.0), foot + Vector3(0.0, BODY_TOP - BODY_R, 0.0))
+	return pts[0]
 
 
 ## Height above his feet where the step a-b meets the walker (within BODY_R of his axis, a vertical

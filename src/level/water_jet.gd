@@ -23,7 +23,8 @@ const PELLETS := 46
 const SPREAD := 0.045         # rad, up and down: a tight burst, strung out along its path
 const SPREAD_Z := 0.02        # rad across the street
 const SPEED_JITTER := 0.13    # the burst strings out along its path more than it spreads
-const HIT_SHARE := 0.85       # the pellets that reach a walker who doesn't block carry about `amount` between them
+const HIT_FULL := 0.5         # share of his body (DropletBurst.exposure) a shot must soak to wet him `amount`
+const HIT_PER_POINT := 3.0    # pellets that soak one body point
 const SHOVE_MIN := 0.2        # share of the pellets his canopy has to stop before it's knocked aside
 const AIM_Y := 1.25           # the burst is aimed at his chest
 
@@ -154,8 +155,8 @@ func _launch(p: Player) -> void:
 	starts.resize(vels.size())
 	starts.fill(from)
 	var full := amount if amount >= 0.0 else Tun.f("wet_jet_hit")
-	burst = DropletBurst.spawn(level, starts, vels, full / (PELLETS * HIT_SHARE),
-		{"max_wet": full, "through_umbrella": always_hits, "size": 0.12, "trail": 5, "color": Color(0.78, 0.88, 1.0, 0.85)})
+	burst = DropletBurst.spawn(level, starts, vels, full,
+		{"full": HIT_FULL, "per_point": HIT_PER_POINT, "through_umbrella": always_hits, "size": 0.12, "trail": 5, "color": Color(0.78, 0.88, 1.0, 0.85)})
 	burst.hit.connect(func(wet: float) -> void: p.soak(wet, &"shot"))
 	phase = Phase.TRAVEL
 	_t = 0.0

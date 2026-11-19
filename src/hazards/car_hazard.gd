@@ -15,7 +15,8 @@ const SPLASH_DROPS := 600
 const SPLASH_Z := 0.5          # the wave's width across the street, each side of the walker's line
 const SPLASH_SPREAD := 15.0    # degrees either side of its direction, along the street
 const SPLASH_REACH_S := 1.4
-const WET_PER_DROP := 0.28     # an unblocked walker 2-4 m short of the crossing takes the whole wet_car_splash
+const SPLASH_FULL := 0.5      # share of his body (DropletBurst.exposure) the wave must soak for the whole wet_car_splash
+const SPLASH_PER_POINT := 25.0 # droplets that soak one body point
 
 var level: Node
 var crossing_x := 0.0
@@ -169,7 +170,7 @@ func _physics_process(delta: float) -> void:
 
 
 ## The wave off the puddle: a DropletBurst, so the walker gets wet only where its droplets reach him
-## (WET_PER_DROP each, at most `wet_car_splash`), and a forward-tilted canopy stops what it meets.
+## (`wet_car_splash` once it has soaked SPLASH_FULL of him), and a forward-tilted canopy stops what it meets.
 func _do_splash(player: Node3D) -> void:
 	var at := Vector3(crossing_x + 0.9, LevelBuilder.ROAD_Y + 0.1, Tun.f("player_z"))
 	splashed_puddle.emit(at)
@@ -183,8 +184,8 @@ func _do_splash(player: Node3D) -> void:
 		var a := base + deg_to_rad(randf_range(-SPLASH_SPREAD, SPLASH_SPREAD))
 		var v := randf_range(splash_v[0], splash_v[1])
 		vels.append(Vector3(-cos(a), sin(a), randf_range(-0.06, 0.06)) * v)
-	burst = DropletBurst.spawn(level, starts, vels, WET_PER_DROP, {"max_wet": Tun.f("wet_car_splash"),
-		"color": Color(0.7, 0.78, 0.9, 0.55)})
+	burst = DropletBurst.spawn(level, starts, vels, Tun.f("wet_car_splash"), {"full": SPLASH_FULL,
+		"per_point": SPLASH_PER_POINT, "color": Color(0.7, 0.78, 0.9, 0.55)})
 	var p := player as Player
 	burst.hit.connect(func(wet: float) -> void: p.splash_wet(wet))
 	burst.done.connect(func(_landed: int, _stopped: int) -> void: p.splash_done(burst.wet_given))

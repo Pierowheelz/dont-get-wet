@@ -67,7 +67,8 @@ Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger
 
 ### Wetness (0–100)
 
-- Increases with rain exposure × rain intensity, gutter streams, car splashes and puddle steps.
+- Increases with rain exposure × rain intensity, gutter streams and car splashes. Puddles
+  only splash underfoot: nobody can step round one, so they cost nothing.
 - Decreases **only** in sunny patches and warm air (vents, fires), at full rate above 90 and
   exponentially slower below it. Drying rescues a soaked run but never repays time spent waiting.
   On the early streets none sits in the final third.
@@ -99,7 +100,6 @@ The game is only fair if it's readable, so exposure is **analytic** (not per-dro
 | Open sky gap (short 2–3 m, long 5–15 m, crossings 8–12 m) | Rain exposure | Umbrella / hurry |
 | Broken awning (tears/holes) | Local exposure inside "cover" | Umbrella / timing |
 | Gutter stream (awning edge, downpipe) | Heavy local stream, high rate | Umbrella, tilt toward it |
-| Puddle | Small fixed wetness when stepped in (not if hurrying… running splashes more!) | Walk, don't run |
 | Car splash (side-street crossings) | Big burst from the front just before the crossing | Tilt umbrella forward |
 | Wind (later levels) | Bends rain, extra stamina drain, slows when open into a headwind | Tilt into the rain |
 | Hurricane wind (future) | Damages umbrella | Upgrades |

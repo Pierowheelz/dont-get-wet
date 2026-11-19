@@ -19,7 +19,8 @@ const NECK_Y := 1.55               # head-duck pivot
 const RAIN_SKY_Y := 3.6            # above every cover: where a drop's x decides if it's raining
 const CHARACTER_SCENE := "res://assets/characters/walker/walker.tscn"
 
-## Body sample points (local, facing +X) and their weights for exposure.
+## Body sample points (local, facing +X) and their weights for exposure, to rain, streams, washes and
+## the droplets of a splash or shot alike. Nothing below the knees: no umbrella can cover the shins.
 const SAMPLES := [
 	[Vector3(0.0, 1.74, 0.0), 2.0],     # head
 	[Vector3(0.02, 1.5, 0.19), 1.4],    # shoulders
@@ -29,7 +30,6 @@ const SAMPLES := [
 	[Vector3(0.0, 0.95, 0.12), 0.8],    # hips
 	[Vector3(0.12, 0.55, 0.0), 0.6],    # knees
 	[Vector3(-0.1, 0.55, 0.0), 0.5],
-	[Vector3(0.14, 0.18, 0.0), 0.4],    # shins / shoes
 ]
 
 var level: Node                    # the Level (provides rain_intensity, wind, dry_rate, ground_y...)
@@ -48,7 +48,7 @@ var hurry := 0.0
 var drying := 0.0                  # current dry rate (for FX)
 var sheltered := false             # head is under fixed cover (awning/balcony)
 var gutter_on_umbrella := 0.0      # 0..1 how much of a gutter stream the umbrella is catching
-var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_puddle": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_hit": 0.0, "dried": 0.0}
+var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_hit": 0.0, "dried": 0.0}
 var fail_cause := &"wet"         # what ended the attempt (HUD.FAIL_TITLES): wet, shot, lost, made
 var jet_kick := 0.0                # 0..1: a blocked jet has knocked the canopy aside (WaterJet); decays
 const JET_KICK_S := 0.7            # a full shove takes this long to recover from
@@ -302,6 +302,14 @@ func _sample_world(local: Vector3) -> Vector3:
 	return global_transform * local
 
 
+## The body samples in world space: [position, weight] for each of SAMPLES.
+func body_samples() -> Array:
+	var out := []
+	for s in SAMPLES:
+		out.append([_sample_world(s[0]), s[1]])
+	return out
+
+
 ## Fraction (weighted 0..1) of body samples that rain can reach.
 ## How much rain still gets past the umbrella while it is opening/closing: ~100% at the start of
 ## the animation, falling to 0% only once it is fully open (the canopy isn't taut until then).
@@ -418,24 +426,16 @@ func _wash_threat(horizon: float) -> bool:
 	return false
 
 
+## Puddles splash underfoot but don't wet him: nobody can step round one, so it would be a cost
+## the player can't avoid.
 func _check_puddles() -> void:
 	for p in level.puddles:
 		var x0: float = p[0]
 		if _prev_x < x0 and position.x >= x0:
-			var running := run_amount > 0.45
-			var amt := Tun.f("wet_puddle_run") if running else Tun.f("wet_puddle_walk")
-			if p[2]:
-				amt *= 1.6
-			wet += amt
 			stats["puddles"] += 1
-			stats["wet_puddle"] += amt
-			puddle_stepped.emit(global_position + Vector3(0.2, 0, 0), running)
+			puddle_stepped.emit(global_position + Vector3(0.2, 0, 0), run_amount > 0.45)
 
 
-## Called by hazards (car splash). The wave is a spray, not a point: rays run from each body sample
-## to several points spread across it, so a smaller (half-open) canopy still catches part of it.
-## Cover blocks fully; the canopy blocks spray better than rain while it's still opening (slack
-## fabric is still a wall to a sideways sheet of water).
 ## Droplets of a car's splash that reached him (CarHazard, through a DropletBurst).
 func splash_wet(amount: float) -> void:
 	if state != State.WALK and state != State.STOPPED:

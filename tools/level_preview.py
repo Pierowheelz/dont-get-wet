@@ -192,7 +192,7 @@ def _subtract(runs, zones):
 
 def safe_runs(st):
     """[(start, end)] of cover that is dry for a walker: awnings merged where lots touch, shrunk at each
-    end by the wind slant plus half a body, with gutters, puddles, car-threat zones and train wash cut
+    end by the wind slant plus half a body, with gutters, car-threat zones and train wash cut
     out (a checkpoint restores the level clock, so a train can be on its way)."""
     spans = sorted((a, b) for a, b, _ in st.covers)
     merged = []
@@ -214,8 +214,6 @@ def safe_runs(st):
         w = float(f.get("w", 1.0))
         if f["type"] == "gutter":
             zones.append((x - GUTTER_HALF_M, x + GUTTER_HALF_M))
-        elif f["type"] == "puddle":
-            zones.append((x - w / 2, x + w / 2))
     for c in st.d.get("crossings", []):
         if c.get("car"):
             zones.append((float(c["x"]) - CAR_THREAT_M, float(c["x"]) + float(c["w"])))
@@ -223,7 +221,7 @@ def safe_runs(st):
 
 
 def clear_ahead(st, x):
-    """Metres from x to the first hazard (cover edge, gutter, puddle, car threat, wash); 0 when x is not safe."""
+    """Metres from x to the first hazard (cover edge, gutter, car threat, wash); 0 when x is not safe."""
     for a, b in safe_runs(st):
         if a <= x <= b:
             return b - x
@@ -280,14 +278,14 @@ def decile_table(st, tun):
         per100 = 100.0 / (b - a)
         wash = sum(1 for x in xs if st.washed(x)) / n
         diff = 10.0 * sum((not st.covered(x)) * st.rain(x) * (1 + abs(st.wind(x))) for x in xs) / n \
-            + 10.0 * WASH_W * st.wash_duty * wash + (0.5 * g + 0.15 * p + 0.4 * c) * per100
+            + 10.0 * WASH_W * st.wash_duty * wash + (0.5 * g + 0.4 * c) * per100
         rows.append(dict(a=a, b=b, open=open_frac, longest=longest, longest_full=longest_full,
                          g=g, p=p, c=c, rain=rain, wind=wind, wash=wash, diff=diff))
     return rows
 
 
 DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
-                f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.15*puddles + 0.4*crossings) per 100 m, per decile "
+                f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.4*crossings) per 100 m, per decile "
                 "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover (a railway's arches count as "
                 "lot cover); duty = share of the "
                 "time a sheet falls on a spot, Track.WASH_S over the mean train gap)")
@@ -681,7 +679,7 @@ def trace_summary(label, rows, tun):
     outcome = ("reached the door" if last["state"] != 2 else
                "SOAKED" if last["wet"] >= tun["wet_max"] - 0.01 else "FAILED dry (a scripted fail: lost, made or shot)")
     return (f"{label}: final wet {last['wet']:.1f}/{tun['wet_max']:.0f} at x={last['x']:.0f} t={last['t']:.0f}s; "
-            f"rain {s['wet_rain']:.1f} gutter {s['wet_gutter']:.1f} puddle {s['wet_puddle']:.1f} "
+            f"rain {s['wet_rain']:.1f} gutter {s['wet_gutter']:.1f} "
             f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
             f"{min(r['stamina'] for r in rows):.0f}; {outcome}")
 

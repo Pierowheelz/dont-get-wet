@@ -77,17 +77,19 @@ door at `x + 4`. Keep the JSON `end_x` in step with it, because the preview uses
 **Crossings** (`x`, `w`, optional `car`; `s.xing(tag, w, car=True)`) are open road. The ground drops 0.16 m, props inside are
 skipped, and `"car": true` adds a car whose splash costs up to 25 (`wet_car_splash`). The splash is a burst of
 600 real droplets (`DropletBurst`) thrown off the puddle at about 45 degrees, fanned along the street: only
-those that come down on the walker from the knees up wet him (0.28 each, 1.2 times that on his torso). Unblocked
-it costs the full 25 two to four metres short of the crossing, about 23 at 5 m, 17 at 6 m and nothing out of its
-reach (about 9 m). A forward-tilted open umbrella stops the droplets it meets: about 4 get through at 3 m, 1 to 2
-from 4 m out (closer than 3 m the wave is still rising and more gets under it).
+those that come down on the walker from the knees up wet him. Each wets the body point nearest it (the
+weighted points rain is measured on, `Player.SAMPLES`); 25 droplets soak a point, and the splash costs the full
+25 once half his weighted body is soaked (`CarHazard.SPLASH_FULL`). Unblocked it costs the full 25 up to about
+4 m short of the crossing, about 16 at 5 m, 11 at 6 m and almost nothing past 8 m. A forward-tilted open umbrella
+stops the droplets it meets: about 3 get through at 3 m, about 2 from 4 m out (closer in the wave is still
+rising and more gets under it: about 7 at 2 m).
 
 **Features:**
 
 | `type` | Effect |
 |---|---|
 | `gutter` (`x`, optional `kind`, `side`) | A falling column on the walker's line. Inside 0.45 m of it the rate is 26/s unless the umbrella is directly above. The bot opens for it even under cover. Put it in a `wall` seam or inside a tear of 1 m or more; the build warns if it lands on intact canvas. The builder draws what it pours from: `snapped` (a gooseneck downpipe broken off over the walkway, the piece on the pavement), `crack` (the same pipe split open) or `collapse` (the nearest canvas within 1 m has slumped off its frame and spills from its corner, which hangs 0.3 m past the canvas edge; the stream moves there from `x`; canvas awnings only, otherwise it falls back to `snapped` at `x`). Without `kind` a street cycles through the three. `side` is 1 when the source reaches the stream from lower x, -1 from higher x. The gutter brings its own downpipe, so don't add a `downpipe` prop at the same x. |
-| `puddle` (`x`, `w`, `deep`) | Stepping in costs 0.75 walking and 2.5 running (above about 2.2 m/s). `deep` multiplies that by 1.6. Nobody can step around one, so the lesson is "walk, don't run". |
+| `puddle` (`x`, `w`, `deep`) | Splashes underfoot (louder running) but costs no wetness: nobody can step around one, so it would be a cost the player can't avoid. Set dressing only; the design checks ignore it. |
 | `sun` (`x`, `w`) | No rain, and 3/s drying (before the wetness falloff) scaled by how closed the umbrella is (open shades him, no drying). The rain-free span stretches to meet cover within 2 m. Both bots close the umbrella in it. |
 | `vent` (`x`, `w` = 1.6) | 4.5/s drying. |
 | `fire_barrel` (`x`, `w` = 1.8) | 5.4/s drying. It sits against the wall and looks right under a balcony. |
@@ -249,8 +251,8 @@ has gone). When the walker passes `x`:
 - **Every 2.5 s** he fires a telegraphed shot (`WaterJet`): a 0.6 s glint at his umbrella's tip
   (brought down to chest height), then a tight shotgun burst of 46 pellets (`DropletBurst`) out
   along the street, `WaterJet.SHOT_ELEV` (5 degrees) above level and fast enough to reach his chest
-  where he'll be. Each pellet that reaches him from the knees up wets him (a full hit is
-  `wet_jet_hit`, 12, through `Player.soak(amount, &"shot")`, so a shot that soaks him fails the
+  where he'll be. Each pellet that reaches him from the knees up wets the body point nearest it (3
+  soak a point; a full hit, half his weighted body soaked, is `wet_jet_hit`, 12, through `Player.soak(amount, &"shot")`, so a shot that soaks him fails the
   attempt as SHOT); his canopy stops the ones it meets. Upright, it stops none; tilted back toward
   the shooter, 70% of full tilt stops about three quarters, 85% nearly all (flat back lets the rain
   in). A canopy that stops a fifth or more is shoved aside for 0.7 s (tilt and droop, `jet_shove`,
@@ -272,8 +274,8 @@ the next person can see the intent without replaying the street.
 
 ## The design checks
 
-`level_preview.py` scores each tenth of `end_x` (about 26 m) for open sky x rain, plus gutters, puddles
-and crossings. A deck counts as cover. Every metre of track with no lot cover beneath it, deck or open
+`level_preview.py` scores each tenth of `end_x` (about 26 m) for open sky x rain, plus gutters and
+crossings. A deck counts as cover. Every metre of track with no lot cover beneath it, deck or open
 sky, scores `WASH_W` (5.2) x the wash duty of a metre of open sky at rain 1 on top. The duty is the
 share of the time a sheet falls on a spot, 0.92 s over the mean gap (0.052 for `gap` 10 to 25 s),
 because the preview can't know an attempt's timing. The `wash` column shows that share, and the strip
@@ -287,7 +289,7 @@ draws it in the hazards lane. The checks are:
 - **span-crossable.** No open span is longer than one bar of stamina (33 m with no wind).
 - **checkpoints-safe.** `"checkpoints"` holds three x values, one near 25%, 50% and 75% of `end_x`
   (within 10% of `end_x`). Each sits 0.5 m into a stretch of cover and has `CLEAR_M` (4 m) of dry cover
-  ahead before the next gap, gutter, puddle, car crossing's headlight zone or stretch of track with
+  ahead before the next gap, gutter, car crossing's headlight zone or stretch of track with
   no lot cover (the wash can land there whatever the trains do, so on a street with a track only
   awnings and slabs qualify). Cover ends are pulled in
   by the wind slant plus half a body. `Street.write()` picks them with `solve_checkpoints`, so the plan
@@ -300,7 +302,7 @@ draws it in the hazards lane. The checks are:
 
 A decile is short, so a breather has to sit inside the same decile as its test. A decile that is all
 cover right after a hard one fails the ramp check. Sun breaks count as zero rain, so a sun decile
-needs other gaps or puddles to stay inside the hold band. A big set piece can straddle a decile
+needs other gaps or gutters to stay inside the hold band. A big set piece can straddle a decile
 boundary to split its weight.
 
 ## Pacing pattern (Main Street)
@@ -313,8 +315,8 @@ and the cover that follows it.
 | 0 to 28 | The Bijou arcade (diner, cinema colonnade) | walk under continuous cover |
 | 28 to 68 | First gaps (2.5, 4, 3, 5 m) | open the umbrella for a short gap |
 | 80 to 104 | Elm Street and the Hotel Ambassador | cross 12 m (about 40 stamina), then close up under 12 m of balconies by a fire barrel |
-| 104 to 139 | The drainpipe at the Savings & Loan | keep the umbrella upright under a gutter, then walk through a puddle |
-| 139 to 162 | Oak Street | deep puddles at both kerbs, then 15 m of cover |
+| 104 to 139 | The drainpipe at the Savings & Loan | keep the umbrella upright under a gutter |
+| 139 to 162 | Oak Street | deep puddles at both kerbs (a splash, no cost), then 15 m of cover |
 | 162 to 192 | The Palace lot | close the umbrella in a 6 m sun break between two rainy strips |
 | 220 to 257 | Pawn Row | torn awnings that keep the umbrella up, a gutter through a tear, a breather, a last gutter at the inn |
 
@@ -328,8 +330,9 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
 - **The perfect bot hurries whenever stamina is above 80 and nothing is ahead.** It meets each gap
   with about 80, not 100, and stops (about 4 s each) once it falls to 24. Watch its `min stamina` and
   its time. Each stop costs score.
-- **Neither bot takes rain damage in normal play.** Their wetness comes from puddles, and they never
-  get wet enough for drying to matter. To make the wetness curve move, put puddles at the tests.
+- **Neither bot takes much rain damage in normal play.** On a street without cars or gutters they
+  stay almost dry, and drying never matters. To make the wetness curve move, put gutters or car
+  crossings at the tests.
 - **`tests/run_tests.gd` uses the first untorn awning of 4 m or more and the first `none` lot of 4 m
   or more** on Main Street. It expects full exposure at the centre of that open lot, so it must not
   be a sun break.
