@@ -307,6 +307,40 @@ func _test_trigger_ends() -> void:
 	await _drop_street(lv)
 
 
+## Headless can't capture the mouse, so these set Inputs.mouse_tilt as sideways mouse motion would.
+func _test_tilt_hand_off() -> void:
+	Game.autopilot = false
+	Input.action_press(&"stop")
+	Input.action_press(&"umbrella")
+	var lv := await _street_with({})
+	var p: Player = lv.player
+	_unhook_defeat(p)
+	p.set_physics_process(true)
+	Inputs.mouse_tilt = 0.5
+	await _frames(90)
+	check(p.tilt > 0.3, "the mouse tilts the open umbrella: %.2f rad" % p.tilt)
+	_pad_axis(JOY_AXIS_RIGHT_X, 0.8)
+	await _frames(10)
+	_pad_axis(JOY_AXIS_RIGHT_X, 0.0)
+	await _frames(90)
+	check(absf(p.tilt) < 0.05, "once a stick has tilted it, the sticks at rest hold it upright: %.2f rad" % p.tilt)
+	Inputs.mouse_tilt = -1.0
+	await _drop_street(lv)
+	lv = await _street_with({})
+	p = lv.player
+	_unhook_defeat(p)
+	p.set_physics_process(true)
+	await _frames(90)
+	check(p.open == 1.0 and absf(p.tilt) < 0.05, "a restarted street starts with the umbrella upright: %.2f rad" % p.tilt)
+	Inputs.mouse_tilt = 0.5
+	await _frames(90)
+	check(p.tilt > 0.3, "... and the mouse tilts it again: %.2f rad" % p.tilt)
+	Input.action_release(&"umbrella")
+	Input.action_release(&"stop")
+	Game.autopilot = true
+	await _drop_street(lv)
+
+
 ## The walker's shot: range per Long Barrel tier, two clean hits soak a man (one at Pressure tier 3),
 ## a man's canopy stops it, and his canopy never keeps the rain off the walker. The water refills
 ## slowly by itself and fast stopped under a stream, and the shot is locked before the sixth street.
@@ -957,6 +991,7 @@ func _run() -> void:
 	await _test_fail_cause()
 	await _test_walk_off()
 	await _test_trigger_ends()
+	await _test_tilt_hand_off()
 	await _test_umbrella_shot()
 	await _test_viaduct()
 	await _test_viaduct_road()

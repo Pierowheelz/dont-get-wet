@@ -69,6 +69,7 @@ static func dry_speed(spot_rate: float, wet_frac: float) -> float:
 
 
 func _ready() -> void:
+	Inputs.new_attempt()
 	stamina = Tun.f("stamina_max") if is_nan(Game.debug_stamina) else Game.debug_stamina
 	if ResourceLoader.exists(CHARACTER_SCENE):
 		visual = (load(CHARACTER_SCENE) as PackedScene).instantiate()

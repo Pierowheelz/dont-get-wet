@@ -18,6 +18,9 @@ var touch_fire := false
 ## Mouse tilt is sticky: sideways mouse motion moves it (left = back, right = forward) and it
 ## resets when the umbrella closes. Only counts while gameplay has the mouse captured.
 var mouse_tilt := 0.0
+## Set once a stick tilts during an attempt: from then until the next attempt the mouse can't tilt,
+## so a nudged mouse can't leave the umbrella leaning against a pad player's sticks.
+var _stick_tilted := false
 ## Fraction of the screen height of mouse travel that takes the umbrella from upright to full tilt.
 const MOUSE_TILT_TRAVEL := 0.25
 ## Device the player is actually using; prompts/hints follow it. Starts as gamepad when one is
@@ -178,8 +181,18 @@ func format_prompts(text: String) -> String:
 	return text
 
 
+## Every attempt (fresh start, restart, checkpoint resume) starts untilted, with the mouse free to tilt.
+func new_attempt() -> void:
+	mouse_tilt = 0.0
+	_stick_tilted = false
+
+
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	if event is InputEventJoypadMotion and (event.axis == JOY_AXIS_LEFT_X or event.axis == JOY_AXIS_RIGHT_X) \
+			and absf(event.axis_value) > AIM_REST:
+		_stick_tilted = true
+		mouse_tilt = 0.0
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not _stick_tilted:
 		var dx: float = event.screen_relative.x
 		var travel := maxf(DisplayServer.screen_get_size().y * MOUSE_TILT_TRAVEL, 1.0)
 		mouse_tilt = clampf(mouse_tilt + dx / travel, -1.0, 1.0)
