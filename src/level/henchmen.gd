@@ -115,7 +115,7 @@ func _process(delta: float) -> void:
 					m.phase = Phase.OPEN
 					if not _hinted:
 						_hinted = true
-						level.hint_once("henchman", "He's looking for a face. Soak him ({fire}), or hide behind the umbrella ({tilt_forward}) and walk past.", 5.0)
+						level.hint_once("henchman", "He's looking for you. Soak him ({fire}), or hide behind the umbrella ({tilt_forward}) and pass him.", 5.0)
 			Phase.OPEN:
 				m.open = move_toward(m.open, 1.0, delta / OPEN_S)
 				if m.open >= 1.0:

@@ -9,7 +9,7 @@ don't come within his glance (hold stop to hang back), and hide your face when h
 from street import Street
 
 s = Street("atomic_avenue", "Atomic Avenue",
-           "Department stores and mirrored glass. Good for window shopping. Good for watching a man's reflection.",
+           "Department stores and mirrored glass. Good for watching a man's reflection.",
            aesthetic="neon", neon=0.8, rain=[[0.0, 0.7], [0.5, 0.85], [1.0, 0.95]],
            wind=[[0.0, 0.04], [0.3, 0.1], [0.6, 0.16], [1.0, 0.14]],
            gusts=False, par_speed=1.25)

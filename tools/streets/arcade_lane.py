@@ -3,7 +3,7 @@
 from street import Street
 
 s = Street("arcade_lane", "Arcade Lane",
-           "The first neon signs creep in. Watch the side streets: drivers here don't slow for puddles.",
+           "Half the signs still light up. Watch the side streets: drivers here don't slow for puddles.",
            aesthetic="rundown_neon", neon=0.35, rain=[[0.0, 0.8], [0.5, 1.05], [1.0, 1.1]],
            wind=[[0.0, 0.0], [0.5, 0.1], [1.0, 0.1]],
            # The bots read its cars perfectly and take no rain here, so a tighter par stands in

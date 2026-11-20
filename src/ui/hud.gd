@@ -11,12 +11,12 @@ const C_STA := UIStyle.AMBER
 const C_BAD := UIStyle.DANGER
 
 const FAIL_LINES := [
-	"He's had enough. Maybe tomorrow.",
-	"Soaked to the socks. He's going home.",
+	"You've had enough. Maybe tomorrow.",
+	"Soaked to the socks. You're going home.",
 	"That suit was dry-clean only.",
 	"The rain wins this round.",
-	"He'll be wringing out that tie for a week.",
-	"He's late now. They don't like late.",
+	"You'll be wringing out that tie for a week.",
+	"You're late now. They don't like late.",
 ]
 
 var level: Node
@@ -150,9 +150,9 @@ func _show_tutorial() -> void:
 	var lines := [
 		[1.0, "Rain soaks you wherever the sky is open."],
 		[6.0, "{umbrella} — open the umbrella. It takes a moment."],
-		[13.0, "Close it under cover: stamina only recovers while it's closed."],
+		[13.0, "Close it under cover: stamina recovers while it's closed."],
 		[20.0, "{hurry} — hurry (costs stamina).   {tilt} — tilt the umbrella."],
-		[28.0, "Need to wait? Hold {stop} to stand still. Stamina recovers while the umbrella is closed."],
+		[28.0, "Need to wait? Hold {stop} to stand still."],
 	]
 	for l in lines:
 		get_tree().create_timer(l[0]).timeout.connect(func() -> void: hint(l[1], 5.0))
@@ -575,10 +575,10 @@ func show_result(r: Dictionary) -> void:
 		coins.append(c)
 	if earned > 0:
 		tokens_lbl.text = "+%d token%s   ·   you have %d" % [earned, "" if earned == 1 else "s", Game.run.tokens]
-	elif r["best"]:
-		tokens_lbl.text = "No new tokens — a token for every 100 points above your old best."
 	else:
-		tokens_lbl.text = "No tokens — beat your best of %d to earn more." % int(r["prev_score"])
+		var need := Game.points_to_next_token(maxi(int(r["score"]), int(r["prev_score"])))
+		tokens_lbl.text = ("No new tokens — beat your best by %d to earn more." % need) if need > 0 \
+			else "No new tokens — this street has paid all it can."
 	tokens_lbl.add_theme_color_override("font_color", UIStyle.GOLD if earned > 0 else UIStyle.MUTED)
 	tokens_lbl.modulate.a = 0.0
 

@@ -12,7 +12,7 @@ pulls out through the puddle at him.
 from street import Street
 
 s = Street("rocket_row", "Rocket Row",
-           "Hotels with chrome fins, and doormen who don't look at you. Some of them aren't doormen.",
+           "Hotels with red carpet, and doormen who don't look at you. Some of them aren't doormen.",
            aesthetic="neon", neon=0.9, rain=[[0.0, 0.95], [0.5, 1.15], [1.0, 1.3]],
            wind=[[0.0, 0.05], [0.3, 0.12], [0.55, 0.2], [0.8, 0.14], [1.0, 0.18]],
            gusts=False, par_speed=1.15)

@@ -2,7 +2,7 @@
  "authored": true,
  "id": "arcade_lane",
  "name": "Arcade Lane",
- "blurb": "The first neon signs creep in. Watch the side streets: drivers here don't slow for puddles.",
+ "blurb": "Half the signs still light up. Watch the side streets: drivers here don't slow for puddles.",
  "aesthetic": "rundown_neon",
  "neon": 0.35,
  "length": 338.0,

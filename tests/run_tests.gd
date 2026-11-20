@@ -70,6 +70,17 @@ func _test_feedback_url() -> void:
 		"feedback link opens the form with the version filled in")
 
 
+## The score card's "beat your best by N" is the gap to the first score that pays another token.
+func _test_next_token() -> void:
+	var k := Tun.f("tokens_per_point")
+	var exact := true
+	for best in [0, 153, 154, 800, 900, 923]:
+		var need := Game.points_to_next_token(best)
+		exact = exact and need > 0 and floor((best + need) * k) == floor(best * k) + 1 and floor((best + need - 1) * k) == floor(best * k)
+	check(exact, "points to the next token land exactly on the score that pays it")
+	check(Game.points_to_next_token(1000) == 0, "a best with no paying score left above it asks for nothing")
+
+
 ## A street's `load` and `fail` lines from levels/index.json; streets without them keep the defaults.
 func _test_street_text() -> void:
 	const HUD := preload("res://src/ui/hud.gd")
@@ -709,6 +720,7 @@ func _run() -> void:
 	_test_sun_drying()
 	_test_feedback_url()
 	_test_street_text()
+	_test_next_token()
 	await _test_checkpoints()
 	await _test_street_hints()
 	await _test_follower()

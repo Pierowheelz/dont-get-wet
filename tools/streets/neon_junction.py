@@ -8,7 +8,7 @@ the Neon Mile, the finale before the inn.
 from street import Street
 
 s = Street("neon_junction", "Neon Junction",
-           "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns in your face.",
+           "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns.",
            aesthetic="neon", neon=0.9, rain=[[0.0, 0.85], [0.5, 1.1], [1.0, 1.25]],
            wind=[[0.0, 0.08], [0.15, 0.12], [0.45, 0.35], [0.55, 0.5], [0.6, 0.35], [0.63, 0.0], [0.67, -0.3], [1.0, -0.35]],
            gusts=True)

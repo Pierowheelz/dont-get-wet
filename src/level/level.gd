@@ -492,7 +492,7 @@ func _first_encounters() -> void:
 		for g in gutters:
 			if g - x > 0.0 and g - x < 5.0:
 				_seen["gutter"] = true
-				hud.hint("Overflowing gutter ahead — keep the umbrella upright as you pass under it.", 3.5)
+				hud.hint("Overflowing gutter — keep the umbrella upright.", 3.5)
 	if not _seen.has("sun"):
 		for z in sun_zones:
 			if z[0] - x > 0.0 and z[0] - x < 4.0:
@@ -523,7 +523,7 @@ func _train_and_phone_hints(delta: float) -> void:
 	var x := player.position.x
 	if not _seen.has("train") and player.state == Player.State.WALK and wash_eta(x, elapsed) <= Track.WARN_S:
 		_seen["train"] = true
-		hud.hint("Train coming. Water pours off it as it passes. Hold the umbrella upright, or wait under an awning ({stop}).", 4.5)
+		hud.hint("Trains splash as they pass. Hold the umbrella upright, or stop under an awning.", 4.5)
 	var near := -1
 	for i in phones.size():
 		if phones[i]["line"] != "" and absf(phones[i]["x"] - x) < PHONE_ANSWER_M and phone_ringing(i, x):

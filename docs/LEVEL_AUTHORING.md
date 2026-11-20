@@ -322,7 +322,7 @@ down the street like the `figures` around them. The rules, all in `src/level/hen
   while the walker is in range and in the frame.
 - **Soaked.** Each is an `NpcBody`: two clean hits of the walker's shot soak him and he plays the defeat
   walk. A man is *dealt with* when he is soaked or the walker comes within 1 m of him (`dealt_with`).
-- **Hint.** The first man to open up shows "He's looking for a face..." once per attempt.
+- **Hint.** The first man to open up shows "He's looking for you..." once per attempt.
 - **Checkpoints.** A resume leaves out every man more than 7.5 m behind it. Put each checkpoint at
   least 12 m short of the next man, so a resume starts out of range (`s.checkpoints` by hand if the
   solver lands too close), and put refill gutters outside every man's range: the bots never refill

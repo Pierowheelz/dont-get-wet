@@ -423,6 +423,16 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 	return last_result
 
 
+## Points above `best` that pay the next token on a street; 0 when no score left on it pays another.
+func points_to_next_token(best: int) -> int:
+	var k := Tun.f("tokens_per_point")
+	var paid := int(floor(best * k))
+	for score in range(best + 1, int(Tun.f("score_dry_weight") + Tun.f("score_time_weight")) + 1):
+		if int(floor(score * k)) > paid:
+			return score - best
+	return 0
+
+
 # --- persistence --------------------------------------------------------------
 
 func save_game() -> void:

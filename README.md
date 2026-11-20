@@ -4,8 +4,8 @@
 
 A game by **Peter Wells**.
 
-It never stops raining in this city, and he isn't dressed for it. He walks forward and your job is
-to get him to shelter as dry as you can.
+It never stops raining in this city, and you aren't dressed for it. You walk forward on your own, and
+your job is to reach shelter as dry as you can.
 
 Open the umbrella under rain, close it under cover to get your breath back, hurry across the gaps,
 tilt into the wind, and watch out for passing cars.
@@ -63,7 +63,7 @@ game draws it at a lower resolution until it catches up.
   your shoes, so walk straight through.
 - **Trains overhead shed sheets of water.** Wait for one to pass under an awning, or keep the
   umbrella upright as it goes over.
-- **Hold Stop to stand still.** Catch your breath under cover, or wait for a gap in the traffic. He walks on when you let go, and you can keep the umbrella up while you wait.
+- **Hold Stop to stand still.** Catch your breath under cover, or wait for a gap in the traffic. You walk on when you let go, and you can keep the umbrella up while you wait.
 - **Sunny breaks and warm vents dry you off**, fast when you're soaked and barely at all when you're not.
   They can rescue a bad start, but don't linger.
 - **Time counts most.** Your score is mostly how fast you reach shelter, then how dry you stayed.

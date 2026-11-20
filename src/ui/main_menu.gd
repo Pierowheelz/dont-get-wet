@@ -177,7 +177,7 @@ func _build_title() -> void:
 	drips.set_anchors_preset(Control.PRESET_FULL_RECT)
 	drips.offset_bottom = -30
 	wet.add_child(drips)
-	var tag := UIStyle.label("He isn't dressed for it.", &"ItalicLabel")
+	var tag := UIStyle.label("You aren't dressed for it.", &"ItalicLabel")
 	_title_box.add_child(tag)
 	# entrance
 	_title_box.modulate.a = 0.0
@@ -590,7 +590,7 @@ func _open_dialog(title: String, text: String, ok_text: String, on_ok: Callable)
 
 
 func _confirm_reset() -> void:
-	_open_dialog("RESET PROGRESS?", "Every run, best score, token and umbrella upgrade will be lost, and he'll start again on Main Street. Settings are kept.",
+	_open_dialog("RESET PROGRESS?", "All of your progress and saved runs will be lost.",
 		"Reset", func() -> void:
 			Game.reset_progress()
 			_main_buttons())
@@ -598,7 +598,7 @@ func _confirm_reset() -> void:
 
 func _confirm_new_run(side: String) -> void:
 	var title := "NEW ← RUN?" if side == "left" else "NEW RUN →?"
-	var text := "This run's best scores, tokens and umbrella upgrades will be lost, and he'll start again on Main Street."
+	var text := "All of this run's progress will be lost."
 	if Game.runs.size() > 1:
 		text += " Your other run is kept."
 	_open_dialog(title, text, "New run", _start_run.bind(side))

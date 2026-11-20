@@ -40,7 +40,7 @@
    "blurb": "The bypass. A petrol station, a motel, and a lot of open road.",
    "difficulty": 7,
    "file": "res://levels/the_bypass.json",
-   "outro": "He paid cash and slept in the chair.",
+   "outro": "You paid cash and slept in the chair.",
    "load": "Cars don't slow down out here. Some of them speed up.",
    "fail": {
     "shot": [
@@ -63,7 +63,7 @@
    "difficulty": 5,
    "file": "res://levels/viaduct_road.json",
    "outro": [
-    "He sat up all night with the umbrella across his knees.",
+    "You sat up all night with the umbrella across your knees.",
     "Thorne & Sons don't ask who's paying."
    ],
    "load": "They'll send one first. They always send one first.",
@@ -72,8 +72,8 @@
      "One man. That's all they sent."
     ],
     "wet": [
-     "He's walking back to the city now.",
-     "He won't make the city limits like this."
+     "You're walking back to the city now.",
+     "You won't make the city limits like this."
     ]
    }
   },
@@ -91,11 +91,11 @@
    "blurb": "The last brick terraces before the fields. Nobody comes out this far.",
    "difficulty": 4,
    "file": "res://levels/kiln_street.json",
-   "outro": "He asked for a room at the back.",
+   "outro": "You asked for a room at the back.",
    "load": "Quiet street. You'd hear anyone behind you.",
    "fail": [
-    "He's walking back to the city now.",
-    "He won't make the city limits like this."
+    "You're walking back to the city now.",
+    "You won't make the city limits like this."
    ]
   },
   {
@@ -112,7 +112,7 @@
    "blurb": "Edge of town. Long stretches of open sky into a headwind, and the sun sometimes breaks through. Out here you'd see anyone coming.",
    "difficulty": 3,
    "file": "res://levels/mill_road.json",
-   "outro": "He signs the register with a name that isn't his."
+   "outro": "You sign the register with a name that isn't yours."
   },
   {
    "id": "canal_row",
@@ -156,7 +156,7 @@
     "main_street",
     "neon_junction"
    ],
-   "blurb": "The first neon signs creep in. Watch the side streets: drivers here don't slow for puddles.",
+   "blurb": "Half the signs still light up. Watch the side streets: drivers here don't slow for puddles.",
    "difficulty": 2,
    "file": "res://levels/arcade_lane.json"
   },
@@ -171,7 +171,7 @@
     "arcade_lane",
     "telstar_parade"
    ],
-   "blurb": "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns in your face.",
+   "blurb": "Chrome, neon and gale-force gusts between the towers. Past the junction the wind turns.",
    "difficulty": 4,
    "file": "res://levels/neon_junction.json",
    "outro": "The night porter says a man was asking for you. He didn't leave a name."
@@ -190,11 +190,11 @@
    "blurb": "Under the monorail, the trains shake the rain loose. Every payphone on the street is ringing.",
    "difficulty": 5,
    "file": "res://levels/telstar_parade.json",
-   "outro": "With your key, an envelope. A photograph of a man in a raincoat, face hidden by his umbrella. On the back, in pencil: FAIRWEATHER.",
+   "outro": "With your key, an envelope. A photograph of a man in a raincoat. On the back: FAIRWEATHER.",
    "load": "Someone has already booked your room.",
    "fail": [
     "The train was on time.",
-    "He'll be late. They don't like late."
+    "You'll be late. They don't like late."
    ]
   },
   {
@@ -208,11 +208,11 @@
     "telstar_parade",
     "rocket_row"
    ],
-   "blurb": "Department stores and mirrored glass. Good for window shopping. Good for watching a man's reflection.",
+   "blurb": "Department stores and mirrored glass. Good for watching a man's reflection.",
    "difficulty": 6,
    "file": "res://levels/atomic_avenue.json",
    "outro": [
-    "He took room 9. Yours is room 8. The walls are thin.",
+    "He took room 9. You're in 8. The walls are thin.",
     "Thorne & Sons have sent something up for your umbrella."
    ],
    "load": "He leaves the station at nine. Yellow umbrella.",
@@ -242,7 +242,7 @@
     "atomic_avenue",
     "skyway_terminal"
    ],
-   "blurb": "Hotels with chrome fins, and doormen who don't look at you. Some of them aren't doormen.",
+   "blurb": "Hotels with red carpet, and doormen who don't look at you. Some of them aren't doormen.",
    "difficulty": 7,
    "file": "res://levels/rocket_row.json",
    "outro": "The car was gone. In the gutter, a matchbook from the Skyway Terminal Hotel.",
