@@ -157,7 +157,9 @@ moving toward the country thins out buildings.
   where par = length / 1.3 m/s (a street may set a stricter `par_speed`). Time matters three times as much as dryness. Grades: D < 650 ≤ C < 780 ≤ B < 880 ≤ A < 950 ≤ S.
 - **Tokens** = `floor(score × 0.0065)` (≈ S 6, A 5–6, B 5, C 4), paid only for improving on your best
   score for that street (so replays can earn more, never farm).
-- Best scores shown on the map and in the main menu's level replay list (the active run's streets).
+- Best scores shown on the map and in the main menu's level replay list. The list holds every street
+  either run has walked; a replay is scored under the run that walked it and never moves that run on
+  the map.
 - **Upgrades** (3 tiers each, costs 6 / 12 / 18 tokens):
   - *Sturdy frame* — less stamina drain, less wind load (future: less damage).
   - *Wide canopy* — larger coverage radius.
