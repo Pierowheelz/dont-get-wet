@@ -15,6 +15,7 @@ var branch: Dictionary = {}         # id -> "" (the start node) / "left" / "righ
 var runs: Dictionary = {}           # direction ("" while undecided) -> Run, every run in the save
 var run: Run                        # the active run; a fresh unsaved one when there are no runs
 var current_level := ""             # level being played
+var map_pick := ""                  # street last picked on the map; only finishing that one moves the run there
 var save_path := "user://save.json"
 var autopilot := false              # bot plays (testing)
 var debug_start_x := -1.0           # --start-x=NN spawns the player further along (testing)
@@ -304,6 +305,7 @@ func resume_run(dir: String) -> void:
 
 ## The player picked a street on the map: an undecided run commits to that street's side.
 func choose(id: String) -> void:
+	map_pick = id
 	var side: String = branch.get(id, "")
 	if run.direction != "" or side == "":
 		return
@@ -398,7 +400,8 @@ func finish_level(id: String, wetness: float, time: float, par: float) -> Dictio
 		run.best[id] = {"score": score, "wet": wet_pct, "time": time, "grade": grade_for(score)}
 	if not run.completed.has(id):
 		run.completed.append(id)
-	run.current_node = id
+	if id == map_pick:
+		run.current_node = id
 	checkpoint = {}
 	last_result = {"id": id, "score": score, "wet": wet_pct, "time": time, "par": par,
 		"grade": grade_for(score), "tokens": earned, "best": is_best, "prev_score": prev_score,
@@ -648,5 +651,6 @@ func open_feedback() -> String:
 
 func goto_menu() -> void:
 	checkpoint = {}
+	map_pick = ""
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://src/ui/main_menu.tscn")
