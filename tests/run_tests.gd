@@ -1045,6 +1045,7 @@ func _run() -> void:
 	await _test_the_bypass()
 	_test_dynamic_resolution()
 	await _test_menu_width()
+	await _test_slider_saves()
 	_run_tests()
 	get_parent().finish(failures)
 
@@ -1729,6 +1730,34 @@ func _test_menu_width() -> void:
 	check(_menu_button(m, "Quit").size.x == before,
 		"main menu buttons keep their width after Credits and back: %d -> %d" % [before, _menu_button(m, "Quit").size.x])
 	m.free()
+
+
+func _test_slider_saves() -> void:
+	var real_path := Game.save_path
+	Game.save_path = OS.get_temp_dir().path_join("dgw_slider_%d.json" % OS.get_process_id())
+	Game.autopilot = false
+	Game.settings["music"] = 0.5
+	Game.save_game()
+	var m := await _open_menu()
+	await _press(m, "Settings")
+	var music: HSlider = m.find_children("*", "HSlider", true, false)[0]
+	music.grab_focus()
+	await _idle_frames(1)
+	var step := InputEventAction.new()
+	step.action = &"ui_left"
+	step.pressed = true
+	Input.parse_input_event(step)
+	await _idle_frames(2)
+	step.pressed = false
+	Input.parse_input_event(step)
+	await _idle_frames(1)
+	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Game.save_path))
+	check(is_equal_approx(float(saved["settings"]["music"]), music.value) and music.value < 0.5,
+		"a music slider step is saved while you're still in Settings: %.2f" % music.value)
+	m.free()
+	DirAccess.remove_absolute(Game.save_path)
+	Game.save_path = real_path
+	Game.autopilot = true
 
 # --- runs: one per direction out of the start street ------------------------------------------
 

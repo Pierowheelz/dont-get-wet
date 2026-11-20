@@ -567,9 +567,17 @@ func _slider_row(text: String, key: String) -> HSlider:
 	val.custom_minimum_size = Vector2(70, 0)
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	h.add_child(val)
+	# A mouse drag saves once when it lets go; a key, stick or wheel step saves straight away.
+	var dragging := [false]
+	s.drag_started.connect(func() -> void: dragging[0] = true)
+	s.drag_ended.connect(func(_changed: bool) -> void:
+		dragging[0] = false
+		Game.save_game())
 	s.value_changed.connect(func(v: float) -> void:
 		Game.settings[key] = v
 		val.text = "%d%%" % int(round(v * 100.0))
+		if not dragging[0]:
+			Game.save_game()
 		if key == "music":
 			UISound.update_menu_music_volume(get_tree())
 		else:
