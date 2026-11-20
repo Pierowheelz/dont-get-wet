@@ -13,7 +13,8 @@ extends Node3D
 ## instead of the first man's two hints) and `wait`: then he is posted at that x from the start,
 ## standing under cover facing back down the street, and when the walker reaches his x he fires from
 ## where he stands (no warning: he is in plain sight) until the walker has passed him, then turns
-## and follows like the others.
+## and follows like the others. Posted, he skips a shot whose moment comes while the walker is out
+## of RANGE without spending it, and once they are spent he stays at his post.
 ## A checkpoint resume skips every attacker whose x is behind it.
 
 enum Phase { OFF, WARN, FIRE, LEAVE }
@@ -189,7 +190,7 @@ func _process(delta: float) -> void:
 				_shot_t = FIRST_SHOT
 		Phase.FIRE:
 			var gap := p.position.x - position.x
-			if posted and gap > 0.5:
+			if posted and gap > 0.5 and shots_left > 0:
 				_fall_in()       # the walker has gone by his post: he turns and follows
 			_closed = _closed or gap <= hold_gap() + 0.3
 			var cap := Tun.f("walk_speed") if _closed else MAX_SPEED
@@ -200,11 +201,13 @@ func _process(delta: float) -> void:
 			else:
 				_fire_control(delta, p)
 		Phase.LEAVE:
-			speed = move_toward(speed, maxf(p.speed - 0.9, 0.0), 2.0 * delta)
+			speed = 0.0 if posted else move_toward(speed, maxf(p.speed - 0.9, 0.0), 2.0 * delta)
 			if position.x < _frame_edge() - OUT_MARGIN:
 				_set_phase(Phase.OFF)
 				visible = false
 				speed = 0.0
+				posted = false
+				man.rotation.y = 0.0
 	position.x += speed * delta
 	position.y = level.ground_y(position.x)
 	_pose(delta)
@@ -280,12 +283,11 @@ func _leave() -> void:
 		jet.queue_free()
 	jet = null
 	_set_phase(Phase.LEAVE)
-	posted = false
-	man.rotation.y = 0.0
 	level.set("camera_bias", 0.0)
 
 
-## One shot per SHOT_EVERY; a shot whose moment comes while the walker is under an arch is held and lost.
+## One shot per SHOT_EVERY; a shot whose moment comes while the walker is under an arch, or out of
+## a follower's reach, is held and lost. A posted man skips one out of his reach without spending it.
 func _fire_control(delta: float, p: Player) -> void:
 	var sheltered := _under_arch(p.position.x)
 	if jet and is_instance_valid(jet) and jet.phase == WaterJet.Phase.GLINT and sheltered:
@@ -298,6 +300,9 @@ func _fire_control(delta: float, p: Player) -> void:
 		return
 	if shots_left <= 0:
 		_leave()
+		return
+	if posted and absf(p.position.x - position.x) > RANGE:
+		_shot_t = SHOT_EVERY
 		return
 	shots_left -= 1
 	_shot_t = SHOT_EVERY

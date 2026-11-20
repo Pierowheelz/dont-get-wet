@@ -295,7 +295,9 @@ Optional fields per entry (`s.attacker(x, shots, gap=, wait=, hint=, hit=)`):
   with his umbrella up, as soon as nobody earlier is on. He is in plain sight and can be soaked there
   (that spends his entry). When the walker reaches his `x` he fires from his post without the
   warning (first glint 0.8 s in, then every 2.5 s); once the walker is 0.5 m past him he turns and
-  follows like the others. `side()` says which way to tilt to block the one on now; the bots brace
+  follows like the others. Posted, he never spends a shot on a walker more than 9 m off: he lets
+  that moment pass and keeps the shot, so he can't be waited out from beyond his reach. With his shots
+  spent he stays at his post. `side()` says which way to tilt to block the one on now; the bots brace
   that way.
 - **`hint`** is shown as he comes, instead of the first man's two built-in hints.
 

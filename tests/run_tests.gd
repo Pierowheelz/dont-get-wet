@@ -1224,6 +1224,7 @@ func _run() -> void:
 	await _test_viaduct_road()
 	await _test_rocket_row()
 	await _test_the_bypass()
+	await _test_bypass_posted_reach()
 	_test_dynamic_resolution()
 	await _test_menu_width()
 	await _test_credits_scroll()
@@ -1839,6 +1840,44 @@ func _test_the_bypass() -> void:
 	r.current_node = "kiln_street"
 	check(not Game.can_select("the_bypass"), "... and not before")
 	Game.run = run_was
+
+
+## The man posted by the drainpipe on The Bypass keeps his shots while the walker waits out of his
+## reach, fires once he comes in range, and with his shots spent stays at his post.
+func _test_bypass_posted_reach() -> void:
+	var q: Array = Game.level_data("the_bypass")["attackers"].filter(func(a: Dictionary) -> bool: return a.has("wait"))
+	var trigger := float(q[0]["x"])
+	var post := float(q[0]["wait"])
+	Game.current_level = "the_bypass"
+	Game.debug_start_x = trigger - 2.0
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	Game.debug_start_x = -1.0
+	await _frames(3)
+	var p: Player = level.player
+	p.set_physics_process(false)
+	_unhook_defeat(p)
+	var att: Node = level.attackers
+	await _walker_at(trigger + 0.1)
+	var shots: int = att.shots_left
+	var waited := await _until(func() -> bool: return att.incoming(), 2.0 + 2.0 * att.SHOT_EVERY)
+	check(post - p.position.x > att.RANGE and att.phase == att.Phase.FIRE and waited == INF and att.shots_left == shots,
+		"waiting %.1f m short of his post, out of his reach, he holds all %d shots" % [post - p.position.x, shots])
+	await _walker_at(post - att.RANGE + 1.0)
+	var glint := await _until(func() -> bool: return att.incoming(), att.SHOT_EVERY + 0.5)
+	check(glint < INF and att.shots_left == shots - 1, "once the walker is in reach he fires at his next moment (%.2f s)" % glint)
+	att.shots_left = 0
+	await _walker_at(post - 2.0)
+	var left := await _until(func() -> bool: return att.phase == att.Phase.LEAVE, att.SHOT_EVERY + 2.0)
+	var moved := 0.0
+	p.speed = Tun.f("walk_speed")
+	for x in range(-2, 10):
+		await _walker_at(post + x, 10)
+		moved = maxf(moved, absf(att.position.x - post))
+	check(left < INF and moved < 0.01, "with his shots spent he stays at his post as the walker goes by (moved %.2f m)" % moved)
+	level.queue_free()
+	await _frames(2)
+	Game.current_level = "main_street"
 
 
 ## Each observe() is one second of play: median frame and GPU time in ms.
