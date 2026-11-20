@@ -670,6 +670,32 @@ func _test_checkpoints() -> void:
 	Game.checkpoint = {}
 
 
+## The water in the umbrella's shot is part of the checkpoint; starting the street over fills it.
+func _test_checkpoint_water() -> void:
+	var p: Player = level.player
+	var cps: Array = level.checkpoints
+	p.gun.shots = 1.5
+	p.state = Player.State.WALK
+	level._next_cp = 1
+	p.position.x = float(cps[1]) + 0.2
+	level._check_checkpoints()
+	p.gun.shots = 0.0
+	Game.resuming = true
+	level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	check(level.resumed and is_equal_approx(level.player.gun.shots, 1.5),
+		"a checkpoint resume has the water the umbrella held at the checkpoint (%.2f of %d)" % [level.player.gun.shots, level.player.gun.capacity()])
+	level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	check(not level.resumed and is_equal_approx(level.player.gun.shots, level.player.gun.capacity()),
+		"starting the street over fills it (%.2f)" % level.player.gun.shots)
+	Game.checkpoint = {}
+
+
 func _run() -> void:
 	Game.current_level = "main_street"
 	Game.autopilot = true
@@ -722,6 +748,7 @@ func _run() -> void:
 	_test_street_text()
 	_test_next_token()
 	await _test_checkpoints()
+	await _test_checkpoint_water()
 	await _test_street_hints()
 	await _test_follower()
 	await _test_courier()

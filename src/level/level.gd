@@ -429,7 +429,7 @@ func _check_checkpoints() -> void:
 func _take_checkpoint(i: int) -> void:
 	Game.checkpoint = {"id": level_id, "index": i, "x": float(checkpoints[i]), "wet": player.wet,
 		"stamina": player.stamina, "exhausted": player.exhausted, "elapsed": elapsed, "stats": player.stats.duplicate(),
-		"seen": _seen.duplicate(), "car_hints": _car_hints}
+		"seen": _seen.duplicate(), "car_hints": _car_hints, "shots": player.gun.shots}
 	if courier:
 		Game.checkpoint["courier"] = courier.suspicion
 	_next_cp = i + 1
@@ -446,6 +446,7 @@ func _restore_checkpoint() -> void:
 	player.stamina = cp["stamina"]
 	player.exhausted = cp["exhausted"]
 	player.stats = cp["stats"].duplicate()
+	player.gun.shots = cp.get("shots", player.gun.shots)
 	elapsed = cp["elapsed"]
 	_seen = cp["seen"].duplicate()
 	_car_hints = cp["car_hints"]
