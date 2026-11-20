@@ -530,20 +530,32 @@ func _begin_entering() -> void:
 	arrived.emit()
 
 
+const DOOR_IN_SPEED := 1.0         # m/s he walks in at
+const DOOR_BRAKE := 4.0            # m/s2 he slows at on reaching the door
+const DOOR_TURN := 3.0             # rad/s he can turn at a walk
+const DOOR_GRIP := 4.0             # m/s2 sideways: at speed he can only turn as tightly as this allows
+const DOOR_LOOK := 0.4             # m ahead he aims once at the doorway, keeping him centred in it
+const DOORSTEP_Z := 0.7            # he waits here for the umbrella to finish closing
+const INSIDE_Z := -1.2
+
+## He rounds in through the door at `level.end_x`, steering back to it if he came in too fast to turn
+## on the spot, and doesn't step under the porch until his umbrella is down.
 func _process_entering(delta: float) -> void:
 	_end_t += delta
 	open = move_toward(open, 0.0, delta / maxf(Game.umbrella_open_time(), 0.05))
 	_update_umbrella()
+	var aim := Vector2(level.end_x, minf(0.0, position.z - DOOR_LOOK))
+	var want := atan2(position.z - aim.y, aim.x - position.x)   # rotation.y: 0 along the street, PI/2 into the door
+	var turn := minf(DOOR_TURN, DOOR_GRIP / maxf(speed, 0.01))
+	rotation.y = move_toward(rotation.y, want, turn * delta)
+	var target := DOOR_IN_SPEED * maxf(cos(want - rotation.y), 0.2)
 	if open > 0.0:
-		speed = move_toward(speed, 0.5, 2.0 * delta)
-		position.x += speed * delta
-		return
-	# Turn toward the door (−Z) and walk in.
-	rotation.y = move_toward(rotation.y, PI * 0.5, 3.0 * delta)
-	speed = move_toward(speed, 1.0, 2.0 * delta)
-	if rotation.y > 1.2:
-		position.z -= speed * delta
-	if position.z < -1.2:
+		target = minf(target, sqrt(2.0 * DOOR_BRAKE * maxf(position.z - DOORSTEP_Z, 0.0)))
+	speed = move_toward(speed, target, (DOOR_BRAKE if speed > target else 0.5 * DOOR_BRAKE) * delta)
+	position.x += cos(rotation.y) * speed * delta
+	position.z -= sin(rotation.y) * speed * delta
+	position.y = level.ground_y(position.x)
+	if position.z < INSIDE_Z:
 		state = State.DONE
 		visible = false
 

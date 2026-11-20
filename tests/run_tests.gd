@@ -954,6 +954,41 @@ func _test_courier_door_at_a_run() -> void:
 	await _drop_street(lv)
 
 
+## Reaching the inn at a run with the umbrella up, the walker furls it and goes in through the doors
+## (1.8 m wide), and the street is scored as he was at the door.
+func _test_walker_door_at_a_run() -> void:
+	Game.autopilot = false   # under --autopilot the result quits
+	var lv := await _street_with({})
+	var p: Player = lv.player
+	_unhook_defeat(p)
+	Game.last_result = {}
+	var at_door := {}
+	p.arrived.connect(func() -> void: at_door.merge({"time": lv.elapsed, "wet": p.wet}))
+	p.position.x = lv.end_x - 0.01
+	p._prev_x = p.position.x
+	p.speed = Tun.f("run_speed")
+	p.open = 1.0
+	p.wet = 5.0
+	p.set_physics_process(true)
+	var in_at := NAN
+	var open_in := NAN
+	var t := 0.0
+	while t < 12.0 and Game.last_result.is_empty():
+		await get_tree().physics_frame
+		t += 1.0 / Engine.physics_ticks_per_second
+		if is_nan(in_at) and p.position.z < 0.3:
+			in_at = p.position.x - lv.end_x
+			open_in = p.open
+	check(absf(in_at) < 0.45 and open_in == 0.0,
+		"arriving at a run with it open, he goes in %.2f m from the middle of the door with it furled (open %.2f)" % [in_at, open_in])
+	var r: Dictionary = Game.last_result
+	check(not at_door.is_empty() and not r.is_empty() and r["time"] == at_door["time"]
+			and is_equal_approx(r["wet"], at_door["wet"] / Tun.f("wet_max") * 100.0),
+		"the street is timed and scored as he reached the door: %s, at the door %s" % [r, at_door])
+	Game.autopilot = true
+	await _drop_street(lv)
+
+
 ## A passer-by on the back lane steps to the wall for any man on the pavement, not only the walker:
 ## one standing by the shopfronts, and one on the lane just behind the walker's.
 func _test_passersby_step_aside() -> void:
@@ -1212,6 +1247,7 @@ func _run() -> void:
 	await _test_courier()
 	await _test_courier_aim_from_window()
 	await _test_courier_door_at_a_run()
+	await _test_walker_door_at_a_run()
 	await _test_passersby_step_aside()
 	await _test_raincoat_figure()
 	await _test_fail_cause()
