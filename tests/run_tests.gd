@@ -1613,6 +1613,34 @@ func _until(cond: Callable, limit: float) -> float:
 	return t
 
 
+## No part of a canopy fin may show in front of a sign from any camera position that has that part
+## in frame, in views out to 21:9. Read off the built fins, not from FinBuilder's own sums.
+func _check_fins_clear_signs() -> void:
+	var cam_y := Tun.f("camera_height")
+	var cam_z := Tun.f("player_z") + Tun.f("camera_distance")
+	var view := tan(deg_to_rad(Tun.f("camera_fov")) * 0.5) * 21.0 / 9.0
+	var fins := get_tree().get_nodes_in_group(FinBuilder.GROUP)
+	var covering := 0
+	var tallest := 0.0
+	for fin: MeshInstance3D in fins:
+		var near: Array = level.builder._sign_rects.filter(func(r: Rect2) -> bool:
+			return r.position.x < fin.position.x + 6.0 and r.end.x > fin.position.x - 6.0)
+		var covers := false
+		for si in fin.mesh.get_surface_count():
+			for v: Vector3 in fin.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
+				var p := fin.global_transform * v
+				tallest = maxf(tallest, p.y)
+				var y := cam_y + (p.y - cam_y) * (cam_z - LevelBuilder.SIGN_Z) / (cam_z - p.z)
+				var slide := (p.z - LevelBuilder.SIGN_Z) * view
+				for r: Rect2 in near:
+					if y > r.position.y and y < r.end.y and p.x + slide > r.position.x and p.x - slide < r.end.x:
+						covers = true
+		if covers:
+			covering += 1
+	check(fins.size() > 0 and covering == 0, "none of the %d canopy fins can stand in front of a sign as the camera passes (%d can)" % [fins.size(), covering])
+	check(tallest > 3.5, "and they stand tall beside the signs: the tallest tops out at %.2f m" % tallest)
+
+
 ## Rocket Row: men who wait under the canopies and fire on a timer, the car that pulls out once one
 ## is dealt with, and the street on the map.
 func _test_rocket_row() -> void:
@@ -1628,6 +1656,7 @@ func _test_rocket_row() -> void:
 	p.speed = 0.0
 	_unhook_defeat(p)
 	check(p.gun.armed, "Rocket Row is armed")
+	_check_fins_clear_signs()
 	var hm: Node = level.henchmen
 	check(hm != null and hm.men.size() == 5 and hm.men.all(func(m) -> bool:
 		return m.body is NpcBody and m.body.umbrella.open == 0.0 and m.body.global_basis.x.x < -0.85),

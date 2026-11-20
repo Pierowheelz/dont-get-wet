@@ -32,7 +32,7 @@ const AWNING_COLORS := {
 ##   fabric: "canvas" (stripe_w 0 = solid, hem = front band, seam_w = rib seams), "tin", "acrylic", "enamel"
 ##   valance: "none", "scallop", "straight", "zigzag"; valance_solid / piping are canvas trims
 ##   frame: "arms", "brackets" (+ gutter), "chrome" (front tube + ribs), "chrome_edge", "bulbs",
-##     "fins" (chrome edge + swept tail fins on the fascia), "none"
+##     "fins" (chrome edge + a tail fin toward each end, see FinBuilder), "none"
 ##   ends: closed side cheeks; glow: neon strip under the front edge
 ##   A style with no eras is never picked automatically: only by name.
 const AWNING_STYLES := {
@@ -91,7 +91,8 @@ var _mats := {}
 var _awning_shader: Shader
 var _scene_cache := {}
 var _drip_meshes := {}             # drip density -> QuadMesh
-var _fin_mesh: ArrayMesh           # the one plate every tail fin shares
+var _fin_canopies: Array = []      # canopies with frame "fins", for FinBuilder once the signs are up
+var _sign_rects: Array[Rect2] = [] # each sign's face on the facade, in x and y
 var _awning_style_at := {}          # lot x -> AWNING_STYLES key, resolved while building
 var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
 var _awning_used := {}              # style -> lots given it so far
@@ -115,6 +116,7 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	_build_ground()
 	for lot in data.get("lots", []):
 		_build_lot(lot)
+	FinBuilder.new().build(self, _fin_canopies, _sign_rects)
 	kit = _kits.get("60s", {})
 	if track:
 		ViaductBuilder.new().build(self, track)
@@ -689,8 +691,6 @@ func _check_awning_styles() -> bool:
 		assert(fy >= 2.5 and fy <= 2.8, "awning style %s front edge %.2f outside 2.5-2.8" % [k, fy])
 		for z in _awning_zs(s):
 			assert(_awning_y(s, z) <= 3.05, "awning style %s rises into the sign band" % k)
-		if s["frame"] == "fins":
-			assert(fy + FIN_TOP <= 3.05, "awning style %s stands its fins in the sign band" % k)
 	return true
 
 
@@ -749,6 +749,9 @@ func _build_awning(x: float, w: float, tears: Array, color_name: String, s: Dict
 			Vector3(x + float(t[0]) + 0.2, fy - 0.2, AWNING_DEPTH - 0.4), mats[0])
 		flap.rotation = Vector3(0.3, 0, 0.25)
 	_awning_frame(s, x, w, glow_col, collapses)
+	if s["frame"] == "fins":
+		_fin_canopies.append({"x": x, "w": w, "wall_y": _awning_y(s, 0.0), "front_y": fy, "tears": tears,
+			"glow": glow_col, "cols": cols})
 
 
 ## [canopy material, valance material], matching the mesh's surfaces.
@@ -927,83 +930,10 @@ func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color, collapses
 			_marquee_bulbs(x, w, fy, float(s["valance_h"]))
 		"fins":
 			_box(Vector3(w, 0.035, 0.05), Vector3(x + w * 0.5, fy + 0.01, AWNING_DEPTH + 0.01), chrome)
-			var n := maxi(2, roundi(w / 3.0) + 1)
-			for i in n:
-				var t := float(i) / (n - 1)
-				_tail_fin(lerpf(x + 0.7, x + w - 0.6, t), fy, glow_col)
 	if s["glow"]:
 		var strip := _box(Vector3(w - 0.1, 0.03, 0.03), Vector3(x + w * 0.5, _awning_drip_y(s) + 0.005, AWNING_DEPTH + 0.04),
 			_neon_mat(glow_col.lerp(Color(1, 1, 1), 0.35), 2.4))
 		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-
-## A rocket's tail fin on a canopy's fascia: a swept, chamfered plate of brushed metal, its tip raked
-## back down the street (every fin the same way, so a row of them reads as one rhythm), with a neon
-## tube up its leading edge and a lamp on its tip. Outline is x along the street and y above the
-## canopy's front edge, clockwise from the root's leading corner.
-## The camera looks from below the canopy top and never sees it, so a fin standing on that edge
-## reads as part of the wall 2 m behind it. Lapping the fascia is what ties it to the canopy.
-## FIN_TOP keeps the tip under the sign band, which the camera sees over the canopy's front edge.
-const FIN_TOP := 0.26
-const FIN_OUTLINE: Array[Vector2] = [Vector2(0.46, -0.2), Vector2(-0.26, -0.2), Vector2(-0.4, FIN_TOP), Vector2(-0.27, FIN_TOP)]
-const FIN_Z := AWNING_DEPTH + 0.04   # back of the plate: clear of the fascia's hem and the chrome edge
-const FIN_THICK := 0.06
-const FIN_CHAMFER := 0.035
-
-
-func _tail_fin(x: float, fy: float, glow_col: Color) -> void:
-	if _fin_mesh == null:
-		_fin_mesh = _build_fin_mesh()
-	var mi := MeshInstance3D.new()
-	mi.mesh = _fin_mesh
-	mi.material_override = _fin_mat(glow_col)
-	mi.position = Vector3(x, fy, 0.0)
-	root.add_child(mi)
-	var zt := FIN_Z + FIN_THICK
-	var tip: Vector2 = FIN_OUTLINE[3]
-	var edge: Vector2 = tip - FIN_OUTLINE[0]
-	var mid: Vector2 = FIN_OUTLINE[0] + edge * 0.5
-	var tube := _box(Vector3(0.035, edge.length(), 0.035), Vector3(x + mid.x, fy + mid.y, zt),
-		_neon_mat(glow_col.lerp(Color(1, 1, 1), 0.3), 3.0))
-	tube.rotation.z = -atan2(edge.x, edge.y)
-	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var lamp := _box(Vector3(0.06, 0.06, 0.06), Vector3(x + tip.x - 0.03, fy + tip.y - 0.03, zt), _neon_mat(Color(1.0, 0.9, 0.75), 3.5))
-	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-
-## Mirror chrome has only the night to reflect and goes black, and the tube is no light source, so
-## the brushed metal carries a little of the tube's colour itself.
-func _fin_mat(glow_col: Color) -> StandardMaterial3D:
-	var key := "fin_metal_%s" % glow_col.to_html()
-	if not _mats.has(key):
-		var m := _mat(key, Color(0.74, 0.77, 0.82), 0.4, 0.5)
-		m.emission_enabled = true
-		m.emission = glow_col.lerp(Color(1, 1, 1), 0.3)
-		m.emission_energy_multiplier = 0.08
-	return _mats[key]
-
-
-## The fin plate, shared by every fin: a flat face and a chamfered rim. Nothing sees its back.
-func _build_fin_mesh() -> ArrayMesh:
-	var n := FIN_OUTLINE.size()
-	var face: Array[Vector2] = []
-	for i in n:
-		var d0 := (FIN_OUTLINE[i] - FIN_OUTLINE[(i + n - 1) % n]).normalized()
-		var d1 := (FIN_OUTLINE[(i + 1) % n] - FIN_OUTLINE[i]).normalized()
-		var inward := Vector2(d0.y, -d0.x) + Vector2(d1.y, -d1.x)
-		face.append(FIN_OUTLINE[i] + inward * FIN_CHAMFER / (1.0 + d0.dot(d1)))
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.set_smooth_group(-1)
-	var zt := FIN_Z + FIN_THICK
-	var v := func(p: Vector2, z: float) -> Vector3: return Vector3(p.x, p.y, z)
-	for i in n:
-		var j := (i + 1) % n
-		_quad(st, v.call(FIN_OUTLINE[i], FIN_Z), v.call(FIN_OUTLINE[j], FIN_Z), v.call(face[j], zt), v.call(face[i], zt),
-			Vector2.ZERO, Vector2.ONE)
-	_quad(st, v.call(face[0], zt), v.call(face[1], zt), v.call(face[2], zt), v.call(face[3], zt), Vector2.ZERO, Vector2.ONE)
-	st.generate_normals()
-	return st.commit()
 
 
 ## Two staggered rows of lit bulbs on a marquee fascia, as one mesh.
@@ -1155,6 +1085,10 @@ func _build_sign(x: float, w: float, text: String, style: String, neon: bool) ->
 	var max_w := (w - 0.6) / lbl.pixel_size
 	lbl.font_size = int(clampf(max_w / maxf(1.0, text.length() * 0.62), 40.0, 60.0 if low or rail else 110.0))
 	root.add_child(lbl)
+	if not text.strip_edges().is_empty():
+		var font: Font = sign_font if sign_font else ThemeDB.fallback_font
+		var face := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, lbl.font_size) * lbl.pixel_size
+		_sign_rects.append(Rect2(lbl.position.x - face.x * 0.5, lbl.position.y - face.y * 0.5, face.x, face.y))
 
 
 ## A deck hides the facade from 3.4 m up, so under one the sign shrinks into the strip above the awning.
@@ -1185,6 +1119,9 @@ func _build_neon(x: float, w: float, text: String) -> void:
 	mi.position = Vector3(x + w * 0.5, 3.2 if low else 3.42, SIGN_Z)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(mi)
+	var face := tm.get_aabb()
+	if face.size.x > 0.0:
+		_sign_rects.append(Rect2(mi.position.x + face.position.x, mi.position.y + face.position.y, face.size.x, face.size.y))
 	var om := OmniLight3D.new()
 	om.light_color = col
 	om.light_energy = 2.2

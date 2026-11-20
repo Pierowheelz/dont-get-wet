@@ -128,7 +128,7 @@ sign band) and has its front edge between 2.5 and 2.8 m, so the style is purely 
 | `bubble` | tinted acrylic canopy, chrome ribs, neon edge strip | retro-future lots |
 | `googie` | upturned enamel slab, chrome edge, neon strip | retro-future lots |
 | `marquee` | flat slab with a deep fascia of lit bulbs | retro-future lots |
-| `rocket` | enamel slab with a chrome edge, neon strip and swept metal tail fins on the fascia | never: name it |
+| `rocket` | enamel slab with a chrome edge, a neon strip and a tail fin toward each end (one shared where two canopies meet): each fin runs from the wall to the front edge and stands only as tall as leaves its sign clear | never: name it |
 
 A lot is retro-future when the builder swaps in the retro kit for it (probability = the level's
 `neon`).
