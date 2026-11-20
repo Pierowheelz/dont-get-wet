@@ -424,7 +424,11 @@ func _door(delta: float, p: Player) -> void:
 func _aim(delta: float, p: Player) -> void:
 	speed = move_toward(speed, 0.0, 3.0 * delta)
 	position.x += speed * delta
-	var face := -PI if p.position.x < position.x else 0.0   # round to face the walker, wherever he is
+	# Round to face the walker, wherever he is, by the shorter way: from a shop window that is on
+	# round with his back to the camera, from walking it is past the camera so his face shows.
+	var face := 0.0
+	if p.position.x < position.x:
+		face = PI if _yaw > 0.0 else -PI
 	_yaw = move_toward(_yaw, face, PI / AIM_TURN_S * delta)
 	_hand = move_toward(_hand, 0.0, 3.0 * delta)
 	if _phase_t >= AIM_TURN_S and not _aim_fired:

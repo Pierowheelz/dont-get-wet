@@ -901,6 +901,34 @@ func _test_courier() -> void:
 	await _drop_street(lv)
 
 
+## The fatal look can come while he faces a shop window: he turns the short way to the walker and is
+## facing him before the glint.
+func _test_courier_aim_from_window() -> void:
+	var lv := await _street_with({"courier": {"appear_x": 30.0, "door_x": 200.0, "stops": [{"x": 36.0, "dur": 3.0}]}})
+	var p: Player = lv.player
+	var c: Node3D = lv.courier
+	_unhook_defeat(p)
+	p.position.x = 23.0
+	await _tail(lv, 3.5, 7.0)
+	c.suspicion = 3
+	await _tail(lv, 10.0, 7.0, 0.0, 0.0, func() -> bool: return c.phase == c.Phase.AIM)
+	var at_window: bool = c.phase == c.Phase.AIM and c.global_basis.x.z < -0.9
+	var turned := 0.0
+	var facing_at_glint := NAN
+	var was := c.rotation.y
+	var t := 0.0
+	while t < 1.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		turned += absf(angle_difference(was, c.rotation.y))
+		was = c.rotation.y
+		if is_nan(facing_at_glint) and lv.get_children().any(func(n: Node) -> bool: return n is WaterJet):
+			facing_at_glint = c.global_basis.x.x
+	check(at_window and turned < PI and facing_at_glint < -0.98,
+		"made at a shop window: he turns %.0f degrees to the walker, and faces him as the glint starts (%.2f)" % [rad_to_deg(turned), facing_at_glint])
+	await _drop_street(lv)
+
+
 func _test_checkpoints() -> void:
 	var cps: Array = level.checkpoints
 	check(cps.size() == 3 and cps[0] < cps[1] and cps[1] < cps[2], "main_street has three ascending checkpoints: %s" % [cps])
@@ -1061,6 +1089,7 @@ func _run() -> void:
 	await _test_follower()
 	await _test_follower_walker_defeated()
 	await _test_courier()
+	await _test_courier_aim_from_window()
 	await _test_raincoat_figure()
 	await _test_fail_cause()
 	await _test_walk_off()
