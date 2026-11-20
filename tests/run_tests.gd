@@ -1222,6 +1222,7 @@ func _run() -> void:
 	await _test_umbrella_shot()
 	await _test_viaduct()
 	await _test_viaduct_road()
+	await _test_pursuer_lamp_fades()
 	await _test_rocket_row()
 	await _test_the_bypass()
 	await _test_bypass_posted_reach()
@@ -1520,6 +1521,39 @@ func _test_viaduct_road() -> void:
 	r.current_node = "mill_road"
 	check(not Game.can_select("viaduct_road"), "... and not before")
 	Game.run = run_was
+
+
+## A pursuer's lamp shadow and its pool of light fade out where he left them once he has gone, even
+## when the next man, posted ahead, comes into view.
+func _test_pursuer_lamp_fades() -> void:
+	var q: Array = Game.level_data("the_bypass")["attackers"]
+	var x0 := float(q[0]["x"])
+	Game.current_level = "the_bypass"
+	Game.debug_start_x = x0 - 2.0
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	Game.debug_start_x = -1.0
+	await _frames(3)
+	var p: Player = level.player
+	p.set_physics_process(false)
+	_unhook_defeat(p)
+	var att: Node = level.attackers
+	var sh: MeshInstance3D = att._shadow
+	await _walker_at(x0 + 0.1)
+	await _until(func() -> bool: return att.phase == att.Phase.FIRE, att.WARN_S + 1.0)
+	var lit: float = att._pool.light_energy
+	var at: float = sh.global_position.x
+	att.man.soak(att.man.wet_max(), &"shot")
+	await get_tree().create_timer(0.4).timeout
+	var mid: float = att._pool.light_energy
+	check(lit > 10.0 and sh.is_visible_in_tree() and mid > 2.0 and mid < lit * 0.9,
+		"once he has gone his shadow and lamp fade rather than vanish (lamp %.1f, then %.1f)" % [lit, mid])
+	await get_tree().create_timer(att.SHADOW_FADE).timeout
+	check(att.posted and att.visible and not sh.is_visible_in_tree() and att._pool.light_energy == 0.0 and absf(sh.global_position.x - at) < 0.5,
+		"... and are gone, where he left them, with the next man in view at his post")
+	level.queue_free()
+	await _frames(2)
+	Game.current_level = "main_street"
 
 
 ## Puts the walker at x with the camera caught up, and lets the street run `frames` frames.

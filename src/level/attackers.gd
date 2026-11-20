@@ -88,9 +88,9 @@ func _ready() -> void:
 	_shadow_mat.shader = load("res://src/fx/lamp_shadow.gdshader")
 	_shadow.material_override = _shadow_mat
 	_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_shadow.top_level = true
 	_shadow.visible = false
-	add_child(_shadow)
+	# On the level, not under this node: they fade out after he is hidden, and stay out when the next shows.
+	level.add_child.call_deferred(_shadow)
 	_pool = SpotLight3D.new()
 	_pool.light_color = Color(1.0, 0.74, 0.45)
 	_pool.spot_range = 16.0
@@ -98,9 +98,8 @@ func _ready() -> void:
 	_pool.spot_attenuation = 0.45
 	_pool.light_volumetric_fog_energy = 1.2
 	_pool.shadow_enabled = false
-	_pool.top_level = true
 	_pool.light_energy = 0.0
-	add_child(_pool)
+	level.add_child.call_deferred(_pool)
 	_steps = AudioStreamPlayer3D.new()
 	_steps.bus = &"SFX"
 	_steps.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
@@ -172,6 +171,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	var playing := p.state == Player.State.WALK or p.state == Player.State.STOPPED
 	if phase == Phase.OFF:
+		_draw_shadow(delta)
 		_post()
 		if playing and _next < _queue.size() and p.position.x >= _queue[_next][0]:
 			_begin(_next)
@@ -352,8 +352,8 @@ func _draw_shadow(delta: float) -> void:
 		_shadow_a = move_toward(_shadow_a, 0.0, delta / SHADOW_FADE)
 	_shadow.visible = _shadow_a > 0.01
 	_pool.light_energy = 16.0 * _shadow_a
-	if not _shadow.visible:
-		return
+	if not _shadow.visible or phase == Phase.OFF or posted:
+		return      # fading where he left it
 	var length := lerpf(SHADOW_LEN[0], SHADOW_LEN[1], _shadow_f)
 	var ground: float = level.ground_y(position.x) + 0.015
 	_shadow.global_transform = Transform3D(Basis(Vector3.RIGHT, -PI * 0.5) * Basis.from_scale(Vector3(length, SHADOW_W, 1.0)),
