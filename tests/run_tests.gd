@@ -263,6 +263,50 @@ func _shots_at(man: NpcBody, n: int) -> Array:
 	return out
 
 
+func _pad_axis(axis: JoyAxis, v: float) -> void:
+	var ev := InputEventJoypadMotion.new()
+	ev.axis = axis
+	ev.axis_value = v
+	Input.parse_input_event(ev)
+
+
+## The umbrella trigger ignores the last bit of travel at each end, and opens partway in between.
+func _test_trigger_ends() -> void:
+	var lv := await _street_with({})
+	var p: Player = lv.player
+	_unhook_defeat(p)
+	var covered_x := -1.0
+	var open_x := -1.0
+	for lot in lv.data["lots"]:
+		if lot["cover"] == "awning" and not lot.has("tears") and lot["w"] >= 8 and covered_x < 0:
+			covered_x = lot["x"] + 1.0
+		if lot["cover"] == "none" and lot["w"] >= 4 and open_x < 0:
+			open_x = lot["x"] + lot["w"] * 0.5
+	Game.autopilot = false
+	p.set_physics_process(true)
+	Input.action_press(&"stop")
+	_pad_axis(JOY_AXIS_TRIGGER_RIGHT, 0.10)
+	p.position.x = covered_x
+	p._prev_x = covered_x
+	p.stamina = 40.0
+	await _frames(60)
+	check(p.open == 0.0 and p.stamina > 50.0, "a finger resting on RT leaves the umbrella shut and stamina recovering (open %.3f, stamina 40 -> %.1f)" % [p.open, p.stamina])
+	_pad_axis(JOY_AXIS_TRIGGER_RIGHT, 0.5)
+	await _frames(90)
+	check(p.open > 0.3 and p.open < 0.7, "a half-pulled RT half-opens it: %.2f" % p.open)
+	_pad_axis(JOY_AXIS_TRIGGER_RIGHT, 0.96)
+	p.position.x = open_x
+	p._prev_x = open_x
+	await _frames(90)
+	var wet_was := p.wet
+	await _frames(60)
+	check(p.open == 1.0 and p.wet == wet_was, "RT not quite bottomed out opens it fully, dry in the open (open %.3f, wet +%.2f)" % [p.open, p.wet - wet_was])
+	_pad_axis(JOY_AXIS_TRIGGER_RIGHT, 0.0)
+	Input.action_release(&"stop")
+	Game.autopilot = true
+	await _drop_street(lv)
+
+
 ## The walker's shot: range per Long Barrel tier, two clean hits soak a man (one at Pressure tier 3),
 ## a man's canopy stops it, and his canopy never keeps the rain off the walker. The water refills
 ## slowly by itself and fast stopped under a stream, and the shot is locked before the sixth street.
@@ -912,6 +956,7 @@ func _run() -> void:
 	await _test_raincoat_figure()
 	await _test_fail_cause()
 	await _test_walk_off()
+	await _test_trigger_ends()
 	await _test_umbrella_shot()
 	await _test_viaduct()
 	await _test_viaduct_road()
@@ -1463,6 +1508,7 @@ func _test_the_bypass() -> void:
 	# A man soaked with his shot in the air: it still lands, from where he fired it, even once the
 	# next man is standing at his post ahead (the bots keep bracing back for it).
 	p.position.x = open_x
+	p._prev_x = open_x
 	att._next = posted_i
 	att._begin(0)
 	att._set_phase(att.Phase.FIRE)

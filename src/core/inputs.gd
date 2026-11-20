@@ -4,6 +4,9 @@ extends Node
 
 const DEADZONE := 0.08
 const AIM_REST := 0.3            # a stick pushed less than this far leaves the furled shaft at his side
+## Fraction of the umbrella trigger's travel ignored at each end (the bottom one past DEADZONE): a
+## resting finger reads as shut and a not-quite-bottomed pull reads as fully open.
+const TRIGGER_DEADZONE := 0.05
 
 ## Set by the on-screen touch controls.
 var touch_umbrella := 0.0
@@ -203,7 +206,8 @@ func _in_gameplay() -> bool:
 
 ## 0..1 how far the umbrella trigger is held.
 func umbrella() -> float:
-	return _ramp(&"umbrella", clampf(maxf(Input.get_action_strength(&"umbrella"), touch_umbrella), 0.0, 1.0))
+	var pull := inverse_lerp(DEADZONE + TRIGGER_DEADZONE, 1.0 - TRIGGER_DEADZONE, Input.get_action_raw_strength(&"umbrella"))
+	return _ramp(&"umbrella", clampf(maxf(pull, touch_umbrella), 0.0, 1.0))
 
 
 ## 0..1 hurry amount (1 = full run).
