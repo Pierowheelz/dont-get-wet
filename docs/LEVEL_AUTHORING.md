@@ -373,7 +373,7 @@ near lane of the road (z 5.4) from behind the walker, one at a time. When the wa
 The splash and the shot are separate: the canopy has to swing from back to forward between them.
 Tilting over costs rain in the open, so put the trigger about 4.5 m short of cover: the splash lands
 in the open and the shot as he reaches the cover (`DRIVE_BY_LEAD` in `tools/streets/the_bypass.py`).
-The scenery traffic waits while one is on. A checkpoint resume skips every drive-by whose `x` is
+The scenery traffic waits while one is on, and sends no car from 40 m short of its `x` (`DRIVE_BY_CLEAR_M`), so none is on the lane when it comes. A checkpoint resume skips every drive-by whose `x` is
 behind it. The bots hold the umbrella open while one is on, never rest or refill, tilt back
 (`DriveBy.brace()` -1) from 0.35 s before the splash until it has landed and forward (+1) from 0.5 s
 before the shot until it has landed. level_preview ignores them (`tools/preview.sh` is the judge).

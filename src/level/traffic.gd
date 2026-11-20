@@ -2,6 +2,10 @@ extends Node3D
 ## Occasional foreground traffic on the near lane of the main road (scenery only).
 ## Cars pass between the camera and the walker, throwing road spray.
 
+## A car lives at most about 10 s on screen, in which the walker runs about 33 m: none spawned this
+## far short of a drive-by's x is still on its lane when it comes.
+const DRIVE_BY_CLEAR_M := 40.0
+
 var level: Node
 var _next := 12.0
 var _cars: Array = []
@@ -9,8 +13,10 @@ var _cars: Array = []
 
 func _process(delta: float) -> void:
 	_next -= delta
-	var lane_busy: bool = level.drive_bys != null and level.drive_bys.phase != DriveBy.Phase.OFF
-	if _next <= 0.0 and level.player and level.player.state == Player.State.WALK and not lane_busy:
+	var p: Player = level.player
+	var db: DriveBy = level.drive_bys
+	var lane_busy := db != null and p != null and (db.phase != DriveBy.Phase.OFF or db.next_x() - p.position.x < DRIVE_BY_CLEAR_M)
+	if _next <= 0.0 and p and p.state == Player.State.WALK and not lane_busy:
 		_next = randf_range(22.0, 45.0)
 		_spawn()
 	for c in _cars.duplicate():

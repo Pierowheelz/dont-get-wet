@@ -128,6 +128,11 @@ func _ready() -> void:
 	visible = false
 
 
+## Where the next one starts (INF when none is left).
+func next_x() -> float:
+	return _queue[_next] if _next < _queue.size() else INF
+
+
 ## A car is on its way or still in shot: no resting, no refilling, keep the canopy up.
 func coming() -> bool:
 	return phase != Phase.OFF and phase != Phase.AWAY

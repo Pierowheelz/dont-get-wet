@@ -1225,6 +1225,7 @@ func _run() -> void:
 	await _test_pursuer_lamp_fades()
 	await _test_rocket_row()
 	await _test_the_bypass()
+	await _test_bypass_traffic_clear()
 	await _test_bypass_posted_reach()
 	_test_dynamic_resolution()
 	await _test_menu_width()
@@ -1874,6 +1875,49 @@ func _test_the_bypass() -> void:
 	r.current_node = "kiln_street"
 	check(not Game.can_select("the_bypass"), "... and not before")
 	Game.run = run_was
+
+
+## The Bypass: scenery traffic stays off the near lane in time for a drive-by. A car that sets off
+## just before the cut-off is gone by the time the drive-by comes, even with the walker running.
+func _test_bypass_traffic_clear() -> void:
+	var x0 := float(Game.level_data("the_bypass")["drive_bys"][0]["x"])
+	var traffic := load("res://src/level/traffic.gd")
+	var from: float = x0 - traffic.DRIVE_BY_CLEAR_M - 0.5
+	Game.current_level = "the_bypass"
+	Game.debug_start_x = from
+	Game.autopilot = false
+	Inputs.touch_hurry = 1.0
+	Inputs._ramped.clear()
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	Game.debug_start_x = -1.0
+	var p: Player = level.player
+	_unhook_defeat(p)
+	var tr: Node = level.get_children().filter(func(n: Node) -> bool: return n.get_script() == traffic)[0]
+	await _idle_frames(3)
+	tr._next = 0.0
+	await _idle_frames(2)
+	var spawned: int = tr._cars.size()
+	var spawn_x := p.position.x
+	var db: DriveBy = level.drive_bys
+	var refused := false
+	var t := 0.0
+	while db.phase == DriveBy.Phase.OFF and p.position.x < x0 + 1.0 and t < 40.0:
+		await get_tree().physics_frame
+		t += 1.0 / 60.0
+		p.wet = 0.0
+		if p.position.x > x0 - traffic.DRIVE_BY_CLEAR_M + 1.0 and not refused:
+			tr._next = 0.0
+			await _idle_frames(2)
+			refused = tr._next <= 0.0
+	check(spawned == 1 and refused and db.phase != DriveBy.Phase.OFF and tr._cars.is_empty(),
+		"a scenery car set off %.0f m short of the drive-by, none after; when the drive-by comes (walker at %.1f) the lane is clear"
+		% [x0 - spawn_x, p.position.x])
+	Inputs.touch_hurry = 0.0
+	Game.autopilot = true
+	level.queue_free()
+	await _frames(2)
+	Game.current_level = "main_street"
 
 
 ## The man posted by the drainpipe on The Bypass keeps his shots while the walker waits out of his
