@@ -147,7 +147,10 @@ func _step(delta: float, p: Player) -> void:
 	if lagged > 0.05:
 		want = maxf(lagged + clampf((gap - target) * 0.8, -FALL_BACK, CATCH_UP), 0.0)
 	speed = move_toward(speed, want, ACCEL * delta)
-	position.x = minf(position.x + speed * delta, p.position.x - MIN_GAP)
+	position.x += speed * delta
+	# A defeated walker turns and trudges back past him: he stands where he is, not pushed along.
+	if p.state != Player.State.DEFEATED:
+		position.x = minf(position.x, p.position.x - MIN_GAP)
 	position.y = level.ground_y(position.x)
 	gap = p.position.x - position.x
 	match phase:

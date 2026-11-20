@@ -723,6 +723,34 @@ func _test_follower() -> void:
 	get_window().size = window_was
 
 
+## A defeated walker trudges back toward the follower, who stays where he stopped.
+func _test_follower_walker_defeated() -> void:
+	var window_was := get_window().size
+	get_window().size = Vector2i(1920, 1080)
+	var lv := await _street_with({"follower": {"appear": [{"x": 20.0, "hold": 12.0}]}})
+	var p: Player = lv.player
+	var fol: Node3D = lv.get_node("Follower")
+	_unhook_defeat(p)
+	p.position.x = 19.0
+	await _walk(lv, 3.5, 1.3)
+	p.fail(&"wet")
+	p.set_physics_process(true)   # _street_with holds him still; let him trudge off
+	await get_tree().create_timer(1.5).timeout
+	var x0 := fol.position.x
+	var moved := 0.0
+	var nearest := INF
+	var t := 0.0
+	while t < 4.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		moved = maxf(moved, absf(fol.position.x - x0))
+		nearest = minf(nearest, p.position.x - fol.position.x)
+	check(fol.visible and fol.get("speed") < 0.05 and nearest < 2.5 and moved < 0.01,
+		"the defeated walker trudges back to %.1f m from him: he stands where he stopped (moved %.2f m)" % [nearest, moved])
+	await _drop_street(lv)
+	get_window().size = window_was
+
+
 ## Keeps the walker `gap` m behind the courier (0 = holding stop where he is) for `secs` of play, with
 ## the umbrella at `open` and `tilt`. Returns the seconds until `until` held, or -1.
 func _tail(lv: Level, secs: float, gap: float, open := 0.0, tilt := 0.0, until := Callable()) -> float:
@@ -1031,6 +1059,7 @@ func _run() -> void:
 	await _test_no_pause_while_building()
 	await _test_pause_when_away()
 	await _test_follower()
+	await _test_follower_walker_defeated()
 	await _test_courier()
 	await _test_raincoat_figure()
 	await _test_fail_cause()
