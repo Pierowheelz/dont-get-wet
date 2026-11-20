@@ -32,7 +32,7 @@ const AWNING_COLORS := {
 ##   fabric: "canvas" (stripe_w 0 = solid, hem = front band, seam_w = rib seams), "tin", "acrylic", "enamel"
 ##   valance: "none", "scallop", "straight", "zigzag"; valance_solid / piping are canvas trims
 ##   frame: "arms", "brackets" (+ gutter), "chrome" (front tube + ribs), "chrome_edge", "bulbs",
-##     "fins" (chrome edge + swept tail fins standing on the front edge), "none"
+##     "fins" (chrome edge + swept tail fins on the fascia), "none"
 ##   ends: closed side cheeks; glow: neon strip under the front edge
 ##   A style with no eras is never picked automatically: only by name.
 const AWNING_STYLES := {
@@ -91,6 +91,7 @@ var _mats := {}
 var _awning_shader: Shader
 var _scene_cache := {}
 var _drip_meshes := {}             # drip density -> QuadMesh
+var _fin_mesh: ArrayMesh           # the one plate every tail fin shares
 var _awning_style_at := {}          # lot x -> AWNING_STYLES key, resolved while building
 var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
 var _awning_used := {}              # style -> lots given it so far
@@ -688,6 +689,8 @@ func _check_awning_styles() -> bool:
 		assert(fy >= 2.5 and fy <= 2.8, "awning style %s front edge %.2f outside 2.5-2.8" % [k, fy])
 		for z in _awning_zs(s):
 			assert(_awning_y(s, z) <= 3.05, "awning style %s rises into the sign band" % k)
+		if s["frame"] == "fins":
+			assert(fy + FIN_TOP <= 3.05, "awning style %s stands its fins in the sign band" % k)
 	return true
 
 
@@ -934,44 +937,73 @@ func _awning_frame(s: Dictionary, x: float, w: float, glow_col: Color, collapses
 		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
-## A rocket's tail fin standing on a canopy's front edge at x: a swept blade of brushed metal, its
-## point raked back down the street (every fin the same way, so a row of them reads as one rhythm),
-## with a neon tube up its leading edge and a lamp on its tip.
-const FIN_LEAD: Array[Vector2] = [Vector2(0.5, 0.0), Vector2(0.2, 0.2), Vector2(-0.16, 0.46), Vector2(-0.56, 0.72)]
-const FIN_TRAIL: Array[Vector2] = [Vector2(-0.3, 0.0), Vector2(-0.3, 0.13), Vector2(-0.37, 0.36), Vector2(-0.56, 0.72)]
+## A rocket's tail fin on a canopy's fascia: a swept, chamfered plate of brushed metal, its tip raked
+## back down the street (every fin the same way, so a row of them reads as one rhythm), with a neon
+## tube up its leading edge and a lamp on its tip. Outline is x along the street and y above the
+## canopy's front edge, clockwise from the root's leading corner.
+## The camera looks from below the canopy top and never sees it, so a fin standing on that edge
+## reads as part of the wall 2 m behind it. Lapping the fascia is what ties it to the canopy.
+## FIN_TOP keeps the tip under the sign band, which the camera sees over the canopy's front edge.
+const FIN_TOP := 0.26
+const FIN_OUTLINE: Array[Vector2] = [Vector2(0.46, -0.2), Vector2(-0.26, -0.2), Vector2(-0.4, FIN_TOP), Vector2(-0.27, FIN_TOP)]
+const FIN_Z := AWNING_DEPTH + 0.04   # back of the plate: clear of the fascia's hem and the chrome edge
+const FIN_THICK := 0.06
+const FIN_CHAMFER := 0.035
 
 
 func _tail_fin(x: float, fy: float, glow_col: Color) -> void:
+	if _fin_mesh == null:
+		_fin_mesh = _build_fin_mesh()
+	var mi := MeshInstance3D.new()
+	mi.mesh = _fin_mesh
+	mi.material_override = _fin_mat(glow_col)
+	mi.position = Vector3(x, fy, 0.0)
+	root.add_child(mi)
+	var zt := FIN_Z + FIN_THICK
+	var tip: Vector2 = FIN_OUTLINE[3]
+	var edge: Vector2 = tip - FIN_OUTLINE[0]
+	var mid: Vector2 = FIN_OUTLINE[0] + edge * 0.5
+	var tube := _box(Vector3(0.035, edge.length(), 0.035), Vector3(x + mid.x, fy + mid.y, zt),
+		_neon_mat(glow_col.lerp(Color(1, 1, 1), 0.3), 3.0))
+	tube.rotation.z = -atan2(edge.x, edge.y)
+	tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var lamp := _box(Vector3(0.06, 0.06, 0.06), Vector3(x + tip.x - 0.03, fy + tip.y - 0.03, zt), _neon_mat(Color(1.0, 0.9, 0.75), 3.5))
+	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Mirror chrome has only the night to reflect and goes black, and the tube is no light source, so
+## the brushed metal carries a little of the tube's colour itself.
+func _fin_mat(glow_col: Color) -> StandardMaterial3D:
+	var key := "fin_metal_%s" % glow_col.to_html()
+	if not _mats.has(key):
+		var m := _mat(key, Color(0.74, 0.77, 0.82), 0.4, 0.5)
+		m.emission_enabled = true
+		m.emission = glow_col.lerp(Color(1, 1, 1), 0.3)
+		m.emission_energy_multiplier = 0.08
+	return _mats[key]
+
+
+## The fin plate, shared by every fin: a flat face and a chamfered rim. Nothing sees its back.
+func _build_fin_mesh() -> ArrayMesh:
+	var n := FIN_OUTLINE.size()
+	var face: Array[Vector2] = []
+	for i in n:
+		var d0 := (FIN_OUTLINE[i] - FIN_OUTLINE[(i + n - 1) % n]).normalized()
+		var d1 := (FIN_OUTLINE[(i + 1) % n] - FIN_OUTLINE[i]).normalized()
+		var inward := Vector2(d0.y, -d0.x) + Vector2(d1.y, -d1.x)
+		face.append(FIN_OUTLINE[i] + inward * FIN_CHAMFER / (1.0 + d0.dot(d1)))
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var zf := AWNING_DEPTH - 0.04
-	var zb := AWNING_DEPTH - 0.13
-	var v := func(p: Vector2, z: float) -> Vector3: return Vector3(p.x, fy + p.y, z)
-	for i in FIN_LEAD.size() - 1:
-		for z in [zf, zb]:
-			_quad(st, v.call(FIN_LEAD[i], z), v.call(FIN_LEAD[i + 1], z), v.call(FIN_TRAIL[i + 1], z), v.call(FIN_TRAIL[i], z),
-				Vector2.ZERO, Vector2.ONE)
-		for edge: Array[Vector2] in [FIN_LEAD, FIN_TRAIL]:
-			_quad(st, v.call(edge[i], zf), v.call(edge[i + 1], zf), v.call(edge[i + 1], zb), v.call(edge[i], zb), Vector2.ZERO, Vector2.ONE)
+	st.set_smooth_group(-1)
+	var zt := FIN_Z + FIN_THICK
+	var v := func(p: Vector2, z: float) -> Vector3: return Vector3(p.x, p.y, z)
+	for i in n:
+		var j := (i + 1) % n
+		_quad(st, v.call(FIN_OUTLINE[i], FIN_Z), v.call(FIN_OUTLINE[j], FIN_Z), v.call(face[j], zt), v.call(face[i], zt),
+			Vector2.ZERO, Vector2.ONE)
+	_quad(st, v.call(face[0], zt), v.call(face[1], zt), v.call(face[2], zt), v.call(face[3], zt), Vector2.ZERO, Vector2.ONE)
 	st.generate_normals()
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	# Mirror chrome has only the night to reflect and goes black: brushed metal takes the tube's glow.
-	var m: StandardMaterial3D = _mat("fin_metal", Color(0.74, 0.77, 0.82), 0.36, 0.7).duplicate()
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mi.material_override = m
-	mi.position = Vector3(x, 0.0, 0.0)
-	root.add_child(mi)
-	var neon := _neon_mat(glow_col.lerp(Color(1, 1, 1), 0.3), 3.0)
-	for i in FIN_LEAD.size() - 1:
-		var edge: Vector2 = FIN_LEAD[i + 1] - FIN_LEAD[i]
-		var mid: Vector2 = FIN_LEAD[i] + edge * 0.5
-		var tube := _box(Vector3(0.035, edge.length() + 0.02, 0.035), Vector3(x + mid.x, fy + mid.y, zf + 0.03), neon)
-		tube.rotation.z = -atan2(edge.x, edge.y)
-		tube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var tip: Vector2 = FIN_LEAD[FIN_LEAD.size() - 1]
-	var lamp := _box(Vector3(0.07, 0.07, 0.07), Vector3(x + tip.x, fy + tip.y, zf - 0.02), _neon_mat(Color(1.0, 0.9, 0.75), 3.5))
-	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return st.commit()
 
 
 ## Two staggered rows of lit bulbs on a marquee fascia, as one mesh.
