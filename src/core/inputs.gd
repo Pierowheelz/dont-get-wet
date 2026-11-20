@@ -35,6 +35,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	if not Input.get_connected_joypads().is_empty():
 		last_device = &"gamepad"
+	elif OS.has_feature("mobile"):
+		last_device = &"touch"
 	Input.joy_connection_changed.connect(_on_joy_connection)
 	# Window-level hook sees every event before any node can mark it handled.
 	get_window().window_input.connect(_track_device)
@@ -164,6 +166,14 @@ func _track_device(event: InputEvent) -> void:
 ## Short control prompt for a gameplay action on the current device ("Hold RT" / "Space").
 func prompt(action: String) -> String:
 	var pad := last_device == &"gamepad"
+	if last_device == &"touch":
+		match action:
+			"umbrella": return "Hold UMBRELLA"
+			"hurry": return "HURRY"
+			"tilt": return "Drag on UMBRELLA"
+			"tilt_forward": return "drag right on UMBRELLA"
+			"stop": return "STOP"
+			"fire": return "FIRE"
 	match action:
 		"umbrella": return "Hold RT" if pad else "Hold Right Mouse / Space"
 		"hurry": return "LT" if pad else "Shift (W for a brisk walk)"
@@ -270,6 +280,15 @@ func _tilt_other() -> float:
 	if absf(mouse_tilt) > absf(v):
 		v = mouse_tilt
 	return v
+
+
+## Lets go of every on-screen control, as if no finger were down.
+func release_touch() -> void:
+	touch_umbrella = 0.0
+	touch_hurry = 0.0
+	touch_tilt = 0.0
+	touch_stop = false
+	touch_fire = false
 
 
 func stop_held() -> bool:

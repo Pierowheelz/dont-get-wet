@@ -1,7 +1,7 @@
 extends Control
 ## On-screen touch controls: hold right pad = umbrella (drag up/down within it to tilt),
 ## hold left pad = hurry (higher = faster), hold stop button = stand still; on armed streets, a fire
-## button beside the umbrella pad.
+## button beside the umbrella pad. A pause button sits in the top-right corner.
 
 var _umb_touch := -1
 var _hur_touch := -1
@@ -12,12 +12,22 @@ var _umb_start := Vector2.ZERO
 var _stop_touch := -1
 var _fire_rect: Rect2
 var _fire_touch := -1
+var _pause_rect: Rect2
+var _pause_touch := -1
 var armed := false
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	Inputs.release_touch()
+
+
+## The pads are rebuilt on every restart; a finger held through it must not stay pressed.
+func _exit_tree() -> void:
+	Inputs.release_touch()
+	if _pause_touch != -1:
+		Input.action_release(&"pause")
 
 
 func _layout() -> void:
@@ -27,6 +37,7 @@ func _layout() -> void:
 	_hur_rect = Rect2(r * 0.2, s.y - r * 2.2, r * 1.6, r * 2.0)
 	_stop_rect = Rect2(r * 2.0, s.y - r * 0.9, r * 0.8, r * 0.7)
 	_fire_rect = Rect2(_umb_rect.position.x - r * 1.0, s.y - r * 0.9, r * 0.8, r * 0.7)
+	_pause_rect = Rect2(s.x - 44.0 - r * 0.5, 200.0, r * 0.5, r * 0.5)
 
 
 func _input(event: InputEvent) -> void:
@@ -46,6 +57,9 @@ func _input(event: InputEvent) -> void:
 			elif armed and _fire_rect.has_point(event.position):
 				_fire_touch = event.index
 				Inputs.touch_fire = true
+			elif _pause_rect.has_point(event.position):
+				_pause_touch = event.index
+				Input.action_press(&"pause")
 		else:
 			if event.index == _umb_touch:
 				_umb_touch = -1
@@ -60,6 +74,9 @@ func _input(event: InputEvent) -> void:
 			elif event.index == _fire_touch:
 				_fire_touch = -1
 				Inputs.touch_fire = false
+			elif event.index == _pause_touch:
+				_pause_touch = -1
+				Input.action_release(&"pause")
 	elif event is InputEventScreenDrag:
 		if event.index == _umb_touch:
 			Inputs.touch_tilt = clampf((event.position.x - _umb_start.x) / (_umb_rect.size.x * 0.4), -1.0, 1.0)
@@ -118,6 +135,14 @@ func _draw() -> void:
 		var firing := _fire_touch != -1
 		_rounded(_fire_rect, Color(UIStyle.RAIN, 0.55) if firing else base, Color(UIStyle.CREAM, 0.78 if firing else 0.28), 2.5)
 		_label(f, _fire_rect.get_center() + Vector2(0, 8), "FIRE", Color(UIStyle.CREAM, 0.8))
+
+	# Pause button: two bars.
+	var pausing := _pause_touch != -1
+	_rounded(_pause_rect, Color(UIStyle.CREAM, 0.3) if pausing else base, Color(UIStyle.CREAM, 0.78 if pausing else 0.28), 2.5)
+	var pc := _pause_rect.get_center()
+	var bar := Vector2(_pause_rect.size.x * 0.12, _pause_rect.size.y * 0.4)
+	for sgn: float in [-1.0, 1.0]:
+		draw_rect(Rect2(pc + Vector2(sgn * bar.x * 1.1 - bar.x * 0.5, -bar.y * 0.5), bar), Color(UIStyle.CREAM, 0.8))
 
 
 func _rounded(r: Rect2, fill: Color, border: Color, width: float) -> void:

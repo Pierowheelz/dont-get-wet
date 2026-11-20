@@ -341,6 +341,51 @@ func _test_tilt_hand_off() -> void:
 	await _drop_street(lv)
 
 
+func _touch(lv: Level, at: Vector2, down: bool) -> void:
+	var ev := InputEventScreenTouch.new()
+	ev.pressed = down
+	ev.position = lv.get_viewport().get_final_transform() * at
+	Input.parse_input_event(ev)
+	await _idle_frames(2)
+
+
+## Touch controls: hints name the on-screen buttons, a finger held through a restart lets go, and
+## the pause button pauses.
+func _test_touch_controls() -> void:
+	Game.settings["touch_controls"] = true
+	Game.autopilot = false
+	var lv := await _street_with({})
+	var p: Player = lv.player
+	_unhook_defeat(p)
+	p.set_physics_process(true)
+	var tc: Control = lv.hud._touch
+	tc._layout()
+	await _touch(lv, tc._stop_rect.get_center(), true)
+	lv.hud.hint("{umbrella} — open the umbrella.   Hold {stop} to stand still.")
+	check(lv.hud._hint.text == "Hold UMBRELLA — open the umbrella.   Hold STOP to stand still.",
+		"on touch, hints name the on-screen buttons: '%s'" % lv.hud._hint.text)
+	await _touch(lv, tc._umb_rect.get_center(), true)
+	await _drop_street(lv)
+	lv = await _street_with({})
+	p = lv.player
+	_unhook_defeat(p)
+	p.set_physics_process(true)
+	await _frames(90)
+	check(p.open == 0.0 and p.state == Player.State.WALK, "fingers held through a restart don't hold the new street's umbrella or stop (open %.2f)" % p.open)
+	tc = lv.hud._touch
+	tc._layout()
+	await _touch(lv, tc._pause_rect.get_center(), true)
+	await _touch(lv, tc._pause_rect.get_center(), false)
+	check(get_tree().paused and lv.hud._pause != null, "the touch pause button pauses")
+	await _touch(lv, tc._pause_rect.get_center(), true)
+	await _touch(lv, tc._pause_rect.get_center(), false)
+	check(not get_tree().paused, "... and tapping it again resumes")
+	Game.settings["touch_controls"] = false
+	Game.autopilot = true
+	Inputs._set_device(&"keyboard")
+	await _drop_street(lv)
+
+
 ## The walker's shot: range per Long Barrel tier, two clean hits soak a man (one at Pressure tier 3),
 ## a man's canopy stops it, and his canopy never keeps the rain off the walker. The water refills
 ## slowly by itself and fast stopped under a stream, and the shot is locked before the sixth street.
@@ -992,6 +1037,7 @@ func _run() -> void:
 	await _test_walk_off()
 	await _test_trigger_ends()
 	await _test_tilt_hand_off()
+	await _test_touch_controls()
 	await _test_umbrella_shot()
 	await _test_viaduct()
 	await _test_viaduct_road()
