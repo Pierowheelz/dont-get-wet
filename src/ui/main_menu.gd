@@ -10,6 +10,7 @@ const MAIN_Y := 490.0
 const TITLE_Y := 150.0
 const SUB_Y := 380.0
 const SUB_TITLE_SCALE := 0.6
+const MIN_TITLE_SCALE := 0.4  # a long list scrolls rather than shrink the title past this
 const TITLE_GAP := 24.0
 const HINTS_BOTTOM := 84.0   # hints sit this far above the bottom edge
 const HINTS_H := 44.0
@@ -274,14 +275,18 @@ func _fit_page() -> void:
 	var y := MAIN_Y
 	var title_scale := 1.0
 	if _page_name != "main":
-		var limit := _root.size.y - HINTS_BOTTOM - HINTS_H - FOOTER_GAP
-		y = minf(SUB_Y, limit - _page.get_combined_minimum_size().y)
+		y = minf(SUB_Y, _page_limit() - _page.get_combined_minimum_size().y)
 		title_scale = clampf((y - TITLE_GAP - TITLE_Y) / title_h, 0.0, SUB_TITLE_SCALE)
 	var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(_title_box, "scale", Vector2.ONE * title_scale, 0.35)
 	tw.tween_property(_page, "position:y", y, 0.35)
 	# The tagline is unreadable once the title shrinks this far.
 	tw.tween_property(_title_box.get_child(1), "modulate:a", 1.0 if title_scale > 0.45 else 0.0, 0.35)
+
+
+## The lowest a sub-page may reach, clear of the key hints.
+func _page_limit() -> float:
+	return _root.size.y - HINTS_BOTTOM - HINTS_H - FOOTER_GAP
 
 
 func _animate_page() -> void:
@@ -398,7 +403,16 @@ func _leave(cb: Callable, stop_music: bool) -> void:
 
 func _replay_list() -> void:
 	_clear("replay")
-	_page.add_child(UIStyle.label("REPLAY A STREET", &"HeaderSmall", 0, UIStyle.AMBER))
+	var heading := UIStyle.label("REPLAY A STREET", &"HeaderSmall", 0, UIStyle.AMBER)
+	_page.add_child(heading)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	_page.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN   # keep the rows clear of the scrollbar
+	list.add_theme_constant_override("separation", _page.get_theme_constant("separation"))
+	scroll.add_child(list)
 	var first: Button = null
 	for id: String in Game.map_order():   # left end -> start -> right end, both runs
 		var r := Game.replay_run(id)
@@ -408,16 +422,21 @@ func _replay_list() -> void:
 		var b := _row(String(n.get("name", id)), r.best.get(id, {}), func() -> void:
 			_leave(func() -> void:
 				Game.resume_run(r.direction)
-				Game.play_level(id), true))
+				Game.play_level(id), true), list)
 		if first == null:
 			first = b
 	var back := _btn("Back", _main_buttons, &"", &"ui_back")
+	var room := _page_limit() - (TITLE_Y + TITLE_GAP + _title_box.get_combined_minimum_size().y * MIN_TITLE_SCALE) \
+		- heading.get_combined_minimum_size().y - back.custom_minimum_size.y - 2 * _page.get_theme_constant("separation")
+	var rows := list.get_combined_minimum_size()
+	var bar_w := scroll.get_v_scroll_bar().get_combined_minimum_size().x + 10.0 if rows.y > room else 0.0
+	scroll.custom_minimum_size = Vector2(rows.x + bar_w, minf(rows.y, room))
 	(first if first else back).grab_focus.call_deferred()
 	_animate_page()
 
 
-func _row(title: String, best: Dictionary, cb: Callable) -> Button:
-	var b := _btn("", cb, &"RowButton")
+func _row(title: String, best: Dictionary, cb: Callable, parent: Control) -> Button:
+	var b := _btn("", cb, &"RowButton", &"ui_confirm", parent)
 	b.custom_minimum_size = Vector2(COL_W + 160, 84)
 	var h := HBoxContainer.new()
 	h.set_anchors_preset(Control.PRESET_FULL_RECT)
