@@ -366,7 +366,7 @@ func _process(delta: float) -> void:
 		_write_trace()
 	if Game.autopilot and player and int(_t / 10.0) != int((_t - delta) / 10.0):
 		print("t=%.0f x=%.1f wet=%.1f sta=%.1f open=%.2f state=%d" % [_t, player.position.x, player.wet, player.stamina, player.open, player.state])
-	if Input.is_action_just_pressed(&"restart") and not get_tree().paused:
+	if Input.is_action_just_pressed(&"restart") and not get_tree().paused and not _walking_off:
 		Game.play_level(level_id)
 
 
@@ -564,6 +564,13 @@ func _on_car_approaching() -> void:
 		hud.hint("Headlights! Tilt the umbrella forward to block the splash  ({tilt_forward})", 3.5)
 
 
+const WALK_OFF_S := 5.0
+const WALK_OFF_GRACE_S := 0.3   # a button held or mashed as he gives up doesn't skip it unseen
+var _walking_off := false
+var _walk_off_t := 0.0
+var _skip_walk_off := false
+
+
 func _on_defeated() -> void:
 	_cam_locked = true
 	if hud and hud.has_method("close_pause"):
@@ -572,18 +579,38 @@ func _on_defeated() -> void:
 		print("AUTOPILOT_DEFEATED x=%.1f t=%.1f stats=%s" % [player.position.x, elapsed, JSON.stringify(player.stats)])
 		get_tree().quit()
 		return
-	# Let him trudge off the left of the frozen screen before the fail card.
-	var t := 0.0
-	while t < 7.0:
+	var made := progress()
+	# He trudges off the frozen screen before the fail card; any press skips to it.
+	_walking_off = true
+	_walk_off_t = 0.0
+	_skip_walk_off = false
+	while _walk_off_t < WALK_OFF_S and not _skip_walk_off:
 		await get_tree().process_frame
 		if not is_inside_tree():
 			return
-		if get_tree().paused:
-			continue
-		t += get_process_delta_time()
-		if t > 3.5 and player.position.x < camera.position.x - 6.5:
-			break
-	hud.show_fail()
+		if not get_tree().paused:
+			_walk_off_t += get_process_delta_time()
+	hud.show_fail(made)
+	# Through this frame, so the press that skipped doesn't also restart the street.
+	await get_tree().process_frame
+	_walking_off = false
+
+
+func _input(event: InputEvent) -> void:
+	if not _walking_off or _walk_off_t < WALK_OFF_GRACE_S:
+		return
+	var press := false
+	if event is InputEventKey:
+		press = event.pressed and not event.is_echo()
+	elif event is InputEventMouseButton:
+		press = event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]
+	elif event is InputEventJoypadButton or event is InputEventScreenTouch:
+		press = event.pressed
+	elif event is InputEventJoypadMotion:   # the triggers
+		press = Input.is_action_just_pressed(&"umbrella") or Input.is_action_just_pressed(&"hurry")
+	if press:
+		_skip_walk_off = true
+		get_viewport().set_input_as_handled()
 
 
 func _on_arrived() -> void:

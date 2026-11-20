@@ -143,6 +143,74 @@ func _test_fail_cause() -> void:
 	await _drop_street(lv)
 
 
+func _key(k: Key, down: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = k
+	ev.physical_keycode = k
+	ev.pressed = down
+	Input.parse_input_event(ev)
+
+
+## After he gives up he trudges off for about 5 s; any press after a moment's grace skips to the
+## fail card, which reports how far he got. The press that skips (even R) does nothing else.
+func _test_walk_off() -> void:
+	Game.autopilot = false   # under --autopilot a defeat quits
+	var lv := await _street_with({})
+	var p: Player = lv.player
+	p.position.x = lv.end_x * 0.5
+	p.wet = Tun.f("wet_max") + 1.0
+	p._physics_process(1.0 / 60.0)
+	var made := lv.progress()
+	p.position.x -= 3.0   # the trudge back
+	_key(KEY_R, true)
+	await _idle_frames(2)
+	_key(KEY_R, false)
+	await _idle_frames(2)
+	check(lv.hud._overlay == null and not Game._building, "a key down as he gives up neither skips the walk-off nor restarts")
+	await _wall(0.5)
+	_key(KEY_R, true)
+	await _idle_frames(3)
+	_key(KEY_R, false)
+	await _idle_frames(3)
+	check(lv.hud._overlay != null and not Game._building, "R during the walk-off skips to the fail card without restarting")
+	var made_txt := "Made it %d%% of the way" % int(made * 100.0)
+	check(labels_of(lv.hud._overlay).any(func(l: String) -> bool: return l.begins_with(made_txt)),
+		"the card says how far he got before trudging back: %s" % made_txt)
+	await _drop_street(lv)
+
+	lv = await _street_with({})
+	p = lv.player
+	p.wet = Tun.f("wet_max") + 1.0
+	p._physics_process(1.0 / 60.0)
+	await _wall(0.5)
+	_key(KEY_ENTER, true)
+	await _idle_frames(3)
+	_key(KEY_ENTER, false)
+	await _idle_frames(3)
+	check(lv.hud._overlay != null and not Game._building, "Enter skips to the card and doesn't press its focused button")
+	await _drop_street(lv)
+
+	lv = await _street_with({})
+	p = lv.player
+	p.wet = Tun.f("wet_max") + 1.0
+	p._physics_process(1.0 / 60.0)
+	var t0 := Time.get_ticks_msec()
+	while lv.hud._overlay == null and Time.get_ticks_msec() - t0 < 9000:
+		await get_tree().process_frame
+	var took := (Time.get_ticks_msec() - t0) / 1000.0
+	check(took > 4.5 and took < 5.5, "left alone, the walk-off lasts about 5 s (%.1f s)" % took)
+	await _drop_street(lv)
+	Game.autopilot = true
+
+
+func labels_of(n: Node, out: Array = []) -> Array:
+	if n is Label:
+		out.append((n as Label).text)
+	for c in n.get_children():
+		labels_of(c, out)
+	return out
+
+
 ## A man to shoot at (or stand under), on the back lane at x, facing the walker. With `canopy` he
 ## holds his umbrella open and brought down at the walker as when he fires; `over` holds it upright
 ## overhead instead.
@@ -843,6 +911,7 @@ func _run() -> void:
 	await _test_courier()
 	await _test_raincoat_figure()
 	await _test_fail_cause()
+	await _test_walk_off()
 	await _test_umbrella_shot()
 	await _test_viaduct()
 	await _test_viaduct_road()

@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## In-level UI: wetness & stamina meters (and the shot's water pips on armed streets), progress,
 ## timer, pause, fail and result screens.
-## Public API used by Level: `level`, hint(text, duration), show_fail(), show_result(result).
+## Public API used by Level: `level`, hint(text, duration), show_fail(made), show_result(result).
 
 const Drips := preload("res://src/ui/title_drips.gd")
 
@@ -409,10 +409,11 @@ static func fail_line(level_id: String, cause := &"wet") -> String:
 	return String(pool[randi() % pool.size()]) if not pool.is_empty() else ""
 
 
-func show_fail() -> void:
+## `made` is how far along the street he gave up (he has trudged back since).
+func show_fail(made: float) -> void:
 	var cause: StringName = level.player.fail_cause
 	var line := fail_line(level.level_id, cause)
-	var stats := "Made it %d%% of the way, in %s." % [int(level.progress() * 100.0), UIStyle.fmt_time(level.elapsed)]
+	var stats := "Made it %d%% of the way, in %s." % [int(made * 100.0), UIStyle.fmt_time(level.elapsed)]
 	var buttons := [
 		["Restart", func() -> void: Game.play_level(level.level_id)],
 		["City map", Game.goto_map],
