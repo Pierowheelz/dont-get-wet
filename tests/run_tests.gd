@@ -1444,6 +1444,18 @@ func _run_tests() -> void:
 		"three checkpoint restarts score 85%% of a perfect run: %s" % [pen])
 	Game.checkpoint_restarts = 0
 
+	# Walking the map moves you; replaying an earlier street from the main menu doesn't.
+	Game.reset_progress()
+	Game.new_run("")
+	Game.finish_level(start, 0.0, 10.0, 10.0)
+	var lnb2: String = Game.neighbors(lnb).filter(func(id: String) -> bool: return id != start)[0]
+	for id: String in [lnb, lnb2]:
+		Game.choose(id)
+		Game.finish_level(id, 0.0, 10.0, 10.0)
+	check(Game.run.current_node == lnb2, "finishing streets picked on the map walks you to them: %s" % Game.run.current_node)
+	Game.finish_level(lnb, 0.0, 10.0, 10.0)
+	check(Game.run.current_node == lnb2, "a street replayed from the menu leaves you where you were: %s" % Game.run.current_node)
+
 	Game.reset_progress()
 	Game.new_run("left")
 	Game.run.tokens = 7
