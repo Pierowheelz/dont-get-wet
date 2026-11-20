@@ -6,6 +6,8 @@ extends Node3D
 const MANIFEST := "res://assets/characters/pedestrians/peds.json"
 const LANE_BACK := 0.95    # clear of wall props (vending machines, benches, crates ≤ ~0.8 m)
 const LANE_FRONT := 2.45   # clear of curb props (lamps, meters, hydrants at z ≈ 3.2)
+const PASS_M := 2.2        # a passer-by steps aside for anyone this near along the street...
+const PASS_ACROSS := 1.3   # ...whose line is this near his lane across it
 
 var level: Node
 var _walkers: Array = []
@@ -121,20 +123,30 @@ func _process(delta: float) -> void:
 		_next = _every if _every > 0.0 else _rng.randf_range(14.0, 30.0)
 		_spawn_walker()
 	var cam_x: float = level.camera.position.x
+	var people := _people() if not _active.is_empty() else []
 	for a in _active.duplicate():
 		var n: Node3D = a[0]
 		n.position.x += a[1] * delta
 		n.position.y = level.ground_y(n.position.x)
-		# Step aside (toward the wall or the curb) while passing the walker so nobody clips.
+		# Step aside (toward the wall or the curb) while passing anyone so nobody clips.
 		var lane: float = a[2]
 		var target := lane
-		if absf(n.position.x - level.player.position.x) < 2.2 \
-				or level.courier and level.courier.visible and absf(n.position.x - level.courier.position.x) < 2.2:
-			target = 0.25 if lane < 1.6 else 3.0
+		for who: Node3D in people:
+			var at := who.global_position
+			if absf(n.position.x - at.x) < PASS_M and absf(lane - at.z) < PASS_ACROSS:
+				target = 0.25 if lane < 1.6 else 3.0
 		n.position.z = move_toward(n.position.z, target, 1.6 * delta)
 		if absf(n.position.x - cam_x) > 26.0:
 			n.queue_free()
 			_active.erase(a)
+
+
+## Everyone a passer-by has to walk round: the walker, the men in his suit (standing, following or
+## soaked and trudging off) and the street's scripted men, while they can be seen.
+func _people() -> Array:
+	var all: Array = WetBody.of_level(level)
+	all.append_array([level.courier, level.get_node_or_null("Follower")])
+	return all.filter(func(n: Node3D) -> bool: return n != null and n.is_visible_in_tree())
 
 
 func _spawn_walker() -> void:

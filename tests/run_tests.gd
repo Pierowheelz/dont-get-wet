@@ -954,6 +954,40 @@ func _test_courier_door_at_a_run() -> void:
 	await _drop_street(lv)
 
 
+## A passer-by on the back lane steps to the wall for any man on the pavement, not only the walker:
+## one standing by the shopfronts, and one on the lane just behind the walker's.
+func _test_passersby_step_aside() -> void:
+	var lv := await _street_with({})
+	var peds: Node = lv.get_children().filter(func(c: Node) -> bool: return c.get("_figures") != null)[0]
+	var back: float = peds.LANE_BACK
+	var x: float = lv.camera.position.x + 6.0
+	var nearest: Array[float] = []
+	for z: float in [0.75, 1.25]:
+		var man := NpcBody.new()
+		man.level = lv
+		lv.add_child(man)
+		man.position = Vector3(x, lv.ground_y(x), z)
+		peds._every = 100.0   # one passer-by, now
+		peds._next = 0.0
+		await _idle_frames(2)
+		var a: Array = peds._active[-1]
+		var n: Node3D = a[0]
+		a[2] = back
+		n.position = Vector3(x + 2.6, 0.0, back)
+		var near := INF
+		var t := 0.0
+		while t < 5.0 and n.position.x > x - 0.6:
+			await get_tree().process_frame
+			t += get_process_delta_time()
+			var d := n.global_position - man.global_position
+			near = minf(near, Vector2(d.x, d.z).length())
+		nearest.append(near)
+		man.queue_free()
+	check(nearest[0] >= 0.45 and nearest[1] >= 0.45,
+		"a passer-by walks round a man standing by the shopfronts (%.2f m clear) and one behind the walker (%.2f m)" % nearest)
+	await _drop_street(lv)
+
+
 func _test_checkpoints() -> void:
 	var cps: Array = level.checkpoints
 	check(cps.size() == 3 and cps[0] < cps[1] and cps[1] < cps[2], "main_street has three ascending checkpoints: %s" % [cps])
@@ -1116,6 +1150,7 @@ func _run() -> void:
 	await _test_courier()
 	await _test_courier_aim_from_window()
 	await _test_courier_door_at_a_run()
+	await _test_passersby_step_aside()
 	await _test_raincoat_figure()
 	await _test_fail_cause()
 	await _test_walk_off()
