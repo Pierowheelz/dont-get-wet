@@ -1044,6 +1044,7 @@ func _run() -> void:
 	await _test_rocket_row()
 	await _test_the_bypass()
 	_test_dynamic_resolution()
+	await _test_menu_width()
 	_run_tests()
 	get_parent().finish(failures)
 
@@ -1694,6 +1695,40 @@ func _test_dynamic_resolution() -> void:
 	dr2.free()
 	get_viewport().scaling_3d_scale = 1.0
 
+
+# --- title screen -----------------------------------------------------------------------------
+
+func _open_menu() -> Control:
+	var m: Control = load("res://src/ui/main_menu.tscn").instantiate()
+	add_child(m)
+	await _idle_frames(3)
+	return m
+
+
+func _menu_button(n: Node, text: String) -> Button:
+	if n is Button and (n as Button).text == text and (n as Control).is_visible_in_tree():
+		return n
+	for c in n.get_children():
+		var b := _menu_button(c, text)
+		if b != null:
+			return b
+	return null
+
+
+func _press(m: Control, text: String) -> void:
+	_menu_button(m, text).pressed.emit()
+	await _idle_frames(3)
+
+
+func _test_menu_width() -> void:
+	var m := await _open_menu()
+	var before := _menu_button(m, "Quit").size.x
+	for page in ["Credits", "Settings"]:
+		await _press(m, page)
+		await _press(m, "Back")
+	check(_menu_button(m, "Quit").size.x == before,
+		"main menu buttons keep their width after Credits and back: %d -> %d" % [before, _menu_button(m, "Quit").size.x])
+	m.free()
 
 # --- runs: one per direction out of the start street ------------------------------------------
 

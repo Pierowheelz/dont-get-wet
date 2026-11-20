@@ -245,6 +245,7 @@ func _clear(page_name: String) -> void:
 	for c in _page.get_children():
 		_page.remove_child(c)
 		c.queue_free()
+	_page.reset_size()   # a container only grows to fit: drop the width a wide page left behind
 
 
 func _btn(text: String, cb: Callable, variation: StringName = &"", sound: StringName = &"ui_confirm", parent: Control = _page) -> Button:
