@@ -929,6 +929,31 @@ func _test_courier_aim_from_window() -> void:
 	await _drop_street(lv)
 
 
+## The walker runs up behind him in the last metres: he hurries to keep ahead, and still goes in
+## at his door (about a metre wide).
+func _test_courier_door_at_a_run() -> void:
+	var lv := await _street_with({"courier": {"appear_x": 30.0, "door_x": 40.0, "stops": []}})
+	var p: Player = lv.player
+	var c: Node3D = lv.courier
+	p.position.x = 23.0
+	await _tail(lv, 3.5, 7.0)
+	await _tail(lv, 6.0, 7.0, 0.0, 0.0, func() -> bool: return c.position.x >= c.door_x - c.FINAL_M)
+	p.speed = Tun.f("run_speed")
+	var fastest := 0.0
+	var in_at := NAN
+	var t := 0.0
+	while t < 8.0 and c.visible:
+		p.position.x = c.position.x - 2.0
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		fastest = maxf(fastest, c.speed)
+		if is_nan(in_at) and c.position.z < 0.3:
+			in_at = c.position.x
+	check(fastest > 2.5 and not c.visible and absf(in_at - c.door_x) < 0.5,
+		"the walker running 2 m behind: he hurries (%.1f m/s) and goes in %.2f m from the middle of his door" % [fastest, in_at - c.door_x])
+	await _drop_street(lv)
+
+
 func _test_checkpoints() -> void:
 	var cps: Array = level.checkpoints
 	check(cps.size() == 3 and cps[0] < cps[1] and cps[1] < cps[2], "main_street has three ascending checkpoints: %s" % [cps])
@@ -1090,6 +1115,7 @@ func _run() -> void:
 	await _test_follower_walker_defeated()
 	await _test_courier()
 	await _test_courier_aim_from_window()
+	await _test_courier_door_at_a_run()
 	await _test_raincoat_figure()
 	await _test_fail_cause()
 	await _test_walk_off()

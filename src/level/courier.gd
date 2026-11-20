@@ -54,6 +54,7 @@ const TWIST := 1.9                # rad of upper-body turn at full glance (plus 
 const HIP_TURN := 0.5
 const WINDOW_TWIST := 0.9
 const AIM_TURN_S := 0.5
+const DOOR_BRAKE := 4.0           # m/s2 he pulls up at for his door
 const BOT_ROOM := 2.5              # the bots keep at least this much frame ahead of him
 const SECOND_SHOT_S := 0.25        # glint before his second barrel, right after the first lands
 const SHOT_FAIL_S := 0.5          # after the second lands, the attempt fails
@@ -82,6 +83,7 @@ var _aim_fired := false
 var _shots_landed := 0
 var _pace_override := -1.0     # --courier-pace=M (testing)
 var _resume_gap := RESUME_GAP  # --courier-gap=M (testing)
+var _was := Vector3.ZERO        # where he stood last frame
 var _aim_at := -1.0            # --courier-aim=S: he is made at S s on the level clock (testing)
 
 var _model: Node3D
@@ -318,13 +320,19 @@ func _walk(delta: float, p: Player, live: bool) -> void:
 	elif live and _cooldown <= 0.0 and position.x < door_x - FINAL_M and position.x - p.position.x <= glance_dist():
 		_start_glance(false)
 	if not glancing():
-		if position.x >= door_x:
+		if position.x >= door_x - _door_lead():
 			_set_phase(Phase.DOOR)
 		elif _next_stop < stops.size() and position.x >= stops[_next_stop][0]:
 			_stop_len = stops[_next_stop][1] * (WINDOW_SHORT if suspicion >= 2 else 1.0)
 			_next_stop += 1
 			_stop_t = 0.0
 			_set_phase(Phase.WINDOW)
+
+
+## How far short of his door he starts to pull up: nothing at his walking pace, and when he has
+## hurried to keep ahead of the walker, enough to stop where he would have from a walk.
+func _door_lead() -> float:
+	return maxf(speed * speed - _pace() * _pace(), 0.0) / (2.0 * DOOR_BRAKE)
 
 
 ## A shop window: he faces it for the stop's length. From suspicion 1 he checks the reflection.
@@ -408,7 +416,7 @@ func _check_fails(delta: float, p: Player) -> void:
 
 ## In at the inn door: turn to it, furl the umbrella, walk in, gone.
 func _door(delta: float, p: Player) -> void:
-	speed = move_toward(speed, 0.0, 4.0 * delta)
+	speed = move_toward(speed, 0.0, DOOR_BRAKE * delta)
 	position.x += speed * delta
 	_yaw = move_toward(_yaw, PI * 0.5, 3.0 * delta)
 	var hurry := 1.6 if p.position.x > door_x - 2.0 else 1.0
@@ -473,8 +481,11 @@ func _pose(delta: float) -> void:
 	rotation.y = root
 	_twist.twist = twist
 	_twist.hand = _hand
-	var walking := speed if phase != Phase.DOOR else maxf(speed, 1.3 if absf(_yaw) > 1.2 else 0.0)
-	_model.call("set_motion", walking, 0.0)
+	# His legs go at the speed he covers the ground, along the street or in at a door.
+	var ground := Vector2(position.x - _was.x, position.z - _was.z).length() / delta if delta > 0.0 else 0.0
+	_was = position
+	var run := inverse_lerp(Tun.f("walk_speed"), Tun.f("run_speed"), ground)
+	_model.call("set_motion", ground, run)
 	_model.call("set_stopped", false)
 	var raise := Umbrella.arm_raise(_open)
 	var tilt := 0.0
