@@ -1456,6 +1456,22 @@ func _run_tests() -> void:
 	Game.finish_level(lnb, 0.0, 10.0, 10.0)
 	check(Game.run.current_node == lnb2, "a street replayed from the menu leaves you where you were: %s" % Game.run.current_node)
 
+	# The replay list offers both runs' streets; each replays under the run that walked it.
+	Game.reset_progress()
+	Game.new_run("left")
+	Game.run.completed = [start, lnb]
+	Game.run.current_node = lnb
+	Game.new_run("right")
+	Game.run.completed = [start, rnb]
+	check(Game.replay_run(lnb) == Game.runs["left"] and Game.replay_run(rnb) == Game.runs["right"],
+		"each side's street replays under its own run, whichever run is active")
+	check(Game.replay_run(start) == Game.run and Game.replay_run(lnb2) == null,
+		"the start street replays under the active run; an unwalked street isn't offered")
+	Game.resume_run(Game.replay_run(lnb).direction)
+	Game.finish_level(lnb, 0.0, 10.0, 10.0)
+	check(Game.runs["left"].best.has(lnb) and Game.runs["left"].current_node == lnb and Game.runs["right"].best.is_empty(),
+		"a replay scores on its own run and leaves the other alone")
+
 	Game.reset_progress()
 	Game.new_run("left")
 	Game.run.tokens = 7

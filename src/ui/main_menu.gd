@@ -307,7 +307,7 @@ func _main_buttons() -> void:
 		_page.add_child(_progress(Game.runs[""], "%d of %d streets walked   ·   %d tokens"))
 	else:
 		first = _slots()
-	if not Game.run.completed.is_empty():
+	if Game.map_order().any(func(id: String) -> bool: return Game.replay_run(id) != null):
 		_btn("Replay a street", _replay_list)
 	_btn("Settings", _settings)
 	_btn("Credits", _credits)
@@ -398,15 +398,17 @@ func _leave(cb: Callable, stop_music: bool) -> void:
 
 func _replay_list() -> void:
 	_clear("replay")
-	var heading: String = {"": "", "left": "  ·  ← RUN", "right": "  ·  RUN →"}[Game.run.direction]
-	_page.add_child(UIStyle.label("REPLAY A STREET" + heading, &"HeaderSmall", 0, UIStyle.AMBER))
+	_page.add_child(UIStyle.label("REPLAY A STREET", &"HeaderSmall", 0, UIStyle.AMBER))
 	var first: Button = null
-	var ids: Array = Game.map_order().filter(func(id: String) -> bool:   # country -> centre
-		return Game.run.completed.has(id) and not Game.other_way(id))
-	for id: String in ids:
+	for id: String in Game.map_order():   # left end -> start -> right end, both runs
+		var r := Game.replay_run(id)
+		if r == null:
+			continue
 		var n: Dictionary = Game.nodes.get(id, {})
-		var best: Dictionary = Game.run.best.get(id, {})
-		var b := _row(String(n.get("name", id)), best, func() -> void: _leave(func() -> void: Game.play_level(id), true))
+		var b := _row(String(n.get("name", id)), r.best.get(id, {}), func() -> void:
+			_leave(func() -> void:
+				Game.resume_run(r.direction)
+				Game.play_level(id), true))
 		if first == null:
 			first = b
 	var back := _btn("Back", _main_buttons, &"", &"ui_back")
