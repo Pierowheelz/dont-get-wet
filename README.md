@@ -127,7 +127,8 @@ umbrella), `--start-x=M`, `--wet=N`, `--fps-log`, `--shots=t1,t2 --shot-dir=DIR`
 presses Continue), `--trace=PATH` (autopilot writes a JSON-lines run trace), `--resume-checkpoint=N` (start the
 street resumed from its checkpoint N), `--profile=OUT.json [--perf-off=a,b] [--perf-secs=N] [--perf-ab=DIR]`
 (frame-time probe, `src/core/perf_probe.gd`; with no `--level` it times the title screen), `--fake-gpu-ms=N`
-(the first-launch graphics check uses N instead of its measurement; pair with a fresh `--save=`).
+(the first-launch graphics check uses N instead of its measurement; pair with a fresh `--save=`),
+`--small-screen` (the larger text a Steam Deck-sized screen gets; pair with `--resolution 1280x800`).
 
 Gameplay numbers live in [`data/tunables.json`](data/tunables.json).
 

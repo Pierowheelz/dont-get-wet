@@ -303,6 +303,7 @@ func _rounded(ci: Control, r: Rect2, rad: float, col: Color) -> void:
 
 
 func _caption(ci: Control, pos: Vector2, text: String, f: Font, fs: int, col: Color, shadow: Color) -> void:
+	fs = UIStyle.text_size(fs)
 	ci.draw_string(f, pos + Vector2(0, 2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, shadow)
 	ci.draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 

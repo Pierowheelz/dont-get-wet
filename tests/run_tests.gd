@@ -1048,6 +1048,7 @@ func _run() -> void:
 	await _test_credits_scroll()
 	await _test_slider_saves()
 	await _test_shop_fits()
+	await _test_small_screen_text()
 	_run_tests()
 	get_parent().finish(failures)
 
@@ -1789,6 +1790,34 @@ func _test_slider_saves() -> void:
 	Game.save_path = real_path
 	Game.autopilot = true
 
+
+func _test_small_screen_text() -> void:
+	check(Game.is_small_screen(Vector2(1280, 800)) and Game.is_small_screen(Vector2(1366, 768))
+		and not Game.is_small_screen(Vector2(1920, 1080)) and not Game.is_small_screen(Vector2(3440, 1440)),
+		"a Steam Deck or small laptop screen counts as small; 1080p and wider monitors don't")
+	var theme := ThemeDB.get_project_theme()
+	var sizes := {}
+	for type in theme.get_type_list():
+		if theme.has_font_size("font_size", type):
+			sizes[type] = theme.get_font_size("font_size", type)
+	UIStyle.use_small_screen_text()
+	var window := get_tree().root.size
+	get_tree().root.size = Vector2i(1366, 768)   # 16:9 leaves the least height
+	var m: Control = load("res://src/ui/map_screen.tscn").instantiate()
+	add_child(m)
+	await _idle_frames(3)
+	check(m._shop_panel.get_global_rect().end.y <= m._map.get_global_rect().end.y,
+		"the shop still fits beside the map with small-screen text")
+	var smallest := 999
+	for l: Label in m.find_children("*", "Label", true, false):
+		if l.is_visible_in_tree() and l.text != "":
+			smallest = mini(smallest, l.get_theme_font_size("font_size"))
+	check(smallest >= UIStyle.SMALL_SCREEN_TEXT, "on a small screen no map or shop text is under %d: smallest %d" % [UIStyle.SMALL_SCREEN_TEXT, smallest])
+	m.free()
+	get_tree().root.size = window
+	UIStyle.min_text = 0
+	for type: StringName in sizes:
+		theme.set_font_size("font_size", type, sizes[type])
 
 func _test_shop_fits() -> void:
 	var was := Game.run

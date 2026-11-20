@@ -543,7 +543,8 @@ func _build_shop() -> void:
 	_shop = VBoxContainer.new()
 	var offered: Array = Run.UPGRADES.filter(Game.upgrade_offered)
 	var compact := offered.size() > 3   # the shot's upgrades too: tighter rows so the panel still fits
-	_shop.add_theme_constant_override("separation", 6 if compact else 14)
+	# Small-screen text is taller (UIStyle.min_text): close the gaps so three upgrades still fit too.
+	_shop.add_theme_constant_override("separation", 6 if compact else (12 if UIStyle.min_text > 0 else 14))
 	panel.add_child(_shop)
 	var head := HBoxContainer.new()
 	var hv := VBoxContainer.new()
@@ -649,7 +650,7 @@ func _upgrade_button(u: StringName, height: float) -> Button:
 	cost_row.add_child(coin)
 	var need := UIStyle.label("", &"CaptionLabel", 16)
 	need.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	if height < 100.0:   # compact: FULLY UPGRADED takes two lines rather than squeeze the description
+	if height < 100.0 or UIStyle.min_text > 0:   # FULLY UPGRADED takes two lines rather than squeeze the description
 		need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cost_box.add_child(need)
 	var refresh := func() -> void:

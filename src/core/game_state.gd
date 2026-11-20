@@ -93,6 +93,7 @@ func _ready() -> void:
 		if a.begins_with("--profile="):
 			add_child(preload("res://src/core/perf_probe.gd").new())
 	load_game()   # after args: the autopilot must never read or write the player's save
+	apply_small_screen(args)
 	# Exported builds follow the setting; editor runs (screenshots, bots) stay windowed.
 	if OS.has_feature("template"):
 		apply_fullscreen(bool(settings["fullscreen"]))
@@ -102,6 +103,21 @@ func _ready() -> void:
 				run.upgrades[k] = clampi(int(a.substr(11)), 0, 3)
 	if current_level != "":
 		get_tree().process_frame.connect(_jump_to_level, CONNECT_ONE_SHOT)
+
+
+## Text on a screen that draws the 1080p canvas this small or smaller (Steam Deck: 0.67) gets a
+## size floor. `--small-screen` forces it, for screenshots at a small --resolution on a big monitor.
+const SMALL_SCREEN_SCALE := 0.75
+
+
+static func is_small_screen(screen: Vector2) -> bool:
+	return minf(screen.x / 1920.0, screen.y / 1080.0) < SMALL_SCREEN_SCALE
+
+
+func apply_small_screen(args: PackedStringArray) -> void:
+	if args.has("--small-screen") or (DisplayServer.get_name() != "headless"
+			and is_small_screen(Vector2(DisplayServer.screen_get_size()))):
+		UIStyle.use_small_screen_text()
 
 
 func apply_fullscreen(on: bool) -> void:

@@ -40,6 +40,25 @@ static func fmt_time(t: float, tenths := false) -> String:
 	return "%d:%02d" % [floori(t / 60.0), int(t) % 60]
 
 
+## Smallest font size on a small screen: 20 on the 1080p canvas comes out about 13 px on a Steam Deck.
+const SMALL_SCREEN_TEXT := 20
+static var min_text := 0
+
+
+## Raises every label style smaller than SMALL_SCREEN_TEXT to it. Call before any UI is built.
+static func use_small_screen_text() -> void:
+	min_text = SMALL_SCREEN_TEXT
+	var theme := ThemeDB.get_project_theme()
+	for type in theme.get_type_list():
+		if theme.has_font_size("font_size", type) and theme.get_font_size("font_size", type) < min_text:
+			theme.set_font_size("font_size", type, min_text)
+
+
+## A font size for code that sets its own, raised to the small-screen floor.
+static func text_size(size: int) -> int:
+	return maxi(size, min_text)
+
+
 ## A label with a theme type variation and optional overrides.
 static func label(text: String, variation: StringName = &"", size := 0, color := Color(0, 0, 0, 0)) -> Label:
 	var l := Label.new()
@@ -47,7 +66,7 @@ static func label(text: String, variation: StringName = &"", size := 0, color :=
 	if variation != &"":
 		l.theme_type_variation = variation
 	if size > 0:
-		l.add_theme_font_size_override("font_size", size)
+		l.add_theme_font_size_override("font_size", text_size(size))
 	if color.a > 0.0:
 		l.add_theme_color_override("font_color", color)
 	return l
