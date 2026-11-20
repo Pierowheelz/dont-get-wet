@@ -1086,6 +1086,67 @@ func _test_checkpoint_water() -> void:
 	check(not level.resumed and is_equal_approx(level.player.gun.shots, level.player.gun.capacity()),
 		"starting the street over fills it (%.2f)" % level.player.gun.shots)
 	Game.checkpoint = {}
+## A side-street car on Kiln Street: a walker who runs at the crossing is held at the kerb, standing
+## as if stopped, until the car has gone by, and the wave soaks him as fully as one who walked up.
+## One already past the kerb when it comes walks on.
+func _test_side_street_car() -> void:
+	var cx := -1.0
+	for c in Game.level_data("kiln_street")["crossings"]:
+		if c.get("car", false) and cx < 0.0:
+			cx = float(c["x"])
+	var walked := await _crossing_run(cx, cx - 16.0, 0.0)
+	var ran := await _crossing_run(cx, cx - 16.0, 1.0)
+	check(not ran["overlap"] and ran["max_x"] <= cx - CarHazard.KERB_GAP + 0.01 and ran["held"] > 0,
+		"running at the crossing, he stops at the kerb (%.2f m short) and the car never reaches him" % (cx - ran["max_x"]))
+	check(ran["states"] == [Player.State.STOPPED] and ran["stamina_up"],
+		"held there he stands as if stopped, getting his breath back: states %s" % [ran["states"]])
+	check(ran["splash"] >= walked["splash"] * 0.9 and ran["splash"] >= Tun.f("wet_car_splash") * 0.8,
+		"the wave soaks him as fully as a walker's (ran %.1f, walked %.1f)" % [ran["splash"], walked["splash"]])
+	check(ran["after_x"] > cx + 2.0, "once it has gone by he walks on across")
+	var past := await _crossing_run(cx, cx - CarHazard.KERB_GAP + 0.3, 0.0)
+	check(past["held"] == 0 and past["after_x"] > cx + 2.0, "a walker already past the kerb when it comes isn't held")
+
+
+func _crossing_run(cx: float, from: float, hurry: float) -> Dictionary:
+	Game.current_level = "kiln_street"
+	Game.debug_start_x = from
+	Game.autopilot = false
+	Inputs.touch_hurry = hurry
+	Inputs._ramped.clear()
+	var lv: Level = load("res://src/level/level.tscn").instantiate()
+	add_child(lv)
+	Game.debug_start_x = -1.0
+	var p: Player = lv.player
+	_unhook_defeat(p)
+	var car: CarHazard = lv.cars.filter(func(c: CarHazard) -> bool: return is_equal_approx(c.crossing_x, cx))[0]
+	var out := {"max_x": -INF, "overlap": false, "held": 0, "states": [], "stamina_up": true}
+	var stamina := -1.0
+	var t := 0.0
+	while t < 20.0 and not (car.state == CarHazard.S.GONE and p.position.x > cx + 2.0):
+		await get_tree().physics_frame
+		t += 1.0 / 60.0
+		p.wet = 0.0
+		if car.state != CarHazard.S.DRIVING:
+			continue
+		out["overlap"] = out["overlap"] or absf(car.position.z - p.position.z) < CarHazard.BODY_HALF_L and absf(car.position.x - p.position.x) < 0.95
+		if car.wall_for(-INF) == INF:
+			continue      # its body has gone by
+		out["max_x"] = maxf(out["max_x"], p.position.x)
+		if p.speed == 0.0:
+			out["held"] += 1
+			if not out["states"].has(p.state):
+				out["states"].append(p.state)
+			out["stamina_up"] = out["stamina_up"] and p.stamina >= stamina
+			stamina = p.stamina
+	await get_tree().create_timer(1.0).timeout
+	out["splash"] = p.stats["wet_splash"]
+	out["after_x"] = p.position.x
+	Inputs.touch_hurry = 0.0
+	Game.autopilot = true
+	lv.queue_free()
+	await _frames(2)
+	Game.current_level = "main_street"
+	return out
 
 
 func _run() -> void:
@@ -1141,6 +1202,7 @@ func _run() -> void:
 	_test_next_token()
 	await _test_checkpoints()
 	await _test_checkpoint_water()
+	await _test_side_street_car()
 	await _test_street_hints()
 	await _test_pause_holds_hints()
 	await _test_no_pause_while_building()

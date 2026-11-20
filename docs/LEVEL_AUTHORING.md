@@ -88,7 +88,11 @@ weighted points rain is measured on, `WetBody.SAMPLES`); 25 droplets soak a poin
 25 once half his weighted body is soaked (`CarHazard.SPLASH_FULL`). Unblocked it costs the full 25 up to about
 4 m short of the crossing, about 16 at 5 m, 11 at 6 m and almost nothing past 8 m. A forward-tilted open umbrella
 stops the droplets it meets: about 3 get through at 3 m, about 2 from 4 m out (closer in the wave is still
-rising and more gets under it: about 7 at 2 m).
+rising and more gets under it: about 7 at 2 m). From the moment the car sets off until its body has
+passed his line, the walker can't step off the kerb: he is held 0.6 m short of the crossing
+(`CarHazard.KERB_GAP`, where the wave still reaches all of him), standing as if stopped, and walks on
+once it has gone. Running at the crossing doesn't beat the splash. A walker already past that point
+when it sets off isn't held.
 
 **Features:**
 

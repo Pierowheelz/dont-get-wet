@@ -17,6 +17,8 @@ const SPLASH_SPREAD := 15.0    # degrees either side of its direction, along the
 const SPLASH_REACH_S := 1.4
 const SPLASH_FULL := 0.5      # share of his body (DropletBurst.exposure) the wave must soak for the whole wet_car_splash
 const SPLASH_PER_POINT := 25.0 # droplets that soak one body point
+const BODY_HALF_L := 2.4       # the car's half-length, along the side street
+const KERB_GAP := 0.6          # the walker is held this far short of the crossing: any nearer and the wave flies over him
 
 var level: Node
 var crossing_x := 0.0
@@ -137,6 +139,15 @@ func is_threat_for(x: float) -> bool:
 		return false
 	var d := crossing_x - x
 	return d > -0.5 and d < TRIGGER_DIST + 2.0
+
+
+## While the car is coming and crossing the walker's line, the furthest x he can walk to: the kerb.
+## INF once its body has passed his line, and for a walker already beyond the kerb.
+func wall_for(px: float) -> float:
+	if state != S.DRIVING or position.z - BODY_HALF_L > Tun.f("player_z") + 0.3:
+		return INF
+	var wall := crossing_x - KERB_GAP
+	return wall if px <= wall + 0.01 else INF
 
 
 ## The wave is still coming down on the pavement (strays after SPLASH_REACH_S are stragglers).

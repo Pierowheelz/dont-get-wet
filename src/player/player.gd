@@ -47,6 +47,7 @@ const AIM_SWING := 0.8              # share of the raise over which the furled u
 const AIM_READY := 0.9             # how far up the furled shaft must be before it fires
 var _hit_cause := &"wet"
 var _hit_t := -INF
+var _wall_x := INF                 # while a side-street car crosses, the kerb he can't walk past (CarHazard.wall_for)
 
 var gun: WaterGun
 var _prev_x := 0.0
@@ -187,8 +188,13 @@ func _physics_process(delta: float) -> void:
 	gun.step(delta, fire_req and (open > 0.0 or aim >= AIM_READY and absf(tilt - tilt_to) < 0.15))
 
 	# --- stop -------------------------------------------------------------------------------
+	_wall_x = INF
+	for c in level.cars:
+		if is_instance_valid(c):
+			_wall_x = minf(_wall_x, c.wall_for(position.x))
+	var held := position.x + speed * delta >= _wall_x
 	if state == State.WALK or state == State.STOPPED:
-		state = State.STOPPED if stop_req else State.WALK
+		state = State.STOPPED if stop_req or held else State.WALK
 
 	# --- stamina ----------------------------------------------------------------------------
 	var wind := _wind()
@@ -223,6 +229,9 @@ func _physics_process(delta: float) -> void:
 	if state == State.STOPPED:
 		target = 0.0
 	speed = move_toward(speed, target, Tun.f("speed_response") * delta)
+	if held:
+		speed = 0.0
+		position.x = _wall_x
 	run_amount = clampf((speed - Tun.f("walk_speed")) / (Tun.f("run_speed") - Tun.f("walk_speed")), 0.0, 1.0)
 	# Position is integrated per render frame in _process (smooth at any refresh rate);
 	# physics only decides the speed.
@@ -260,7 +269,7 @@ func _process(delta: float) -> void:
 	if visual == null:
 		return
 	if state == State.WALK or state == State.STOPPED:
-		position.x += speed * delta
+		position.x = minf(position.x + speed * delta, _wall_x)
 		position.y = level.ground_y(position.x)
 	visual.set_motion(speed, run_amount)
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
