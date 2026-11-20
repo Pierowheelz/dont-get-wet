@@ -35,11 +35,17 @@ var _sound: UISound
 
 var _hint_t := 0.0
 var _hint_template := ""
+var _hint_tween: Tween
+var _tutorial: Array = []   # [play seconds, text] still to show
+var _play_t := 0.0          # seconds of unpaused play since the street started
 var _wet := 0.0          # displayed (smoothed) 0..1
 var _sta := 1.0
 var _drying_a := 0.0
 var _t := 0.0
 var _result_tween: Tween
+## Losing the window or the pad in use pauses play. Off for headless, bot and screenshot runs,
+## whose windows often have no focus.
+var pause_when_away := false
 
 
 func _ready() -> void:
@@ -141,6 +147,8 @@ func _ready() -> void:
 		_touch.armed = level.player.gun.armed
 
 	Inputs.device_changed.connect(_on_device_changed)
+	Inputs.pad_lost.connect(_pause_when_away)
+	pause_when_away = DisplayServer.get_name() != "headless" and not Game.autopilot and Game._shots.is_empty()
 	if level.level_id == Game.start_node and not Game.run.completed.has(level.level_id) and not level.resumed:
 		_show_tutorial()
 
@@ -154,8 +162,7 @@ func _show_tutorial() -> void:
 		[20.0, "{hurry} — hurry (costs stamina).   {tilt} — tilt the umbrella."],
 		[28.0, "Need to wait? Hold {stop} to stand still."],
 	]
-	for l in lines:
-		get_tree().create_timer(l[0]).timeout.connect(func() -> void: hint(l[1], 5.0))
+	_tutorial = lines
 
 
 func hint(text: String, duration := 3.0) -> void:
@@ -165,9 +172,11 @@ func hint(text: String, duration := 3.0) -> void:
 	_hint_template = text
 	_hint_t = duration
 	_render_hint()
-	var tw := create_tween().set_parallel()
-	tw.tween_property(_hint_box, "modulate:a", 1.0, 0.25)
-	tw.tween_property(_hint_box, "offset_bottom", -110.0, 0.3).from(-90.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if _hint_tween:
+		_hint_tween.kill()
+	_hint_tween = create_tween().set_parallel()
+	_hint_tween.tween_property(_hint_box, "modulate:a", 1.0, 0.25)
+	_hint_tween.tween_property(_hint_box, "offset_bottom", -110.0, 0.3).from(-90.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 ## Hint text may hold {action} tokens; they follow the device the player is using right now.
@@ -194,12 +203,16 @@ func _process(delta: float) -> void:
 	var t: float = level.elapsed
 	_time_lbl.text = UIStyle.fmt_time(t, true)
 	_time_lbl.add_theme_color_override("font_color", C_TEXT if t <= float(level.par_time) else C_TEXT.lerp(C_STA, 0.6))
-	if _hint_t > 0.0:
-		_hint_t -= delta
-		if _hint_t < 0.6:
-			_hint_box.modulate.a = maxf(0.0, _hint_t / 0.6)
+	if not get_tree().paused:
+		_play_t += delta
+		while not _tutorial.is_empty() and _play_t >= _tutorial[0][0]:
+			hint(_tutorial.pop_front()[1], 5.0)
+		if _hint_t > 0.0:
+			_hint_t -= delta
+			if _hint_t < 0.6:
+				_hint_box.modulate.a = maxf(0.0, _hint_t / 0.6)
 	var ending: bool = p.state == Player.State.DEFEATED or p.state == Player.State.ENTERING or p.state == Player.State.DONE
-	if Input.is_action_just_pressed(&"pause") and _overlay == null and (not ending or _pause):
+	if Input.is_action_just_pressed(&"pause") and _overlay == null and (not ending or _pause) and not Game._building:
 		_toggle_pause()
 
 
@@ -209,7 +222,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_result_tween.custom_step(60.0)
 		return
 	# Gamepad B / ui_cancel also resumes (Esc is the pause action itself, handled in _process).
-	if _pause and event.is_action_pressed(&"ui_cancel") and not event.is_action_pressed(&"pause"):
+	if _pause and event.is_action_pressed(&"ui_cancel") and not event.is_action_pressed(&"pause") and not Game._building:
 		get_viewport().set_input_as_handled()
 		_sound.play(&"ui_back")
 		_toggle_pause()
@@ -340,6 +353,18 @@ func _draw_progress(ci: Control) -> void:
 
 # --- pause ------------------------------------------------------------------------------------
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_pause_when_away.call_deferred()   # the panel can't be added mid-propagation
+
+
+func _pause_when_away() -> void:
+	var st: int = level.player.state if level and level.player else -1
+	if pause_when_away and _pause == null and _overlay == null and not get_tree().paused and not Game._building \
+			and (st == Player.State.WALK or st == Player.State.STOPPED):
+		_toggle_pause()
+
+
 ## Closes the pause panel if open (used when an end sequence starts).
 func close_pause() -> void:
 	if _pause:
@@ -351,11 +376,13 @@ func _toggle_pause() -> void:
 		var old := _pause
 		_pause = null
 		get_tree().paused = false
+		_hint_box.visible = true
 		var tw := old.create_tween()
 		tw.tween_property(old, "modulate:a", 0.0, 0.12)
 		tw.tween_callback(old.queue_free)
 		return
 	get_tree().paused = true
+	_hint_box.visible = false
 	_sound.play(&"ui_confirm", -6.0)
 	var p: Player = level.player
 	var stats := "%d%% wet    ·    %s    ·    %d%% of the way" % [
@@ -394,6 +421,7 @@ func show_fail() -> void:
 	if Game.checkpoint.get("id", "") == level.level_id:
 		buttons.push_front(["Checkpoint", func() -> void: Game.play_level(level.level_id, true)])
 	_overlay = _panel(FAIL_TITLES.get(cause, FAIL_TITLES[&"wet"]), line, stats, buttons, false, true)
+	_hide_hint()
 
 
 func _panel(title: String, kicker: String, body: String, buttons: Array, vertical: bool, fail := false) -> Control:
@@ -457,11 +485,12 @@ func _panel(title: String, kicker: String, body: String, buttons: Array, vertica
 	var tw := create_tween().set_parallel()
 	tw.tween_property(box, "modulate:a", 1.0, 0.5).set_delay(0.15)
 	tw.tween_property(box, "scale", Vector2.ONE, 0.6).from(Vector2(1.04, 1.04)).set_delay(0.15).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_hide_hint()
 	return dim
 
 
 func _hide_hint() -> void:
+	if _hint_tween:
+		_hint_tween.kill()
 	_hint_t = 0.0
 	_hint_box.modulate.a = 0.0
 

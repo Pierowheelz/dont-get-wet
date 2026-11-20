@@ -530,8 +530,10 @@ func play_level(id: String, from_checkpoint := false) -> void:
 	get_tree().auto_accept_quit = false
 	current_level = id
 	_show_loading(id)
-	# Freeze whatever is behind the card (e.g. the level being restarted) while we build.
+	# Freeze whatever is behind the card (e.g. the level being restarted) while we build, and keep
+	# its focused buttons from firing from the keyboard or a pad.
 	get_tree().paused = true
+	get_viewport().gui_disable_input = true
 	await get_tree().process_frame
 	# Build the street on a worker thread (off-tree node construction is thread-safe) so the
 	# loading card keeps animating; the level picks the finished world up in its _ready.
@@ -564,6 +566,7 @@ func play_level(id: String, from_checkpoint := false) -> void:
 		return
 	prebuilt = {"id": id, "data": data, "world": world, "builder": builder}
 	get_tree().paused = false
+	get_viewport().gui_disable_input = false
 	_building = false
 	get_tree().change_scene_to_packed(scene)
 
@@ -646,6 +649,8 @@ func _level_scenes() -> PackedStringArray:
 
 
 func goto_map() -> void:
+	if _building:
+		return
 	checkpoint = {}
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://src/ui/map_screen.tscn")
@@ -672,6 +677,8 @@ func open_feedback() -> String:
 
 
 func goto_menu() -> void:
+	if _building:
+		return
 	checkpoint = {}
 	map_pick = ""
 	get_tree().paused = false

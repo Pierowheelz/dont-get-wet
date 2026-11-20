@@ -120,11 +120,20 @@ func _set_device(dev: StringName) -> void:
 		device_changed.emit(dev)
 
 
-func _on_joy_connection(_device: int, connected: bool) -> void:
+## The pad the player is using went away (play pauses).
+signal pad_lost
+var _pad := -1   # the gamepad that last sent a deliberate press
+
+
+func _on_joy_connection(device: int, connected: bool) -> void:
 	if connected:
 		_set_device(&"gamepad")
-	elif last_device == &"gamepad" and Input.get_connected_joypads().is_empty():
+		return
+	var lost := last_device == &"gamepad" and (device == _pad or _pad < 0)
+	if last_device == &"gamepad" and Input.get_connected_joypads().is_empty():
 		_set_device(&"keyboard")
+	if lost:
+		pad_lost.emit()
 
 
 ## Only deliberate presses count: key/button releases (e.g. the Enter that launched the game, the
@@ -132,9 +141,11 @@ func _on_joy_connection(_device: int, connected: bool) -> void:
 func _track_device(event: InputEvent) -> void:
 	if event is InputEventJoypadButton:
 		if event.pressed:
+			_pad = event.device
 			_set_device(&"gamepad")
 	elif event is InputEventJoypadMotion:
 		if absf(event.axis_value) > 0.5:
+			_pad = event.device
 			_set_device(&"gamepad")
 	elif event is InputEventKey or event is InputEventMouseButton:
 		if event.pressed and not event.is_echo():

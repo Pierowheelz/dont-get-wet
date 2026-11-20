@@ -365,6 +365,92 @@ func _test_street_hints() -> void:
 	await _drop_street(lv)
 
 
+func _wall(secs: float) -> void:
+	var until := Time.get_ticks_msec() + int(secs * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+
+
+## Hints and the first-play tutorial run on play time: a pause holds them, and a hint on screen
+## when you pause is back with its time left when you resume.
+func _test_pause_holds_hints() -> void:
+	var lv := await _street_with({})
+	var hud: Node = lv.hud
+	hud._show_tutorial()
+	hud._toggle_pause()
+	await _wall(1.5)
+	check(hud._hint_template == "", "a tutorial line due while paused doesn't show behind the pause panel")
+	hud._toggle_pause()
+	await _wall(1.2)
+	check(hud._hint_template.begins_with("Rain soaks you") and hud._hint_box.is_visible_in_tree(),
+		"... it shows once play resumes: '%s'" % hud._hint_template)
+	hud.hint("Held.", 2.0)
+	await _idle_frames(3)
+	hud._toggle_pause()
+	check(not hud._hint_box.is_visible_in_tree(), "a hint on screen hides behind the pause panel")
+	await _wall(2.5)
+	hud._toggle_pause()
+	check(hud._hint_template == "Held." and hud._hint_box.is_visible_in_tree() and hud._hint_t > 1.8,
+		"... and is back with its time left on resume (%.2f s)" % hud._hint_t)
+	await _wall(2.5)
+	check(hud._hint_box.modulate.a == 0.0, "... then fades out, nothing stuck on screen (alpha %.2f)" % hud._hint_box.modulate.a)
+	await _drop_street(lv)
+
+
+## While a street builds behind the loading card, nothing pauses and no menu action fires.
+func _test_no_pause_while_building() -> void:
+	var lv := await _street_with({})
+	Game._building = true
+	Input.action_press(&"pause")
+	await _idle_frames(2)
+	Input.action_release(&"pause")
+	await _idle_frames(1)
+	check(lv.hud._pause == null, "the pause key does nothing behind the loading card")
+	var scene := get_tree().current_scene
+	Game.goto_map()
+	Game.goto_menu()
+	await _idle_frames(2)
+	check(get_tree().current_scene == scene, "City map and Main menu do nothing while a street builds")
+	Game._building = false
+	await _drop_street(lv)
+
+
+## Losing the window, or unplugging the pad in use, pauses play; not once he has given up.
+func _test_pause_when_away() -> void:
+	var lv := await _street_with({})
+	var hud: Node = lv.hud
+	check(not hud.pause_when_away, "headless runs never pause for focus")
+	hud.pause_when_away = true
+	hud.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	await _idle_frames(2)
+	check(get_tree().paused and hud._pause != null, "the window losing focus opens the pause panel")
+	hud._toggle_pause()
+	var dev_was: StringName = Inputs.last_device
+	var press := InputEventJoypadButton.new()
+	press.device = 0
+	press.button_index = JOY_BUTTON_X
+	press.pressed = true
+	Input.parse_input_event(press)
+	await _idle_frames(2)
+	press = press.duplicate()
+	press.pressed = false
+	Input.parse_input_event(press)
+	await _idle_frames(2)
+	Input.joy_connection_changed.emit(1, false)
+	await _idle_frames(2)
+	check(not get_tree().paused, "unplugging a pad nobody is using doesn't pause")
+	Input.joy_connection_changed.emit(0, false)
+	await _idle_frames(2)
+	check(get_tree().paused and hud._pause != null, "unplugging the pad in use opens the pause panel")
+	hud._toggle_pause()
+	Inputs._set_device(dev_was)
+	lv.player.state = Player.State.DEFEATED
+	hud.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	await _idle_frames(2)
+	check(not get_tree().paused, "losing focus after he gives up doesn't pause")
+	await _drop_street(lv)
+
+
 ## Runs `secs` of play with the walker at `walk_speed` (0 = holding stop); returns the closest the follower came.
 func _walk(lv: Level, secs: float, walk_speed: float) -> float:
 	var p: Player = lv.player
@@ -750,6 +836,9 @@ func _run() -> void:
 	await _test_checkpoints()
 	await _test_checkpoint_water()
 	await _test_street_hints()
+	await _test_pause_holds_hints()
+	await _test_no_pause_while_building()
+	await _test_pause_when_away()
 	await _test_follower()
 	await _test_courier()
 	await _test_raincoat_figure()
