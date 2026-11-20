@@ -543,7 +543,7 @@ func _build_shop() -> void:
 	_shop = VBoxContainer.new()
 	var offered: Array = Run.UPGRADES.filter(Game.upgrade_offered)
 	var compact := offered.size() > 3   # the shot's upgrades too: tighter rows so the panel still fits
-	_shop.add_theme_constant_override("separation", 8 if compact else 14)
+	_shop.add_theme_constant_override("separation", 6 if compact else 14)
 	panel.add_child(_shop)
 	var head := HBoxContainer.new()
 	var hv := VBoxContainer.new()
@@ -561,6 +561,7 @@ func _build_shop() -> void:
 	head.add_child(tok)
 	_shop.add_child(head)
 	var motto := UIStyle.label("Umbrellas to measure. No questions asked.", &"ItalicLabel", 21, Color(UIStyle.CREAM, 0.7))
+	motto.visible = not compact
 	_shop.add_child(motto)
 	var note := UIStyle.label("Tokens come from beating your best score on a street.", &"MutedLabel", 20)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -568,7 +569,7 @@ func _build_shop() -> void:
 	_shop.add_child(note)
 	_shop.add_child(HSeparator.new())
 	for u: StringName in offered:
-		var b := _upgrade_button(u, 98.0 if compact else 112.0)
+		var b := _upgrade_button(u, 88.0 if compact else 112.0)
 		_shop_buttons.append(b)
 		_shop.add_child(b)
 	var spacer := Control.new()
@@ -576,7 +577,7 @@ func _build_shop() -> void:
 	_shop.add_child(spacer)
 	_shop.add_child(UIStyle.label("YOUR UMBRELLA", &"KickerLabel", 18, UIStyle.MUTED))
 	_umb_stats = HBoxContainer.new()
-	_umb_stats.add_theme_constant_override("separation", 30)
+	_umb_stats.add_theme_constant_override("separation", 16 if compact else 30)
 	_shop.add_child(_umb_stats)
 	_shop.add_child(HSeparator.new())
 	_menu_btn = Button.new()
@@ -598,11 +599,14 @@ func _upgrade_button(u: StringName, height: float) -> Button:
 	h.set_anchors_preset(Control.PRESET_FULL_RECT)
 	h.offset_left = 22
 	h.offset_right = -18
-	h.offset_top = 10 if height > 100.0 else 4
-	h.offset_bottom = -h.offset_top
+	h.offset_top = 4   # the row's content is centred: this is only its least clearance
+	h.offset_bottom = -4
 	h.add_theme_constant_override("separation", 14)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(h)
+	# The row isn't a container: grow it when its description wraps to a second line.
+	h.minimum_size_changed.connect(func() -> void:
+		b.custom_minimum_size.y = maxf(height, h.get_combined_minimum_size().y + 8.0))
 	var paint_icon := func(ci: Control) -> void:
 		var lvl := Game.upgrade_level(u)
 		var col := UIStyle.AMBER if b.has_focus() else UIStyle.CREAM
@@ -645,6 +649,8 @@ func _upgrade_button(u: StringName, height: float) -> Button:
 	cost_row.add_child(coin)
 	var need := UIStyle.label("", &"CaptionLabel", 16)
 	need.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if height < 100.0:   # compact: FULLY UPGRADED takes two lines rather than squeeze the description
+		need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cost_box.add_child(need)
 	var refresh := func() -> void:
 		var cost := Game.upgrade_cost(u)

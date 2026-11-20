@@ -1046,6 +1046,7 @@ func _run() -> void:
 	_test_dynamic_resolution()
 	await _test_menu_width()
 	await _test_slider_saves()
+	await _test_shop_fits()
 	_run_tests()
 	get_parent().finish(failures)
 
@@ -1758,6 +1759,30 @@ func _test_slider_saves() -> void:
 	DirAccess.remove_absolute(Game.save_path)
 	Game.save_path = real_path
 	Game.autopilot = true
+
+
+func _test_shop_fits() -> void:
+	var was := Game.run
+	var r := Run.new("left", Game.start_node)
+	r.completed = Game.map_order().filter(func(id: String) -> bool: return Game.branch[id] != "right" and not Game.is_soon(id))
+	r.current_node = r.completed[0]
+	r.tokens = 40
+	r.upgrades[&"light"] = 3
+	Game.run = r
+	var window := get_tree().root.size
+	get_tree().root.size = Vector2i(1920, 1080)   # headless starts at 64x64
+	var m: Control = load("res://src/ui/map_screen.tscn").instantiate()
+	add_child(m)
+	await _idle_frames(4)
+	var shop: Rect2 = m._shop_panel.get_global_rect()
+	var frame: Rect2 = m._map.get_global_rect()
+	var screen := get_viewport().get_visible_rect()
+	check(m._shop_buttons.size() == 5 and shop.end.y <= frame.end.y and shop.end.x <= screen.end.x - m.MARGIN + 0.5,
+		"the shop with all five upgrades ends level with the map (%d / %d) and keeps its margin (%d / %d)" \
+		% [shop.end.y, frame.end.y, shop.end.x, screen.end.x - m.MARGIN])
+	m.free()
+	get_tree().root.size = window
+	Game.run = was
 
 # --- runs: one per direction out of the start street ------------------------------------------
 
