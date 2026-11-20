@@ -15,6 +15,8 @@ const TITLE_GAP := 24.0
 const HINTS_BOTTOM := 84.0   # hints sit this far above the bottom edge
 const HINTS_H := 44.0
 const FOOTER_GAP := 24.0
+const CREDITS_SCROLL := 600.0   # px/s with a stick pushed all the way
+const STICK_DEADZONE := 0.15
 
 var _ui: CanvasLayer
 var _root: Control
@@ -30,6 +32,8 @@ var _hints: KeyHints
 var _busy := false
 var _feedback: Button
 var _backdrop: Node3D
+var _credits_text: RichTextLabel
+var _stick_y := {}   # JoyAxis -> last value, for scrolling the credits
 
 
 func _ready() -> void:
@@ -240,6 +244,7 @@ func _set_painterly(on: bool) -> void:
 
 func _clear(page_name: String) -> void:
 	_page_name = page_name
+	_credits_text = null
 	_feedback.visible = page_name == "main"
 	_sound.hush()
 	for c in _page.get_children():
@@ -477,11 +482,11 @@ func _credits() -> void:
 	rt.fit_content = false
 	rt.scroll_active = true
 	rt.custom_minimum_size = Vector2(760, 360)
-	rt.focus_mode = Control.FOCUS_ALL
-	rt.add_theme_font_size_override("normal_font_size", 18)
+	rt.focus_mode = Control.FOCUS_NONE   # Back keeps focus; up and down scroll the text instead
 	rt.text = FileAccess.get_file_as_string("res://data/credits.txt") if FileAccess.file_exists("res://data/credits.txt") else ""
 	rt.add_theme_font_size_override("normal_font_size", 22)
 	_page.add_child(rt)
+	_credits_text = rt
 	var back := _btn("Back", _main_buttons, &"", &"ui_back")
 	back.grab_focus.call_deferred()
 	_animate_page()
@@ -611,6 +616,24 @@ func _confirm_new_run(side: String) -> void:
 	if Game.runs.size() > 1:
 		text += " Your other run is kept."
 	_open_dialog(title, text, "New run", _start_run.bind(side))
+
+
+func _input(event: InputEvent) -> void:
+	var m := event as InputEventJoypadMotion
+	if m != null and (m.axis == JOY_AXIS_LEFT_Y or m.axis == JOY_AXIS_RIGHT_Y):
+		_stick_y[m.axis] = m.axis_value
+
+
+## Either stick, the D-pad or the arrow keys scroll the credits smoothly.
+func _process(delta: float) -> void:
+	if _credits_text == null:
+		return
+	var v := Input.get_axis(&"ui_up", &"ui_down")
+	for y: float in _stick_y.values():
+		if absf(y) > maxf(absf(v), STICK_DEADZONE):
+			v = y
+	if v != 0.0:
+		_credits_text.get_v_scroll_bar().value += v * CREDITS_SCROLL * delta
 
 
 func _unhandled_input(event: InputEvent) -> void:

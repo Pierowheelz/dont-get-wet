@@ -1045,6 +1045,7 @@ func _run() -> void:
 	await _test_the_bypass()
 	_test_dynamic_resolution()
 	await _test_menu_width()
+	await _test_credits_scroll()
 	await _test_slider_saves()
 	await _test_shop_fits()
 	_run_tests()
@@ -1732,6 +1733,34 @@ func _test_menu_width() -> void:
 		"main menu buttons keep their width after Credits and back: %d -> %d" % [before, _menu_button(m, "Quit").size.x])
 	m.free()
 
+
+func _test_credits_scroll() -> void:
+	var m := await _open_menu()
+	await _press(m, "Credits")
+	var text: RichTextLabel = m.find_children("*", "RichTextLabel", true, false)[0]
+	var back := _menu_button(m, "Back")
+	back.grab_focus()
+	var push := InputEventJoypadMotion.new()
+	push.axis = JOY_AXIS_RIGHT_Y
+	push.axis_value = 1.0
+	Input.parse_input_event(push)
+	await get_tree().create_timer(0.3).timeout
+	push.axis_value = 0.0
+	Input.parse_input_event(push)
+	await _idle_frames(2)
+	var scrolled := text.get_v_scroll_bar().value
+	check(scrolled > 50.0, "pushing a stick down scrolls the credits: %d px" % scrolled)
+	var up := InputEventAction.new()
+	up.action = &"ui_up"
+	up.pressed = true
+	Input.parse_input_event(up)
+	await _idle_frames(2)
+	up.pressed = false
+	Input.parse_input_event(up)
+	await _idle_frames(1)
+	check(back.has_focus() and text.get_v_scroll_bar().value < scrolled,
+		"up on the credits scrolls back while Back keeps focus")
+	m.free()
 
 func _test_slider_saves() -> void:
 	var real_path := Game.save_path
