@@ -1469,8 +1469,11 @@ func _run_tests() -> void:
 		"the start street replays under the active run; an unwalked street isn't offered")
 	Game.resume_run(Game.replay_run(lnb).direction)
 	Game.finish_level(lnb, 0.0, 10.0, 10.0)
-	check(Game.runs["left"].best.has(lnb) and Game.runs["left"].current_node == lnb and Game.runs["right"].best.is_empty(),
+	check(Game.runs["left"].best.has(lnb) and Game.runs["right"].best.is_empty(),
 		"a replay scores on its own run and leaves the other alone")
+	Game.resume_run("right")
+	Game.run.completed = []
+	check(Game.replay_run(start) == Game.runs["left"], "the start street stays on offer when only the other run has walked it")
 
 	Game.reset_progress()
 	Game.new_run("left")

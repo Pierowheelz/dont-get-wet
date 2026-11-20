@@ -299,13 +299,15 @@ func new_run(dir: String) -> void:
 
 
 ## The run a replay of street `id` plays and scores under: its side's run, or for the start street the
-## active run. Null when no run has walked it.
+## active run when it has walked it. Null when no run has walked it.
 func replay_run(id: String) -> Run:
 	var side: String = branch.get(id, "")
-	if side == "":
-		return run if run.completed.has(id) else null
-	var r: Run = runs.get(side)
-	return r if r and r.completed.has(id) else null
+	if side == "" and run.completed.has(id):
+		return run
+	for r: Run in runs.values():
+		if (side == "" or r.direction == side) and r.completed.has(id):
+			return r
+	return null
 
 
 func resume_run(dir: String) -> void:
