@@ -406,7 +406,7 @@ testing.
   a man, one at Pressure tier 3. A canopy the droplets meet stops them, so a man whose umbrella is
   between takes proportionally less.
 - **Water:** `gun_shots` 4, one every `gun_cadence` 0.35 s while the button is held. It refills at
-  `gun_refill_rain` (0.04 a second, one shot in 25 s) while the open canopy is out in the rain (not
+  `gun_refill_rain` (0.08 a second, one shot in 12.5 s) while the open canopy is out in the rain (not
   furled, not under cover), and at `gun_refill_stream` (one a second, with
   a rising splash per shot) while the walker is stopped with the umbrella fully open under a gutter
   stream that lands on at least half the canopy. A gutter is a refill point: put one before a fight.

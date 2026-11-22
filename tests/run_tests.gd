@@ -471,7 +471,7 @@ func _test_umbrella_shot() -> void:
 		"a man's open canopy over the walker's head (%s) keeps no rain off him: exposure %.2f, %.2f without it" % [over, under, bare])
 	man.queue_free()
 
-	# Refill: one a second stopped under a stream with the umbrella open; about one per 25 s with the
+	# Refill: one a second stopped under a stream with the umbrella open; about one per 12.5 s with the
 	# open canopy out in the rain; none furled or under cover.
 	var gx: float = level.gutters[0]
 	await _place(gx, 1.0)
@@ -491,10 +491,10 @@ func _test_umbrella_shot() -> void:
 	var covered := p.gun.refill_rate()
 	p.gun.shots = 0.0
 	await _place(rx, 1.0)
-	p.gun.step(25.0, false)
-	check(absf(stream - 1.0) < 0.01 and absf(rain - 0.04) < 0.005 and furled == 0.0 and covered == 0.0
+	p.gun.step(12.5, false)
+	check(absf(stream - 1.0) < 0.01 and absf(rain - 0.08) < 0.005 and furled == 0.0 and covered == 0.0
 		and absf(p.gun.shots - 1.0) < 0.01,
-		"refill: %.2f a second under a stream, %.2f open in the rain (one shot in 25 s), %.2f furled, %.2f under an awning" % [stream, rain, furled, covered])
+		"refill: %.2f a second under a stream, %.2f open in the rain (one shot in 12.5 s), %.2f furled, %.2f under an awning" % [stream, rain, furled, covered])
 	await _drop_street(level)
 
 	var r := Run.new("left", Game.start_node)
