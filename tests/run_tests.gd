@@ -1,5 +1,5 @@
 extends Node
-## Headless gameplay tests:  godot --headless --path . res://tests/run_tests.tscn
+## Headless gameplay tests: tools/test.sh, or one process with godot --headless --fixed-fps 60 --path . res://tests/run_tests.tscn
 ## Loaded and judged by tests/test_main.gd, which also fails the run on any logged error.
 
 var failures := 0
@@ -26,6 +26,11 @@ func _frames(n: int) -> void:
 func _idle_frames(n: int) -> void:
 	for i in n:
 		await get_tree().process_frame
+
+
+## Waits on game time, not the wall clock, so a --fixed-fps run doesn't sit idle.
+func _seconds(secs: float) -> void:
+	await get_tree().create_timer(secs).timeout
 
 
 func _place(x: float, open: float, tilt := 0.0) -> float:
@@ -109,6 +114,9 @@ func _test_street_text() -> void:
 
 ## Main Street with extra level fields, loaded as its own street; the walker stays where the test puts him.
 func _street_with(extra: Dictionary) -> Level:
+	if is_instance_valid(level):   # a second street would also act on the keys a test presses
+		level.queue_free()
+		await _frames(2)
 	var d: Dictionary = Game.level_data("main_street")
 	d.merge(extra, true)
 	var path := OS.get_temp_dir().path_join("dgw_street_%d.json" % OS.get_process_id())
@@ -167,7 +175,7 @@ func _test_walk_off() -> void:
 	_key(KEY_R, false)
 	await _idle_frames(2)
 	check(lv.hud._overlay == null and not Game._building, "a key down as he gives up neither skips the walk-off nor restarts")
-	await _wall(0.5)
+	await _seconds(0.5)
 	_key(KEY_R, true)
 	await _idle_frames(3)
 	_key(KEY_R, false)
@@ -182,7 +190,7 @@ func _test_walk_off() -> void:
 	p = lv.player
 	p.wet = Tun.f("wet_max") + 1.0
 	p._physics_process(1.0 / 60.0)
-	await _wall(0.5)
+	await _seconds(0.5)
 	_key(KEY_ENTER, true)
 	await _idle_frames(3)
 	_key(KEY_ENTER, false)
@@ -194,10 +202,10 @@ func _test_walk_off() -> void:
 	p = lv.player
 	p.wet = Tun.f("wet_max") + 1.0
 	p._physics_process(1.0 / 60.0)
-	var t0 := Time.get_ticks_msec()
-	while lv.hud._overlay == null and Time.get_ticks_msec() - t0 < 9000:
+	var took := 0.0
+	while lv.hud._overlay == null and took < 9.0:
 		await get_tree().process_frame
-	var took := (Time.get_ticks_msec() - t0) / 1000.0
+		took += get_process_delta_time()
 	check(took > 4.5 and took < 5.5, "left alone, the walk-off lasts about 5 s (%.1f s)" % took)
 	await _drop_street(lv)
 	Game.autopilot = true
@@ -525,8 +533,6 @@ func _drop_street(lv: Level) -> void:
 
 func _test_street_hints() -> void:
 	var cp: float = level.checkpoints[0]
-	level.queue_free()
-	await _frames(2)
 	var hints := {"hints": [{"x": cp + 6.0, "text": "Second.", "dur": 3.0}, {"x": cp - 6.0, "text": "First.", "dur": 3.0}]}
 	var lv := await _street_with(hints)
 	var p: Player = lv.player
@@ -556,12 +562,6 @@ func _test_street_hints() -> void:
 	await _drop_street(lv)
 
 
-func _wall(secs: float) -> void:
-	var until := Time.get_ticks_msec() + int(secs * 1000.0)
-	while Time.get_ticks_msec() < until:
-		await get_tree().process_frame
-
-
 ## Hints and the first-play tutorial run on play time: a pause holds them, and a hint on screen
 ## when you pause is back with its time left when you resume.
 func _test_pause_holds_hints() -> void:
@@ -569,21 +569,21 @@ func _test_pause_holds_hints() -> void:
 	var hud: Node = lv.hud
 	hud._show_tutorial()
 	hud._toggle_pause()
-	await _wall(1.5)
+	await _seconds(1.5)
 	check(hud._hint_template == "", "a tutorial line due while paused doesn't show behind the pause panel")
 	hud._toggle_pause()
-	await _wall(1.2)
+	await _seconds(1.2)
 	check(hud._hint_template.begins_with("Rain soaks you") and hud._hint_box.is_visible_in_tree(),
 		"... it shows once play resumes: '%s'" % hud._hint_template)
 	hud.hint("Held.", 2.0)
 	await _idle_frames(3)
 	hud._toggle_pause()
 	check(not hud._hint_box.is_visible_in_tree(), "a hint on screen hides behind the pause panel")
-	await _wall(2.5)
+	await _seconds(2.5)
 	hud._toggle_pause()
 	check(hud._hint_template == "Held." and hud._hint_box.is_visible_in_tree() and hud._hint_t > 1.8,
 		"... and is back with its time left on resume (%.2f s)" % hud._hint_t)
-	await _wall(2.5)
+	await _seconds(2.5)
 	check(hud._hint_box.modulate.a == 0.0, "... then fades out, nothing stuck on screen (alpha %.2f)" % hud._hint_box.modulate.a)
 	await _drop_street(lv)
 
@@ -1178,14 +1178,41 @@ func _crossing_run(cx: float, from: float, hurry: float) -> Dictionary:
 	return out
 
 
+## Every test, in run order. `-- --shard=K/N` runs every Nth from the Kth (tools/test.sh runs N at once).
+func _tests() -> Array[Callable]:
+	return [
+		_test_exposure, _test_sun_drying, _test_feedback_url, _test_street_text, _test_next_token,
+		_test_checkpoints, _test_checkpoint_water, _test_side_street_car, _test_street_hints,
+		_test_pause_holds_hints, _test_no_pause_while_building, _test_pause_when_away, _test_follower,
+		_test_follower_walker_defeated, _test_courier, _test_courier_aim_from_window,
+		_test_courier_door_at_a_run, _test_walker_door_at_a_run, _test_passersby_step_aside,
+		_test_raincoat_figure, _test_fail_cause, _test_walk_off, _test_trigger_ends, _test_tilt_hand_off,
+		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
+		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
+		_test_bypass_posted_reach, _test_dynamic_resolution, _test_menu_width, _test_credits_scroll,
+		_test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
+	]
+
+
 func _run() -> void:
 	Game.current_level = "main_street"
 	Game.autopilot = true
 	level = load("res://src/level/level.tscn").instantiate()
 	add_child(level)
 	await _frames(5)
+	level.player.set_physics_process(false)
+	var tests := _tests()
+	var shard := [0, 1]
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--shard="):
+			shard = Array(a.trim_prefix("--shard=").split("/")).map(func(n: String) -> int: return n.to_int())
+	for i in range(shard[0], tests.size(), shard[1]):
+		await tests[i].call()
+	get_parent().finish(failures)
+
+
+func _test_exposure() -> void:
 	var p: Player = level.player
-	p.set_physics_process(false)
 	var data: Dictionary = level.data
 	var covered_x := -1.0
 	var open_x := -1.0
@@ -1225,46 +1252,6 @@ func _run() -> void:
 	check(got[0] >= 0.6 * Tun.f("wet_car_splash") and got[0] <= Tun.f("wet_car_splash") and got[1] < got[0] * 0.3 and got[2] == 0.0,
 		"car splash from its droplets: 3 m from the crossing %.1f, tilted forward %.1f, 10 m back %.1f" % got)
 	print("umbrella center ", p.umbrella.canopy_center(), " player ", p.global_position, " radius ", p.umbrella.current_radius())
-	_test_sun_drying()
-	_test_feedback_url()
-	_test_street_text()
-	_test_next_token()
-	await _test_checkpoints()
-	await _test_checkpoint_water()
-	await _test_side_street_car()
-	await _test_street_hints()
-	await _test_pause_holds_hints()
-	await _test_no_pause_while_building()
-	await _test_pause_when_away()
-	await _test_follower()
-	await _test_follower_walker_defeated()
-	await _test_courier()
-	await _test_courier_aim_from_window()
-	await _test_courier_door_at_a_run()
-	await _test_walker_door_at_a_run()
-	await _test_passersby_step_aside()
-	await _test_raincoat_figure()
-	await _test_fail_cause()
-	await _test_walk_off()
-	await _test_trigger_ends()
-	await _test_tilt_hand_off()
-	await _test_touch_controls()
-	await _test_umbrella_shot()
-	await _test_viaduct()
-	await _test_viaduct_road()
-	await _test_pursuer_lamp_fades()
-	await _test_rocket_row()
-	await _test_the_bypass()
-	await _test_bypass_traffic_clear()
-	await _test_bypass_posted_reach()
-	_test_dynamic_resolution()
-	await _test_menu_width()
-	await _test_credits_scroll()
-	await _test_slider_saves()
-	await _test_shop_fits()
-	await _test_small_screen_text()
-	_run_tests()
-	get_parent().finish(failures)
 
 
 ## Each attempt rolls its own train gaps within the street's range; a seed always rolls the same ones.
@@ -1704,7 +1691,7 @@ func _test_rocket_row() -> void:
 	hm._drop_jet(m2)
 	await _walker_at(m2.x + 2.5)
 	m2.shot_t = 0.3
-	var turned := await _until(func() -> bool: return absf(m2.body.rotation.y) < 0.01, 2.0)
+	var turned := await _until(func() -> bool: return absf(m2.body.rotation.y - hm._yaw(m2)) < 0.01, 2.0)
 	var behind := await _until(func() -> bool: return m2.incoming(), 2.0)
 	check(dealt == [0, 1] and turned < 1.0 and behind < 1.0 and hm.brace_side() <= 0.0,
 		"past him, he is dealt with, turns round in %.2f s and fires from behind %.2f s later" % [turned, behind])

@@ -32,6 +32,7 @@ class ErrorCounter extends Logger:
 
 var _errors := ErrorCounter.new()
 var _done := false
+var _deadline_ms := 0
 
 
 func _ready() -> void:
@@ -48,8 +49,15 @@ func _ready() -> void:
 	if not broken.is_empty():
 		finish(-1, "does not compile: " + ", ".join(broken))
 		return
-	get_tree().create_timer(TIMEOUT_S).timeout.connect(finish.bind(-1, "the tests did not finish within %d s" % TIMEOUT_S))
+	_deadline_ms = Time.get_ticks_msec() + int(TIMEOUT_S * 1000.0)
+	get_tree().process_frame.connect(_watch)   # fires through a pause, unlike _process
 	add_child((load(TESTS) as GDScript).new())
+
+
+## On the wall clock: a --fixed-fps run's game time runs many times faster.
+func _watch() -> void:
+	if Time.get_ticks_msec() > _deadline_ms:
+		finish(-1, "the tests did not finish within %d s" % TIMEOUT_S)
 
 
 static func _scripts(dir: String) -> Array[String]:

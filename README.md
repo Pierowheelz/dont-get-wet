@@ -110,7 +110,7 @@ tools/playtest.sh [--human] [level ...]      # autopilot bot plays levels headle
 python3 tools/streets/LEVEL_ID.py            # rewrite levels/LEVEL_ID.json from its plan (see docs/LEVEL_AUTHORING.md)
 tools/preview.sh LEVEL_ID [OUT_DIR]          # perfect + --human bots with traces, then PNG + design report (exit 1 if a rule fails)
 python3 tools/level_preview.py LEVEL_ID_OR_JSON [--trace a.jsonl ...] -o OUT.png [--report]   # renderer/checker alone
-godot --headless --path . res://tests/run_tests.tscn -- --save=/tmp/dgw/save.json   # rain, umbrella, splash, runs & save tests
+tools/test.sh                                # the headless tests, in parallel processes at fixed fps (~30 s)
 tools/shots.sh OUT_DIR "1,3,5" res://src/level/level.tscn --autopilot --level=main_street --start-x=40
 tools/shots.sh OUT_DIR "3.5" res://src/ui/main_menu.tscn --save=/tmp/dgw/save.json   # menu against a test save
 python3 tools/grid.py sheet.png OUT_DIR/shot_*.png      # contact sheet of screenshots
