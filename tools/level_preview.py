@@ -622,10 +622,12 @@ def render(st, tun, traces, out, title):
             seg = [t for t in rows_t if x0m - 0.3 <= t["x"] <= x1m + 0.3]
             if seg:
                 for a_, b_ in zip(seg, seg[1:]):
+                    # x can step back: he steers back to the inn door if he overshoots it.
+                    xa, xb = sorted((X(a_["x"]), X(b_["x"])))
                     if a_["open"] > 0.5:
-                        d.rectangle([X(a_["x"]), y + 3, X(b_["x"]), y + 6], fill=(40, 60, 90))
+                        d.rectangle([xa, y + 3, xb, y + 6], fill=(40, 60, 90))
                     if a_["hurry"] > 0.05:
-                        d.rectangle([X(a_["x"]), y + H_TR - 7, X(b_["x"]), y + H_TR - 4], fill=(240, 150, 30))
+                        d.rectangle([xa, y + H_TR - 7, xb, y + H_TR - 4], fill=(240, 150, 30))
                 st_pts = [(X(t["x"]), hi - t["stamina"] / tun["stamina_max"] * (hi - lo)) for t in seg]
                 wt_pts = [(X(t["x"]), hi - t["wet"] / tun["wet_max"] * (hi - lo)) for t in seg]
                 d.line(st_pts, fill=STA_C, width=2)
