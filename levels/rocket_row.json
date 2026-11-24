@@ -13,11 +13,11 @@
  "gusts": false,
  "set_pieces": [
   {"name": "The Starliner", "x0": 0.0, "x1": 40.5, "teaches": "continuous rocket-fin canopies past the first hotels and their doormen, then short gaps; the umbrella's shot is introduced"},
-  {"name": "Hotel Orbit", "x0": 49.5, "x1": 85.0, "teaches": "the first man under a hotel canopy opens up as the walker comes: soak him, block his jets tilted forward then back, or hurry past"},
-  {"name": "The Comet", "x0": 99.0, "x1": 150.0, "teaches": "a car crossing, then the second man between gaps; the shot runs low"},
-  {"name": "The Apollo and Gantry Lane", "x0": 150.0, "x1": 204.5, "teaches": "the first downpipe refills the shot just before the third man; a car idles dark in Gantry Lane with a man in a yellow slicker at the corner, who gets in once the third man is dealt with, and the car pulls out through the puddle at the walker"},
+  {"name": "Hotel Orbit", "x0": 49.5, "x1": 85.0, "teaches": "the first man under a hotel canopy opens up as the walker comes: soak him, block his jets tilted forward then back, or hurry past; a downpipe past him refills the shot"},
+  {"name": "The Comet", "x0": 99.0, "x1": 150.0, "teaches": "a car crossing, then the second man between gaps, and a downpipe past him"},
+  {"name": "The Apollo and Gantry Lane", "x0": 150.0, "x1": 204.5, "teaches": "the third downpipe refills the shot just before the third man; a car idles dark in Gantry Lane with a man in a yellow slicker at the corner, who gets in once the third man is dealt with, and the car pulls out through the puddle at the walker"},
   {"name": "Booster Row", "x0": 204.5, "x1": 269.0, "teaches": "wider gaps as the rain thickens, the fourth man at the Satellite"},
-  {"name": "The Stratos", "x0": 294.0, "x1": 417.0, "teaches": "a car crossing, the second downpipe, the last man at the Stratos, then gaps to the inn"}
+  {"name": "The Stratos", "x0": 294.0, "x1": 417.0, "teaches": "a car crossing, the fourth downpipe, the last man at the Stratos, then gaps to the inn"}
  ],
  "lots": [
   {"x": 0.0, "w": 8.0, "style": "doorway", "cover": "awning", "floors": 10, "sign": "THE STARLINER", "awning_color": "teal", "awning_style": "rocket", "neon": true},
@@ -104,9 +104,11 @@
   {"type": "puddle", "x": 30.0, "w": 1.0},
   {"type": "puddle", "x": 38.5, "w": 1.2},
   {"type": "puddle", "x": 65.5, "w": 1.2},
+  {"type": "gutter", "x": 73.75},
   {"type": "puddle", "x": 83.0, "w": 1.4},
   {"type": "puddle", "x": 100.2, "w": 1.4, "deep": true},
   {"type": "puddle", "x": 130.0, "w": 1.2},
+  {"type": "gutter", "x": 139.0},
   {"type": "puddle", "x": 147.5, "w": 1.2},
   {"type": "gutter", "x": 165.75},
   {"type": "puddle", "x": 175.0, "w": 1.2},
@@ -181,7 +183,7 @@
   {"x": 340.2}
  ],
  "hints": [
-  {"x": 165.15, "text": "Low on water? Stop under the downpipe with the umbrella open ({stop}).", "dur": 5.0}
+  {"x": 73.15, "text": "Low on water? Stop under the downpipe with the umbrella open ({stop}).", "dur": 5.0}
  ],
  "henchmen": [
   {"x": 60.9},

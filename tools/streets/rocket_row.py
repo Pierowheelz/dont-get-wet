@@ -5,7 +5,8 @@ A hotel strip: chrome rocket-fin canopies, revolving doors with doormen beside t
 than wall, under heavier rain than Atomic Avenue that thickens toward the far end. The walker's
 umbrella fires here. Five men wait under the hotel canopies among the doormen and open up as he
 comes: soak each one (two clean hits), block his jets with the canopy, or hurry past and take some
-water. Downpipes in the seams between hotels refill the shot. Midway a car idles in a side street
+water. Downpipes in the seams between hotels refill the shot, one just past each of the first two
+men so a wasted shot isn't punished while the gun is new. Midway a car idles in a side street
 with a man in a slicker at the corner; once the walker has dealt with the man before it, the car
 pulls out through the puddle at him.
 """
@@ -50,32 +51,32 @@ gap("lot1", 3)
 shop("barber", 5, "BARBER", "green")
 gap("lot2", 4)
 shop("cafe", 6, "CAFE", "red")
-# 2. The Orbit: the first man waits under its canopy
+# 2. The Orbit: the first man waits under its canopy, with a downpipe after him
 gap("lot2b", 3)
 shop("grill", 6, "ORBIT GRILL", "red")
 hotel("orbit", 8, "HOTEL ORBIT", "teal")
 gap("lot3", 4)
 shop("records", 5, "RECORDS", "blue")
-seam("seam2", 2.5)
+seam("pipe1", 2.5)
 shop("lounge", 6, "LUNAR LOUNGE", "orange")
 gap("lot4", 4)
 shop("drugs", 6, "DRUGS", "green")
 hotel("nova", 8, "HOTEL NOVA", "blue")
-# 3. Thrust Street, the Comet and the second man
+# 3. Thrust Street, the Comet and the second man, with a downpipe after him
 s.xing("thrust", 8, car=True)
 shop("travel", 8, "AIR TRAVEL", "blue")
 gap("lot5a", 4)
 hotel("comet", 8, "THE COMET", "red")
 gap("lot5", 6)
 shop("bar", 5, "SKY BAR", "teal")
-seam("seam3", 2.0)
+seam("pipe2", 2.0)
 shop("florist", 5, "FLOWERS", "green")
 gap("lot6", 5)
 shop("deli", 6, "DELI", "orange")
-# 4. The first downpipe, then the Apollo, the third man and a car in Gantry Lane
+# 4. The third downpipe, then the Apollo, the third man and a car in Gantry Lane
 gap("lot6b", 4)
 shop("hats", 5, "HATS", "blue")
-seam("pipe1", 1.5)
+seam("pipe3", 1.5)
 shop("jewels", 6, "JEWELLERS", "blue")
 gap("lot7", 5)
 shop("casino", 6, "CASINO", "red")
@@ -98,12 +99,12 @@ gap("lot10a", 6)
 shop("cleaners", 6, "DRY CLEANERS", "green")
 hotel("meteor", 8, "THE METEOR", "red")
 shop("photo", 5, "CAMERAS", "orange")
-# 6. Ignition Street, the second downpipe and the Stratos with the last man
+# 6. Ignition Street, the fourth downpipe and the Stratos with the last man
 s.xing("ignition", 8, car=True)
 shop("bank", 6, "SAVINGS", "blue", style="doorway")
 gap("lot11", 3)
 shop("pipe_bar", 6, "MARTINIS", "orange")
-seam("pipe2", 1.5)
+seam("pipe4", 1.5)
 shop("cinema", 6, "ROCKETORAMA", "red")
 gap("lot12", 4)
 shop("bowling", 6, "BOWL", "green")
@@ -136,11 +137,13 @@ s.checkpoints = [s.start("travel") + 1.1, s.start("tailor") + 1.5, s.start("pipe
 s.feature("puddle", s.mid("lot1"), w=1.0)
 s.feature("puddle", s.mid("lot2"), w=1.2)
 s.feature("puddle", s.mid("lot3"), w=1.2)
+s.feature("gutter", s.mid("pipe1"))
 s.feature("puddle", s.mid("lot4"), w=1.4)
 s.feature("puddle", s.start("thrust") + 1.2, w=1.4, deep=True)
 s.feature("puddle", s.mid("lot5"), w=1.2)
+s.feature("gutter", s.mid("pipe2"))
 s.feature("puddle", s.mid("lot6"), w=1.2)
-s.feature("gutter", s.mid("pipe1"))
+s.feature("gutter", s.mid("pipe3"))
 s.feature("puddle", s.mid("lot7"), w=1.2)
 s.feature("puddle", s.start("gantry") + 1.2, w=1.6, deep=True)
 s.feature("puddle", s.mid("lot8"), w=1.2)
@@ -148,7 +151,7 @@ s.feature("puddle", s.mid("lot9"), w=1.4)
 s.feature("puddle", s.mid("lot10"), w=1.2)
 s.feature("puddle", s.start("ignition") + 1.2, w=1.4, deep=True)
 s.feature("puddle", s.mid("lot11"), w=1.2)
-s.feature("gutter", s.mid("pipe2"))
+s.feature("gutter", s.mid("pipe4"))
 s.feature("puddle", s.mid("lot12"), w=1.4)
 s.feature("puddle", s.mid("lot13"), w=1.4, deep=True)
 s.feature("puddle", s.mid("lot14"), w=1.2)
@@ -198,16 +201,16 @@ s.set_piece("The Starliner", 0.0, s.end("lot2"),
             "umbrella's shot is introduced")
 s.set_piece("Hotel Orbit", s.start("grill"), s.end("lot4"),
             "the first man under a hotel canopy opens up as the walker comes: soak him, block his jets "
-            "tilted forward then back, or hurry past")
+            "tilted forward then back, or hurry past; a downpipe past him refills the shot")
 s.set_piece("The Comet", s.start("thrust"), s.end("lot6"),
-            "a car crossing, then the second man between gaps; the shot runs low")
+            "a car crossing, then the second man between gaps, and a downpipe past him")
 s.set_piece("The Apollo and Gantry Lane", s.start("deli"), s.end("gantry"),
-            "the first downpipe refills the shot just before the third man; a car idles dark in Gantry "
+            "the third downpipe refills the shot just before the third man; a car idles dark in Gantry "
             "Lane with a man in a yellow slicker at the corner, who gets in once the third man is dealt "
             "with, and the car pulls out through the puddle at the walker")
 s.set_piece("Booster Row", s.start("tailor"), s.end("shoes"),
             "wider gaps as the rain thickens, the fourth man at the Satellite")
 s.set_piece("The Stratos", s.start("ignition"), s.end("inn"),
-            "a car crossing, the second downpipe, the last man at the Stratos, then gaps to the inn")
+            "a car crossing, the fourth downpipe, the last man at the Stratos, then gaps to the inn")
 
 s.write()
