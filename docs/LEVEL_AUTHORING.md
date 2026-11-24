@@ -18,7 +18,7 @@ of writing. Check them there if a result looks off.
    in open sky begins with the umbrella closed and the walker gets soaked.
    `tools/shots.sh OUT "2,6,10" res://src/level/level.tscn --autopilot --level=LEVEL --start-x=M`
    `python3 tools/grid.py sheet.png OUT/shot_*.png`
-6. Before committing, run `godot --headless --path . res://tests/run_tests.tscn` and
+6. Before committing, run `tools/test.sh` and
    `tools/playtest.sh LEVEL`. The playtest must report 0 errors.
 
 Lots sit end to end, so every later `x` shifts when you change one width. Write the street as a plan

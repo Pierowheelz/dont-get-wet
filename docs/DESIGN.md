@@ -199,7 +199,7 @@ that thins when you're drenched.
   later with a reduced-quality preset.
 - Structure: `src/` (scripts & scenes), `levels/` (JSON), `data/` (tunables), `assets/`, `tools/`,
   `tests/`.
-- Headless tests: `godot --headless --path . res://tests/run_tests.tscn`.
+- Headless tests: `tools/test.sh`, which runs `res://tests/run_tests.tscn` in parallel shards at `--fixed-fps 60`.
 - Autopilot bot (`--autopilot`) plays levels to sanity-check that every level is beatable and to tune
   difficulty.
 
