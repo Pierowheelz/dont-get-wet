@@ -58,7 +58,6 @@ func _ready() -> void:
 	man.level = level
 	man.facing = -1
 	man.pose = RaincoatFigure.Pose.WATCH
-	man.smoking = true
 	man.walk_speed = BOARD_SPEED
 	man.advance = false
 	man.position = Vector3(crossing_x + STAND.x, level.ground_y(crossing_x + STAND.x), STAND.z)
@@ -101,7 +100,6 @@ func _board() -> void:
 	_route = [corner, Vector3(crossing_x + DOOR.x, LevelBuilder.ROAD_Y, DOOR.z)]
 	man.facing = 1
 	man.pose = RaincoatFigure.Pose.WALK
-	man.smoking = false
 
 
 func _gone() -> void:

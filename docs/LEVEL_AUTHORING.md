@@ -340,7 +340,7 @@ down the street like the `figures` around them. The rules, all in `src/level/hen
 
 **`pickup`** (`{"x", "after"}`; `s.pickup(xing_tag, after)`) stops a black sedan in the side street at
 the crossing starting at `x` (one without `car`), headlights off, with a man in a yellow slicker
-(`RaincoatFigure`, smoking, watching) waiting at the corner under the last canopy before it. He is
+(`RaincoatFigure`, watching) waiting at the corner under the last canopy before it. He is
 scenery: no water reaches him. While the walker is within 22 m short of the crossing the camera eases
 2.5 m ahead (`Level.camera_bias`) to keep him in shot, and the first time he is in the frame the hint
 "Raincoat. Of course he wore a raincoat." shows. When henchman number `after` (0-based, in x order) is
@@ -378,8 +378,8 @@ behind it. The bots hold the umbrella open while one is on, never rest or refill
 (`DriveBy.brace()` -1) from 0.35 s before the splash until it has landed and forward (+1) from 0.5 s
 before the shot until it has landed. level_preview ignores them (`tools/preview.sh` is the judge).
 
-**`slickers`** (`[{"x", "z", "facing", "pose", "smoking"}]`; `s.slicker(x, z=0.8, facing=1,
-pose="stand", smoking=False)`) place a man in a yellow slicker (`RaincoatFigure`) at x on lane z:
+**`slickers`** (`[{"x", "z", "facing", "pose"}]`; `s.slicker(x, z=0.8, facing=1,
+pose="stand")`) place a man in a yellow slicker (`RaincoatFigure`) at x on lane z:
 `facing` 1 or -1, `pose` `"stand"`, `"watch"` (turned toward the street) or `"walk"`. Scenery only:
 he is no `WetBody`, so the walker's shots pass him. Put him under cover.
 
@@ -505,7 +505,7 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
   26 m even though the sun lets a player recover.
 - **`--start-x` for screenshots:** start under cover. Cars whose crossing is behind the start never
   drive.
-- **`--slicker=X[,stand|watch|walk[,1|-1[,smoke[,Z]]]]`** places a man in a yellow slicker
+- **`--slicker=X[,stand|watch|walk[,1|-1[,Z]]]`** places a man in a yellow slicker
   (`src/level/raincoat_figure.gd`) at x X, lane z Z (default 0.8), for screenshots only;
   `--slicker-close` frames the first one with a close camera.
 - **`--aim=-1..1`** (with `--armed` below street six) holds the furled umbrella raised and pointed that

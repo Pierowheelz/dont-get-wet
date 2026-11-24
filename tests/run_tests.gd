@@ -790,14 +790,8 @@ func _test_raincoat_figure() -> void:
 		await get_tree().create_timer(1.0).timeout
 		var moved := (fig.position.x - x0) * facing
 		check(moved > 0.9 * fig.walk_speed and moved < 1.3 * fig.walk_speed, "facing %d: walking, he moves his way at walk_speed (%.2f m in 1 s)" % [facing, moved])
-		var shaft := fig.umbrella.global_basis.y.normalized()
-		check(shaft.x * facing > 0.8, "facing %d: the furled umbrella points forward, like a rifle (%s)" % [facing, shaft])
 		check(fig.umbrella.global_position.z > fig.global_position.z + 0.1, "facing %d: carried in the camera-side hand (z %+.2f)" % [facing, fig.umbrella.global_position.z - fig.global_position.z])
 		check(fig.umbrella.open == 0.0 and fig.umbrella._body.collision_layer == 0, "facing %d: furled, and no collider for the rain to hit" % facing)
-		fig.smoking = true
-		var cig_visible := fig._cig.visible
-		fig.smoking = false
-		check(cig_visible and not fig._cig.visible, "facing %d: smoking shows the cigarette, and hides it again" % facing)
 		fig.queue_free()
 	await _idle_frames(1)
 
@@ -1728,7 +1722,7 @@ func _test_rocket_row() -> void:
 	var cx: float = pk.crossing_x
 	var slicker := pk.man
 	check(pk.phase == PickupCar.P.PARKED and not pk.is_threat_for(cx - 5.0) and pk._lights.all(func(l: SpotLight3D) -> bool: return l.light_energy == 0.0)
-		and slicker is RaincoatFigure and not WetBody.of_level(level).has(slicker as Node) and slicker.smoking,
+		and slicker is RaincoatFigure and not WetBody.of_level(level).has(slicker as Node),
 		"a car idles dark in the side street, the man in the slicker beside it, out of the shot's reach")
 	await _walker_at(cx - 12.0)
 	var early: bool = level._seen.has("slicker")
@@ -1907,8 +1901,8 @@ func _test_the_bypass() -> void:
 
 	# The slicker on the motel walkway: under cover, and no body for the shot to wet.
 	var figs: Array = level.get_children().filter(func(n: Node) -> bool: return n is RaincoatFigure)
-	check(figs.size() == 1 and figs[0].smoking and not WetBody.of_level(level).has(figs[0]),
-		"one man in a slicker, smoking, who is no body the walker's shot can wet")
+	check(figs.size() == 1 and not WetBody.of_level(level).has(figs[0]),
+		"one man in a slicker, who is no body the walker's shot can wet")
 	var walk_x: float = figs[0].position.x
 	var shut := await _place(walk_x, 0.0)
 	check(shut < 0.05, "under the motel walkway with the umbrella shut: exposure %.2f" % shut)

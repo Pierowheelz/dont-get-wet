@@ -115,13 +115,10 @@ class Street:
         passes, then a passenger fires one telegraphed shot from ahead."""
         self.drive_bys.append({"x": round(x, 2)})
 
-    def slicker(self, x, z=0.8, facing=1, pose="stand", smoking=False):
+    def slicker(self, x, z=0.8, facing=1, pose="stand"):
         """A man in a yellow slicker standing at x on lane z (scenery). facing 1 or -1;
         pose "stand", "watch" (turned toward the street) or "walk"."""
-        f = {"x": round(x, 2), "z": z, "facing": facing, "pose": pose}
-        if smoking:
-            f["smoking"] = True
-        self.slickers.append(f)
+        self.slickers.append({"x": round(x, 2), "z": z, "facing": facing, "pose": pose})
 
     def henchman(self, x):
         """A man waiting under cover at x who fires telegraphed jets at the walker on a timer while he

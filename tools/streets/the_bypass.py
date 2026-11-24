@@ -105,8 +105,8 @@ s.attacker(s.mid("pipe") - 9.0, shots=4, gap=3.6, wait=s.start("petrol1") + 1.6,
 # him out in the open and fires from ahead just as he comes in under cover.
 for t in ["bait", "panel", "rooms1"]:
     s.drive_by(s.start(t) - DRIVE_BY_LEAD)
-# On the walkway at the motel, in a yellow slicker, smoking. He doesn't move.
-s.slicker(s.start("rooms2") + 5.0, z=0.8, facing=-1, pose="watch", smoking=True)
+# On the walkway at the motel, in a yellow slicker. He doesn't move.
+s.slicker(s.start("rooms2") + 5.0, z=0.8, facing=-1, pose="watch")
 s.hint(s.start("rooms2") + 3.0, "He came dressed for it.", 4.0)
 
 for t in ["cafe", "wash", "spares", "hire", "freight", "store", "feed", "bait", "kiosk", "shed", "panel", "grain", "laundry"]:
