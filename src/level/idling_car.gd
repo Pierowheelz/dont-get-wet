@@ -15,6 +15,7 @@ const DRIVER := Vector3(-0.05, 0.0, -0.38)         # seat under the steering whe
 
 var _wipers: Array[Node3D] = []
 var _t := 0.0
+var driver: Node3D                                 # the hat-and-shoulders silhouette at the wheel
 
 
 func _ready() -> void:
@@ -94,8 +95,12 @@ func _ready() -> void:
 	add_child(dash)
 
 
-## A man's head and shoulders in a dark coat, and a fedora: a silhouette, never a face.
+## A man's head and shoulders in a dark coat, and a fedora: a silhouette, never a face. All under
+## `driver`, so a drive-by can put someone else at the wheel.
 func _driver() -> void:
+	driver = Node3D.new()
+	driver.name = "Driver"
+	add_child(driver)
 	var coat := StandardMaterial3D.new()
 	coat.albedo_color = Color(0.05, 0.05, 0.06)
 	coat.roughness = 0.8
@@ -113,7 +118,7 @@ func _driver() -> void:
 		mi.mesh = p[0]
 		mi.material_override = p[2]
 		mi.position = DRIVER + p[1]
-		add_child(mi)
+		driver.add_child(mi)
 
 
 static func _capsule(r: float, h: float) -> Mesh:

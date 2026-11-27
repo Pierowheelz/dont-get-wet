@@ -708,9 +708,13 @@ func _autopilot(delta: float) -> Array:
 	# line of fire (deep under an arch a pursuer can't shoot). When a jet glints, open up and tilt toward it.
 	var att: Node = level.get("attackers")
 	var hm: Node = level.get("henchmen")
-	var jet_in: bool = att != null and att.incoming() or hm != null and hm.incoming()
+	# A runner counts from his first footstep until his shot has landed, never from his trigger x:
+	# what a player could hear and see.
+	var rn: Node = level.get("runners")
+	var runner: bool = rn != null and rn.threat()
+	var jet_in: bool = att != null and att.incoming() or hm != null and hm.incoming() or rn != null and rn.incoming()
 	var deep_in_arch: bool = level.track != null and level.track.arch_at(position.x) and level.track.arch_at(position.x + lead)
-	var under_fire: bool = att != null and att.armed() and not deep_in_arch or hm != null and hm.armed()
+	var under_fire: bool = att != null and att.armed() and not deep_in_arch or hm != null and hm.armed() or runner
 	var next_glint: float = minf(att.next_glint_in() if att else INF, hm.next_glint_in() if hm else INF)
 	# Stop is held, like a player keeping the button down until the bar is full. Deciding from the
 	# live state instead let a flicker in the cover check release it mid-rest (worse with --human's
@@ -750,7 +754,7 @@ func _autopilot(delta: float) -> Array:
 	var rotor := _rotor_threat(Game.umbrella_open_time() + 0.5)
 	if rotor:
 		danger = true
-	if jet_in:
+	if jet_in or runner:
 		danger = true
 	# The canopy takes umbrella_open_time to open and a shot lands about a second after its glint:
 	# have it up before his next one.
@@ -795,6 +799,9 @@ func _autopilot(delta: float) -> Array:
 		tl = minf(tl, -0.85)
 	elif brace > 0.0:
 		tl = maxf(tl, 0.85)
+	# A runner: toward him once his shot glints (he is just past by then).
+	if runner and rn.brace():
+		tl = minf(tl, -0.85) if rn.side() < 0.0 else maxf(tl, 0.85)
 	if drive_by and db.brace() != 0.0:
 		tl = -0.7 if db.brace() < 0.0 else 0.85   # back toward the splash, then forward toward the shot
 	return [u, h, tl, stop]
@@ -805,7 +812,7 @@ func _autopilot(delta: float) -> Array:
 func _autopilot_fire(tl := 0.0) -> bool:
 	if not gun.armed or gun.shots < 1.0:
 		return false
-	for shooter: Node in [level.get("attackers"), level.get("henchmen")]:
+	for shooter: Node in [level.get("attackers"), level.get("henchmen"), level.get("runners")]:
 		if shooter and shooter.incoming():
 			return false
 	# Open, the canopy's tilt aims; furled, the side it is about to swing the shaft up to.
@@ -821,7 +828,7 @@ func _autopilot_fire(tl := 0.0) -> bool:
 func _ap_shot_side() -> float:
 	if not gun.ready():
 		return 0.0
-	for shooter: Node in [level.get("attackers"), level.get("henchmen")]:
+	for shooter: Node in [level.get("attackers"), level.get("henchmen"), level.get("runners")]:
 		if shooter and shooter.incoming():
 			return 0.0
 	var ahead := _ap_mark(1.0)

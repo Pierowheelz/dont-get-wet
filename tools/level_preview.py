@@ -10,8 +10,8 @@ It can't simulate scripted threats (`attackers`, `henchmen`, `drive_bys`, the `c
 `helicopters`, `squalls`, `runners`): tools/preview.sh, which plays the street with both bots, is the
 judge of those. On a street with skyways, or in the suburbs or the country, they are weighed into the
 scores as threats (see threats()); elsewhere they are left out, and the strip only marks where each
-helicopter is triggered (and where it hovers) and where each squall is triggered (and where its gust
-blows on a walking walker). A
+helicopter (and where it hovers), drive-by, runner and squall is triggered (and where its gust blows on
+a walking walker). A
 `skyway` is cover like an awning, only higher, so wind slants rain in further under its ends.
 """
 import argparse
@@ -45,6 +45,9 @@ GUST_C = (40, 140, 110)
 SQUALL_OFF = 20.0     # a gust sets off this far upwind of its trigger (Squall.START_OFF)
 SQUALL_SPEED = 8.0    # and its front blows down the lane at this (Squall.SPEED)
 WALK = 1.3            # walk_speed, for where a gust meets a walking walker
+CAR_C = (40, 44, 58)
+SLICKER_C = (232, 190, 30)
+RUNNER_C = (170, 45, 45)
 INK = (30, 34, 42)
 MUTED = (110, 116, 128)
 BG = (247, 247, 244)
@@ -642,6 +645,42 @@ def squall_glyph(d, sq, st, x0m, x1m, X, y):
         d.text((cx - gdir * 14, y + 26), f"gust {dur:g}s", fill=GUST_C, font=font(9, True), anchor="lm" if gdir < 0 else "rm")
 
 
+def car_glyph(d, cx, y, quiet=False, shot=True, slicker=False):
+    """A drive-by's trigger: a small sedan at x, lit with its beam ahead, or dark and hollow for a
+    quiet one; a yellow head at the wheel for Fairweather, a red dot over the boot for a passenger's shot."""
+    cy = y + 24
+    d.line([(cx, y + 2), (cx, y + H_FEAT_PX)], fill=CAR_C, width=1)
+    body = [cx - 10, cy - 2, cx + 10, cy + 4]
+    cabin = [cx - 5, cy - 7, cx + 4, cy - 2]
+    if quiet:
+        d.rectangle(body, outline=CAR_C, width=2)
+        d.rectangle(cabin, outline=CAR_C, width=1)
+    else:
+        d.rectangle(body, fill=CAR_C)
+        d.rectangle(cabin, fill=CAR_C)
+        d.polygon([(cx + 10, cy), (cx + 22, cy - 4), (cx + 22, cy + 5)], fill=(250, 226, 140))
+    for wx in (cx - 6, cx + 6):
+        d.ellipse([wx - 3, cy + 2, wx + 3, cy + 8], fill=CAR_C)
+    if slicker:
+        d.ellipse([cx - 1, cy - 7, cx + 4, cy - 2], fill=SLICKER_C)
+    if shot:
+        d.ellipse([cx - 9, cy - 8, cx - 5, cy - 4], fill=RUNNER_C)
+
+
+def runner_glyph(d, cx, y):
+    """A runner's trigger: a running figure at x, with speed lines behind him."""
+    c = RUNNER_C
+    d.line([(cx, y + 2), (cx, y + H_FEAT_PX)], fill=c, width=1)
+    hy = y + 14
+    d.ellipse([cx + 1, hy - 3, cx + 6, hy + 2], fill=c)
+    d.line([(cx + 3, hy + 2), (cx, hy + 10)], fill=c, width=2)                  # body, leaning in
+    d.line([(cx, hy + 10), (cx + 5, hy + 15), (cx + 3, hy + 20)], fill=c, width=2)
+    d.line([(cx, hy + 10), (cx - 5, hy + 14), (cx - 8, hy + 12)], fill=c, width=2)
+    d.line([(cx + 2, hy + 5), (cx + 9, hy + 7)], fill=c, width=2)               # the furled umbrella
+    for k in range(3):
+        d.line([(cx - 16, hy + 3 + 4 * k), (cx - 9, hy + 3 + 4 * k)], fill=c, width=1)
+
+
 H_FEAT_PX = 36
 
 FEATURE_NAMES = {"puddle": "puddle", "gutter": "gutter", "sun": "sun break", "vent": "warm vent",
@@ -777,6 +816,12 @@ def render(st, tun, traces, out, title):
             heli_glyph(d, h, x0m, x1m, X, y)
         for sq in st.d.get("squalls", []):
             squall_glyph(d, sq, st, x0m, x1m, X, y)
+        for c in st.d.get("drive_bys", []):
+            if x0m <= float(c["x"]) <= x1m:
+                car_glyph(d, X(float(c["x"])), y, c.get("quiet", False), c.get("shot", True), c.get("driver") == "slicker")
+        for r in st.d.get("runners", []):
+            if x0m <= float(r["x"]) <= x1m:
+                runner_glyph(d, X(float(r["x"])), y)
         for f in st.features:
             fx = float(f["x"])
             fw = float(f.get("w", 1.0))
@@ -834,6 +879,14 @@ def render(st, tun, traces, out, title):
         glyph(d, kind, x + 14, ly - 8, 20)
         d.text((x + 34, ly + 8), FEATURE_NAMES[kind], fill=INK, font=font(12), anchor="lm")
         x += 140
+    car_glyph(d, x + 14, ly - 14)
+    d.text((x + 40, ly + 8), "drive-by", fill=INK, font=font(12), anchor="lm")
+    x += 120
+    car_glyph(d, x + 14, ly - 14, quiet=True, shot=False, slicker=True)
+    d.text((x + 40, ly + 8), "quiet, Fairweather", fill=INK, font=font(12), anchor="lm")
+    x += 170
+    runner_glyph(d, x + 18, ly - 14)
+    d.text((x + 34, ly + 8), "runner", fill=INK, font=font(12), anchor="lm")
     ly += 30
     d.line([(LEFT, ly), (LEFT + 24, ly)], fill=RAIN_C, width=2)
     d.text((LEFT + 30, ly), "rain 0-1.5", fill=INK, font=font(12), anchor="lm")
