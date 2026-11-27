@@ -59,6 +59,9 @@ var _step_phase := 0.0
 var _ap_hold := 0.0
 var _ap_resting := false          # autopilot is holding Stop until stamina is full
 var _ap_no_rest_before := -INF      # autopilot won't settle to rest again before this x
+var _ap_tree_rest := false        # autopilot has shut the umbrella under trees to get its breath back
+const TREE_REST_BELOW := 70.0     # it shuts up under trees once stamina falls below this...
+const TREE_REST_UNTIL := 95.0     # ...and opens again once it is back to this, or the trees end
 var _ap_filling := false          # autopilot is stopped under a stream, refilling the shot
 var _ap_fill_dry := 0.0           # s it has stood there without the stream refilling it
 const FILL_GIVE_UP_S := 1.5
@@ -696,11 +699,13 @@ func _humanise(ap: Array, delta: float) -> Array:
 	out[1] = 0.0 if stamina < 95.0 else out[1]   # humans hurry less precisely
 	return out
 
-func _exposed_at(x: float, height := 1.6) -> bool:
+## `trees_shelter`: a tree's crown counts as cover (it lets only tree_leak of the rain through).
+func _exposed_at(x: float, height := 1.6, trees_shelter := false) -> bool:
 	if level.rain_intensity(x) <= 0.0:
 		return false
 	var p := Vector3(x, level.ground_y(x) + height, position.z)
-	return not _cast(p, p - rain_dir() * 30.0, COVER_MASK)
+	var mask := COVER_MASK | TREE_MASK if trees_shelter else COVER_MASK
+	return not _cast(p, p - rain_dir() * 30.0, mask)
 
 
 ## Returns [umbrella, hurry, tilt, stop].
@@ -739,10 +744,18 @@ func _autopilot(delta: float) -> Array:
 			_ap_no_rest_before = position.x + 1.5
 		else:
 			return [0.0, 0.0, tl0, true]
+	# Under trees the crown keeps most of the rain off: tired, he shuts the umbrella there and takes
+	# tree_leak of the rain to get his breath back, as a player would, and opens it again once rested
+	# or when the trees end (a gust coming still opens it: see _physics_process).
+	if _ap_tree_rest:
+		if stamina >= TREE_REST_UNTIL or not level.under_trees(position.x):
+			_ap_tree_rest = false
+	elif stamina < TREE_REST_BELOW and level.under_trees(position.x):
+		_ap_tree_rest = true
 	var danger := false
 	var dx := -0.4
 	while dx <= lead:
-		if _exposed_at(position.x + dx) or _exposed_at(position.x + dx + 0.15, 0.9):
+		if _exposed_at(position.x + dx, 1.6, _ap_tree_rest) or _exposed_at(position.x + dx + 0.15, 0.9, _ap_tree_rest):
 			danger = true
 			break
 		dx += 0.2
