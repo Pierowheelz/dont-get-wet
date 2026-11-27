@@ -318,6 +318,7 @@ func _sun(x: float, w: float) -> void:
 		sl.position = low[0]
 		sl.light_color = low[1]
 		sl.light_energy = low[2]
+		sl.light_volumetric_fog_energy = 0.45
 		sl.spot_angle = rad_to_deg(atan2(w * 0.5, sl.position.distance_to(Vector3(cx, 0.0, 1.6)))) + 1.0
 	root.add_child(sl)
 	sl.look_at(Vector3(cx, 0.0, 1.6), Vector3.UP)

@@ -62,9 +62,10 @@ S needs 950, which a run at par reaches with up to 20% wet.
 | `canopy` | gas-station roof | Only with `style: "gas_station"`, which draws it. |
 | `walkway` | flat slab at 3.0 m, 2.4 m deep, steel posts at its front edge | A motel's upper walkway roofing the lower one; use with `style: "motel"`. |
 | `trees` | a tree's crown, underside 3.6 m, from z -1.5 out to 3.7 | **Partial cover** on any street (`TreeCover`, below): it keeps off all but `tree_leak` (15%) of the rain, so the walker gets a little wet with the umbrella shut and none with it open. Not shelter: no checkpoint, no resting. |
-| `shelter` | roof at 2.6 m, 2.4 m deep | A bus shelter's or a lychgate's roof; use with `style: "bus_shelter"` or `"lychgate"`. |
+| `shelter` | roof at 2.6 m, 2.4 m deep | A bus shelter's or a lychgate's roof; use with `style: "bus_shelter"` or `"lychgate"` (a suburban street draws its own bus shelter on the same numbers). |
 | `barn` | roof at 4.4 m from 7 m back to z 2.6 | An open-fronted Dutch barn; use with `style: "barn"`. Wind slants rain in further under its ends. |
-| `porch` | roof at 2.55 m, 2.35 m deep, over part of the lot | A porch over the door: 2.6 m centred on it, or the lot's own `porch: [x0, x1]` (local; `[0, w]` is a verandah along the whole front). Use with `cottage` or a country `inn`; the cover draws it. |
+| `porch` | roof at 2.55 m, 2.35 m deep, over part of the lot | A porch over the door: 2.6 m centred on it, or the lot's own `porch: [x0, x1]` (local; `[0, w]` is a verandah along the whole front). Use with `cottage`, a country `inn` or a suburban `church_hall`; the cover draws it. |
+| `bridge` | girders at 4.8 m over the whole lot, from the abutment out past the camera | A rail overbridge across the street; use with `style: "overbridge"` on a suburban street. The visual rain stops under it from the wall out to the camera; wind slants rain in under its ends as under a skyway. |
 | `none` | open sky | |
 
 `style` picks the ground-floor kit module: `shop_lit` (lit window, warm sign), `shop_dark`,
@@ -149,6 +150,50 @@ LevelBuilder does with no `look`, so a `trees` lot always has its crown. `TreeCo
 at a time, a model's foliage) is in the group `&"foliage"` with its own material on
 `src/fx/foliage.gdshader`, whose `gust` (0 to 1) and `gust_dir` (+1 toward +X) the squalls drive.
 `Level.under_trees(x)` and `Level.tree_spans` read the same lots.
+
+**The suburbs** (`aesthetic: "suburban"`, `src/level/suburban_builder.gd`) are the edge of town past
+the bypass: a 1960s suburb that has been left behind, in the grey daylight of a rainy late afternoon
+(brighter than the city streets, darker than the country): a lighter, broken sky
+(`src/fx/overcast_sky.gdshader`), paler fog, daylight from above, and sun breaks that are a low warm
+sun from behind and to the left, throwing long shadows toward the camera. The pavement is a concrete
+footpath (z 0 to 2.4) with a grass nature strip to the kerb, leaves and rubbish in the gutter; a
+house's driveway crosses the strip with a dropped kerb (it is still pavement, not a crossing). A side
+street is footpaths and fences, a street sign and houses across its far end, with no zebra or signal.
+Behind the lots are back yards and a row of houses facing the next street, then low hills. Kit lots
+(`shop_lit`, `shop_dark`, `shuttered`, ...) are the shopping strip, from the outskirts' kit; the awning
+styles `classic`, `wide_stripe`, `waterfall` and `tin` (a veranda) are picked here, with the ones for
+any street. Its own lot styles, all behind the footpath line:
+
+| `style` | look | cover |
+|---|---|---|
+| `house` | brick veneer (hip roof of tiles) or weatherboard (gabled iron), set 7 m back behind a front garden and a low fence, a letterbox at the gate, a porch over the door, a TV aerial | `none` or `trees` |
+| `flats` | a walk-up block of flats, `floors` + 1 storeys, a breeze-block stairwell, balconies, some windows lit and some boarded; `sign` in letters on the stairwell | `none` or `trees` |
+| `vacant_block` | long grass and scrub behind a sagging wire fence, an agent's board (`sign`, default LAND FOR SALE), a dumped mattress and tyre | `none` or `trees` |
+| `park` | grass, a swing set with one swing hanging by a chain, a bench and a bin, bollards, park trees standing back; `sign` on a board | `none` or `trees` |
+| `church_hall` | a brick hall with its gable to the street, close to the footpath, a cross on the ridge, a notice board; `sign` on the gable; its door at `door` (local x, default the middle) | `porch` (over the footpath at the door) or `none` |
+| `bus_shelter` | fibro back wall, a cracked glass screen, a faded timetable and a blank advert case, a bench, the stop's sign at the kerb, a skillion roof | `shelter` |
+| `overbridge` | a rail overbridge across the street on a concrete abutment (rain streaks down it), plate girders, the embankment behind | `bridge` |
+| `inn` | on a suburban street, a 1960s brick corner pub: green tiles round the lit bar windows, cream render above, its `sign` (e.g. ROYAL HOTEL) over the awning and on the parapet. Its door is 4 m into the lot, as the kit inn's | `awning` or `none` |
+
+A `house` takes these optional fields (left out, it picks by a hash of its x, the same
+every time): `state` (`"lived"`: lit windows, curtains, a car in the carport; `"empty"`: dark, a
+broken pane, long grass, junk mail, often an agent's board; `"boarded"`: boarded windows, the gutter
+hanging, paint peeling, a bent aerial), `walls` (`"brick"` or `"weatherboard"`), `fence` (`"brick"`,
+`"picket"`, `"hedge"`, `"wire"` or `"none"`; picket palings go missing on an empty house), `drive`
+(`"left"`, `"right"` or `"none"`: a carport and a driveway that side; a house under 11 m wide has none
+unless it asks), `car` (`"sedan"` in the carport, `"wreck"`: a rusted, burnt-out car on the driveway,
+or `"none"`) and `sign` (its agent's board, e.g. FOR SALE or SOLD). Any lot takes `thin` (0 to 1, how far the
+suburb has thinned out toward the country: the house sits further back in a wider yard, the fence
+turns to wire, and the rooftops behind give way to a paddock behind a post-and-wire fence, with more
+trees; ramp it up over the last lots of a street that leads to the country). Any suburban lot with
+`cover: "trees"` gets a street tree on the nature strip (z 2.9) every 9 m or so, a plane or a gum
+(`street_tree_a` / `street_tree_b`, docs/CONTRACTS.md §10, else drawn in code), with TreeCover's
+crown over the lot. Shrubs, hedges and long grass sway in a gust as the trees do.
+
+A `lamp_post` prop is a timber power pole on the nature strip with a sodium lamp on its arm over the
+road (`"lamp": "out"` for a dead one, `"flicker"` for one that stutters and goes out now and then;
+`s.prop("lamp_post", x, lamp="out")`); `power_pole` is a pole with no lamp. Wires run from each pole
+to the next one within 60 m. The lamps are on, but in daylight they are not the main light.
 
 **`camera`** (`{"distance", "height", "fov", "pitch", "lead"}`, any of them;
 `Street(..., camera={...})`) replaces the camera tunables (`camera_distance`, `camera_height`,

@@ -7,16 +7,18 @@ extends RefCounted
 ##   flats         a three-storey walk-up block of flats over a car park strip
 ##   vacant_block  an overgrown block behind a sagging wire fence, an agent's board gone grey
 ##   park          a strip of park: a swing set with one swing gone, a bench, a bin, trees behind
-##   church_hall   a brick hall on the footpath line; with `cover: "shelter"` its flat entrance canopy
-##                 reaches over the footpath (full cover)
-##   bus_shelter   a bus shelter on the footpath, its glass cracked, its timetable faded; with
-##                 `cover: "shelter"` its roof is full cover
+##   church_hall   a brick hall on the footpath line; `cover: "porch"` puts a porch over the footpath at
+##                 its door (CountryBuilder's porch: full cover)
+##   bus_shelter   a bus shelter on the footpath, its glass cracked, its timetable faded; give it
+##                 `cover: "shelter"` (CountryBuilder's shelter roof numbers: full cover)
 ##   overbridge    a railway bridge across the street on concrete abutments; `cover: "bridge"` (full
 ##                 cover, the visual rain stops under it from the wall out to the camera)
 ##   inn           a 1960s brick corner pub (`sign`, e.g. "ROYAL HOTEL"); its door is at the lot's x + 4
 ## Kit lots (`shop_lit`, `shop_dark`, `shuttered`, ...) are the shopping strip, under the awning
 ## styles this aesthetic picks (verandas). Any lot with `cover: "trees"` gets street trees on the
-## nature strip (`street_tree_a/b.glb` when present) and its canopy's gameplay from TreeCover.
+## nature strip (`street_tree_a/b.glb` when present) and its crown's gameplay from TreeCover.
+## `shelter` and `porch` cover are CountryBuilder's (its colliders, drips and rain map, any street);
+## only `bridge` is this builder's.
 ##
 ## Lot fields (all optional; left out, the lot picks by a stable hash):
 ##   state  "lived" (lit windows, a car in the carport), "empty" (dark, overgrown, an agent's board)
@@ -40,13 +42,10 @@ const STRIP_Z1 := 3.34        # then the nature strip to the kerb
 const SET_BACK := 7.0         # a house's front wall stands this far behind the fence line
 const TREE_Z := 2.9           # street trees stand on the nature strip
 const POLE_Z := 3.12
-const SHELTER_Y := 2.55       # underside of a bus shelter's roof
-const PORCH_Y := 2.7          # underside of a church hall's entrance canopy
-const SHELTER_Z1 := 2.55      # both reach this far out over the footpath
 const BRIDGE_Y := 4.8         # underside of the rail overbridge's girders
 const BRIDGE_Z0 := -0.6       # its abutment face, behind the footpath
 const BRIDGE_Z1 := 16.0       # it runs on over the road and past the camera
-const TREE_MODELS := ["res://assets/country/street_tree_a.glb", "res://assets/country/street_tree_b.glb"]
+const TREE_MODELS := ["street_tree_a", "street_tree_b"]   # res://assets/country/, docs/CONTRACTS.md §10
 
 const BRICKS := [Color(0.62, 0.34, 0.22), Color(0.74, 0.62, 0.47), Color(0.4, 0.24, 0.18), Color(0.56, 0.42, 0.33)]
 const BOARDS := [Color(0.82, 0.78, 0.66), Color(0.62, 0.7, 0.6), Color(0.78, 0.74, 0.7), Color(0.66, 0.62, 0.52)]
@@ -102,8 +101,8 @@ static func lot(b: LevelBuilder, x: float, w: float, style: String, floors: int,
 			_pub(b, sts, x, w, maxi(floors, 1), d)
 	RoadsideBuilder._commit(b, sts)
 	var cover := String(d.get("cover", "none"))
-	var wants: String = {"bus_shelter": "shelter", "church_hall": "shelter", "overbridge": "bridge"}.get(style, "")
-	if cover in ["shelter", "bridge"] and cover != wants:
+	var wants: String = {"bus_shelter": "shelter", "church_hall": "porch", "overbridge": "bridge"}.get(style, "")
+	if cover in ["shelter", "porch", "bridge"] and cover != wants:
 		push_warning("level %s: %s at x=%.1f can't be cover '%s'" % [b.data.get("id", "?"), style, x, cover])
 
 
@@ -113,12 +112,12 @@ static func cover(b: LevelBuilder, d: Dictionary) -> void:
 		return
 	var x := float(d["x"])
 	var w := float(d["w"])
+	var node := TreeCover.build(b, x, w, {"crown": false})   # the crown's gameplay; the trees are drawn here
 	var n := maxi(1, roundi(w / 9.0))
 	var r := _rng(b, x, "trees")
 	for i in n:
 		var tx := x + w * (i + 0.5) / n + r.randf_range(-0.6, 0.6)
-		street_tree(b, tx, r.randi() % 2, r)
-	TreeCover.build(b, x, w, {"trunk_z": TREE_Z, "underside": 3.6, "aesthetic": "suburban"})
+		street_tree(b, node, tx, x, x + w, r.randi() % 2, r)
 
 
 # --- the street: footpath, nature strip, kerb ---------------------------------------------------------
@@ -532,10 +531,10 @@ static func _fence(b: LevelBuilder, sts: Dictionary, x0: float, x1: float, kind:
 					var sag := b._box(Vector3(c - a, 0.012, 0.012), Vector3((a + c) * 0.5, wy - (0.08 if gone else 0.0), z + 0.05), wire)
 					sag.rotation.z = 0.0
 	if kind == "brick" or kind == "picket":
-		_gatepost_gate(b, sts, gate, z, kind, gone)
+		_gatepost_gate(b, gate, z, kind, gone)
 
 
-static func _gatepost_gate(b: LevelBuilder, sts: Dictionary, gate: Array, z: float, kind: String, gone: bool) -> void:
+static func _gatepost_gate(b: LevelBuilder, gate: Array, z: float, kind: String, gone: bool) -> void:
 	# A low gate (iron in a brick wall, palings in a picket fence), standing open; on an empty house
 	# it hangs off one hinge.
 	var gw := float(gate[1]) - float(gate[0]) - 0.1
@@ -799,8 +798,8 @@ static func _park(b: LevelBuilder, sts: Dictionary, x: float, w: float, d: Dicti
 
 
 static func _church_hall(b: LevelBuilder, sts: Dictionary, x: float, w: float, d: Dictionary, r: RandomNumberGenerator) -> void:
-	var porch := String(d.get("cover", "none")) == "shelter"
-	var zf := -1.2
+	var porch := String(d.get("cover", "none")) == "porch"
+	var zf := -0.15
 	var depth := 16.0
 	var wall_h := 4.6
 	var brick := RoadsideBuilder._textured(b, "hall_brick", "brick_painted", Color(0.58, 0.4, 0.3))
@@ -826,12 +825,13 @@ static func _church_hall(b: LevelBuilder, sts: Dictionary, x: float, w: float, d
 	var n := maxi(2, int((x1 - x0) / 2.2))
 	for i in n:
 		var wx := lerpf(x0 + 1.0, x1 - 1.0, (i + 0.5) / n)
-		if absf(wx - cx) < 1.3:
+		if absf(wx - x - CountryBuilder.door_x(d)) < 1.3:
 			continue
 		RoadsideBuilder._add(sts, glass, wx - 0.3, wx + 0.3, 1.0, 3.6, zf + 0.01, zf + 0.04)
 		RoadsideBuilder._add(sts, cross, wx - 0.38, wx + 0.38, 0.9, 1.0, zf, zf + 0.1)
-	RoadsideBuilder._add(sts, _m(b, "hall_door", Color(0.3, 0.18, 0.1), 0.6), cx - 0.9, cx + 0.9, 0.0, 2.4, zf + 0.01, zf + 0.06)
-	RoadsideBuilder._add(sts, _m(b, "hall_step", Color(0.52, 0.5, 0.46), 0.8), cx - 1.3, cx + 1.3, 0.0, 0.14, zf, zf + 0.7)
+	var dx := x + CountryBuilder.door_x(d)   # the porch (CountryBuilder.porch_span) is centred on it
+	RoadsideBuilder._add(sts, _m(b, "hall_door", Color(0.3, 0.18, 0.1), 0.6), dx - 0.9, dx + 0.9, 0.0, 2.4, zf + 0.01, zf + 0.06)
+	RoadsideBuilder._add(sts, _m(b, "hall_step", Color(0.52, 0.5, 0.46), 0.8), dx - 1.3, dx + 1.3, 0.0, 0.14, zf, zf + 0.7)
 	# A notice board by the door, its notices long out of date.
 	var nb := x0 + 0.9
 	RoadsideBuilder._add(sts, _m(b, "notice_frame", Color(0.2, 0.2, 0.2), 0.6), nb - 0.6, nb + 0.6, 1.0, 1.9, zf + 0.01, zf + 0.07)
@@ -841,22 +841,12 @@ static func _church_hall(b: LevelBuilder, sts: Dictionary, x: float, w: float, d
 		ModernBuilder.sign_text(b, cx, wall_h + 0.4, zf + 0.02, String(d["sign"]), minf(x1 - x0 - 1.5, 4.5))
 	RoadsideBuilder._add(sts, _m(b, "hall_apron", Color(0.46, 0.45, 0.42), 0.7), x, x + w, -0.05, 0.02, zf, -0.05)
 	if porch:
-		# The flat entrance canopy of concrete on steel posts at the kerb side of the footpath: full cover.
-		var slab := _m(b, "hall_canopy", Color(0.66, 0.64, 0.58), 0.75)
-		var ca := x + 0.15
-		var cb := x + w - 0.15
-		RoadsideBuilder._add(sts, slab, ca, cb, PORCH_Y, PORCH_Y + 0.18, zf, SHELTER_Z1)
-		RoadsideBuilder._add(sts, _m(b, "hall_canopy_edge", Color(0.3, 0.22, 0.16), 0.7), ca, cb, PORCH_Y - 0.05, PORCH_Y + 0.25, SHELTER_Z1 - 0.06, SHELTER_Z1)
-		var post := _m(b, "hall_post", Color(0.14, 0.14, 0.14), 0.5, 0.6)
-		for pxx in [ca + 0.15, cb - 0.15]:
-			RoadsideBuilder._add(sts, post, pxx - 0.05, pxx + 0.05, 0.0, PORCH_Y, SHELTER_Z1 - 0.2, SHELTER_Z1 - 0.1)
-		b._cover_box(Vector3(cb - ca, 0.2, SHELTER_Z1 - zf), Transform3D(Basis(), Vector3((ca + cb) * 0.5, PORCH_Y + 0.1, (zf + SHELTER_Z1) * 0.5)))
-		b._drips(ca, cb, PORCH_Y - 0.05, SHELTER_Z1 + 0.03)
+		# CountryBuilder draws the porch over the footpath at the door (and its cover); a lamp under it.
 		var lamp := OmniLight3D.new()
 		lamp.light_color = Color(1.0, 0.82, 0.6)
 		lamp.light_energy = 0.6
 		lamp.omni_range = 4.0
-		lamp.position = Vector3(cx, PORCH_Y - 0.3, 0.6)
+		lamp.position = Vector3(dx, CountryBuilder.PORCH_Y - 0.3, 0.6)
 		b.root.add_child(lamp)
 	else:
 		RoadsideBuilder._add(sts, _m(b, "hall_canopy", Color(0.66, 0.64, 0.58), 0.75), cx - 1.5, cx + 1.5, 2.7, 2.85, zf, zf + 1.2)
@@ -890,13 +880,18 @@ static func _bus_shelter(b: LevelBuilder, sts: Dictionary, x: float, w: float, d
 		var cr := b._box(Vector3(0.012, r.randf_range(0.4, 0.9), 0.012), Vector3(c - 0.02, 1.3 + r.randf_range(-0.3, 0.3), 0.5), crack)
 		cr.rotation.x = r.randf_range(-1.2, 1.2)
 	if roofed:
-		var roof := _m(b, "shelter_roof", Color(0.32, 0.36, 0.33), 0.6, 0.3)
-		RoadsideBuilder._add(sts, roof, x, x + w, SHELTER_Y, SHELTER_Y + 0.12, -0.15, SHELTER_Z1)
-		RoadsideBuilder._add(sts, frame, x, x + w, SHELTER_Y - 0.06, SHELTER_Y + 0.2, SHELTER_Z1 - 0.08, SHELTER_Z1)
+		# A skillion of fibro on a steel frame, falling toward the street; its underside and reach are
+		# CountryBuilder's shelter numbers, whose collider, drips and rain map it shares.
+		var y := CountryBuilder.SHELTER_Y
+		var z1 := CountryBuilder.SHELTER_Z
+		var roof := _m(b, "shelter_roof", Color(0.4, 0.43, 0.4), 0.6, 0.2)
+		_quad(sts, roof, Vector3(x, y + 0.45, -0.15), Vector3(x + w, y + 0.45, -0.15), Vector3(x + w, y + 0.06, z1 + 0.05),
+			Vector3(x, y + 0.06, z1 + 0.05), Vector3.UP)
+		_quad(sts, roof, Vector3(x, y + 0.39, -0.15), Vector3(x + w, y + 0.39, -0.15), Vector3(x + w, y, z1 + 0.05),
+			Vector3(x, y, z1 + 0.05), Vector3.DOWN)
+		RoadsideBuilder._add(sts, frame, x, x + w, y - 0.06, y + 0.12, z1 - 0.03, z1 + 0.05)
 		for ex in [a, c]:
-			RoadsideBuilder._add(sts, frame, ex - 0.05, ex + 0.05, 0.0, SHELTER_Y, SHELTER_Z1 - 0.2, SHELTER_Z1 - 0.1)
-		b._cover_box(Vector3(w, 0.16, SHELTER_Z1 + 0.15), Transform3D(Basis(), Vector3(x + w * 0.5, SHELTER_Y + 0.07, (SHELTER_Z1 - 0.15) * 0.5)))
-		b._drips(x, x + w, SHELTER_Y - 0.08, SHELTER_Z1 + 0.03)
+			RoadsideBuilder._add(sts, frame, ex - 0.05, ex + 0.05, 0.0, y, z1 - 0.2, z1 - 0.1)
 	# The stop's sign on its own pole at the kerb.
 	var sgx := x + w - 0.3
 	RoadsideBuilder._add(sts, _m(b, "stop_pole", Color(0.6, 0.6, 0.58), 0.4, 0.6), sgx - 0.03, sgx + 0.03, 0.0, 2.6, 3.05, 3.11)
@@ -904,8 +899,13 @@ static func _bus_shelter(b: LevelBuilder, sts: Dictionary, x: float, w: float, d
 
 
 static func _overbridge(b: LevelBuilder, sts: Dictionary, x: float, w: float, d: Dictionary) -> void:
-	var conc := RoadsideBuilder._textured(b, "abutment", "concrete", Color(0.74, 0.72, 0.67))
-	var stain := _m(b, "abutment_stain", Color(0.3, 0.3, 0.28), 0.9)
+	var conc := RoadsideBuilder._textured(b, "abutment", "concrete", Color(0.86, 0.84, 0.78))
+	if conc is StandardMaterial3D and not (conc as StandardMaterial3D).emission_enabled:
+		# Lifted a little: under the deck it is in the bridge's own shade, and should still read as concrete.
+		conc.emission_enabled = true
+		conc.emission = Color(0.5, 0.49, 0.46)
+		conc.emission_energy_multiplier = 0.18
+	var stain := _m(b, "abutment_stain", Color(0.36, 0.36, 0.33), 0.9)
 	var steel := _m(b, "girder", Color(0.33, 0.39, 0.37), 0.6, 0.4)
 	var rust := _m(b, "girder_rust", Color(0.32, 0.2, 0.13), 0.85, 0.3)
 	var top := BRIDGE_Y + 0.9
@@ -988,7 +988,7 @@ static func _drips_z(b: LevelBuilder, x: float, y: float, z0: float, z1: float) 
 static func _pub(b: LevelBuilder, sts: Dictionary, x: float, w: float, floors: int, d: Dictionary) -> void:
 	var h := 4.0 + 3.2 * floors
 	var brick := RoadsideBuilder._textured(b, "pub_brick", "brick_painted", Color(0.45, 0.24, 0.17))
-	var render := RoadsideBuilder._textured(b, "pub_render", "plaster", Color(0.86, 0.8, 0.66))
+	var render := _m(b, "pub_render", Color(0.8, 0.74, 0.6), 0.85)
 	var tile := _m(b, "pub_tile", Color(0.14, 0.3, 0.22), 0.25, 0.1)
 	b._box(Vector3(w - 0.1, h, 12.0), Vector3(x + w * 0.5, h * 0.5, -6.2), _m(b, "pub_mass", Color(0.36, 0.2, 0.15), 0.9))
 	RoadsideBuilder._wall_face(b, brick, x, x + w, 1.1, 4.0, 0.012)
@@ -1161,7 +1161,7 @@ static func backdrop(b: LevelBuilder) -> void:
 			park_tree(b, Vector3(hx + r.randf() * hw, 0.0, -22.0 - r.randf() * 30.0), r, 0.8 + r.randf() * 0.5)
 		if thin >= 0.5:
 			# The paddock: a post-and-wire fence across the back of the yards, open grass beyond.
-			RoadsideBuilder._add(sts, _m(b, "paddock", Color(0.36, 0.38, 0.22), 0.95), hx, hx + hw, -0.04, 0.0, -150.0, -24.0)
+			RoadsideBuilder._add(sts, _m(b, "paddock", Color(0.5, 0.5, 0.27), 0.95), hx, hx + hw, -0.04, 0.01, -150.0, -24.0)
 			var post := _m(b, "fence_post", Color(0.34, 0.3, 0.24), 0.9)
 			var px := hx
 			while px < hx + hw:
@@ -1213,26 +1213,16 @@ static func _back_house(b: LevelBuilder, sts: Dictionary, x0: float, x1: float, 
 
 # --- trees -----------------------------------------------------------------------------------------
 
-static var _model_cache := {}
-
-
-## A street tree on the nature strip at x: a plane (kind 0) or a gum (1), the model if there is one,
-## else drawn here. Its foliage is in the `&"foliage"` group with a `gust` uniform; its canopy is
-## over the footpath with its underside above 3.4 m, and its cover comes from TreeCover.
-static func street_tree(b: LevelBuilder, x: float, kind: int, r: RandomNumberGenerator) -> void:
-	var path: String = TREE_MODELS[kind % TREE_MODELS.size()]
-	if ResourceLoader.exists(path):
-		if not _model_cache.has(path):
-			_model_cache[path] = load(path)
-		var ps: PackedScene = _model_cache[path]
-		var n := ps.instantiate() as Node3D
-		n.position = Vector3(x, 0.0, TREE_Z)
-		n.scale = Vector3.ONE * r.randf_range(0.92, 1.06)
-		b.root.add_child(n)
-		var fol := n.get_node_or_null("Foliage") as MeshInstance3D
-		if fol:
-			fol.material_override = _foliage_mat(b, Color(1.0, 1.0, 1.0).lerp(Color(0.95, 0.9, 0.7), r.randf() * 0.4))
-			fol.add_to_group(&"foliage")
+## A street tree on the nature strip at x, its foliage tagged with the lot's span x0..x1 (under
+## `parent`, TreeCover's node): a plane (kind 0) or a gum (1), the model if there is one, else drawn
+## here. Its leaves are in the `&"foliage"` group on the foliage shader; its crown is over the footpath
+## with nothing but the trunk below 3.4 m there.
+static func street_tree(b: LevelBuilder, parent: Node3D, x: float, x0: float, x1: float, kind: int, r: RandomNumberGenerator) -> void:
+	var m := TreeCover.model(b, TREE_MODELS[kind % TREE_MODELS.size()], Vector3(x, 0.0, TREE_Z), parent)
+	if m:
+		m.scale = Vector3.ONE * r.randf_range(0.94, 1.05)
+		m.rotation.y = r.randf_range(-0.12, 0.12)
+		TreeCover.tag_foliage(m, x0, x1)
 		return
 	_code_tree(b, Vector3(x, 0.0, TREE_Z), kind, r, 1.0)
 
@@ -1260,7 +1250,8 @@ static func _code_tree(b: LevelBuilder, at: Vector3, kind: int, r: RandomNumberG
 		var rad := Vector3.ONE * r.randf_range(1.6, 2.4) * s * (0.8 if kind == 1 else 1.0)
 		rad.y *= 0.75 if kind == 0 else 0.6
 		var c := head + off
-		c.y = maxf(c.y, at.y + (3.4 + rad.y) if over_path else c.y)
+		if over_path:
+			c.y = maxf(c.y, at.y + 3.4 + rad.y)   # nothing but the trunk below 3.4 m over the footpath
 		_blob(st, c, rad, base.lerp(base.lightened(0.25), r.randf()), 0.3, 1.0, r)
 	_foliage_mesh(b, st, at)
 
@@ -1292,7 +1283,11 @@ static func _blob(st: SurfaceTool, c: Vector3, rad: Vector3, col: Color, w0: flo
 static func _foliage_mesh(b: LevelBuilder, st: SurfaceTool, at: Vector3) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
-	mi.material_override = _foliage_mat(b, Color.WHITE)
+	var fm := TreeCover.foliage_material(b, TreeCover.LEAF_DARK, TreeCover.LEAF_LIGHT, 0.06, at.y, 4.0)
+	fm.set_shader_parameter("vertex_paint", true)   # painted in the vertex colours, COLOR.a its sway weight
+	mi.material_override = fm
+	mi.set_meta("x0", at.x - 2.0)
+	mi.set_meta("x1", at.x + 2.0)
 	# Its node sits at the plant's foot so the gust reads its x; the mesh is in world coordinates.
 	mi.position = at
 	mi.mesh = _shifted(mi.mesh, -at)
@@ -1311,34 +1306,16 @@ static func _shifted(mesh: ArrayMesh, by: Vector3) -> ArrayMesh:
 	return out
 
 
-static func _foliage_mat(b: LevelBuilder, tint: Color) -> ShaderMaterial:
-	var key := "foliage_%s" % tint.to_html()
-	if not b._mats.has(key):
-		var m := ShaderMaterial.new()
-		m.shader = load("res://src/fx/foliage.gdshader")
-		m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
-		b._mats[key] = m
-	return b._mats[key]
-
-
 # --- rain cover map, mood --------------------------------------------------------------------------
 
-## The suburban cover in the visual rain's cover map (LevelBuilder.cover_map): shelter roofs as
-## thin shells, the overbridge as open air under a deck from the wall out past the camera.
+## The overbridge in the visual rain's cover map (LevelBuilder.cover_map): open air under a deck, from
+## the wall out past the camera. (`shelter` and `porch` are CountryBuilder's.)
 static func cover_map(b: LevelBuilder, img: Image, x0: float) -> void:
 	for l in b.data.get("lots", []):
 		var lx := float(l["x"])
 		var lw := float(l["w"])
-		var style := String(l.get("style", ""))
-		match String(l.get("cover", "none")):
-			"shelter":
-				if style == "bus_shelter":
-					b._cover_fill(img, x0, lx, lx + lw, -0.15, SHELTER_Z1, func(_z): return SHELTER_Y + 0.12)
-				elif style == "church_hall":
-					b._cover_fill(img, x0, lx + 0.15, lx + lw - 0.15, -1.2, SHELTER_Z1, func(_z): return PORCH_Y + 0.18)
-			"bridge":
-				if style == "overbridge":
-					b._cover_fill(img, x0, lx, lx + lw, 0.0, LevelBuilder.COVER_Z1, func(_z): return BRIDGE_Y + 0.9, LevelBuilder.COVER_HIDE)
+		if String(l.get("cover", "none")) == "bridge" and String(l.get("style", "")) == "overbridge":
+			b._cover_fill(img, x0, lx, lx + lw, 0.0, LevelBuilder.COVER_Z1, func(_z): return BRIDGE_Y + 0.9, LevelBuilder.COVER_HIDE)
 
 
 ## The street's light: a grey, rainy late afternoon, real daylight under a lighter, broken sky;
