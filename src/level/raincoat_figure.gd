@@ -50,7 +50,7 @@ func _build() -> void:
 	model = (load(Player.CHARACTER_SCENE) as PackedScene).instantiate()
 	model.set("umbrella_left", facing < 0)   # the camera is on his right while he faces +x
 	add_child(model)
-	_dress()
+	dress(model)
 	if fill == null:
 		fill = OmniLight3D.new()
 		fill.light_color = Color(0.85, 0.9, 1.0)
@@ -70,10 +70,11 @@ func _build() -> void:
 	model.rotation.y = _yaw
 
 
-## Materials and added meshes only, never a reshaped body: the walker's suit dyed slicker yellow over
-## his grey trousers, and the skirt, hood and buttons skinned to his skeleton.
-func _dress() -> void:
-	var skel := model.find_child("GeneralSkeleton", true, false) as Skeleton3D
+## Dresses a walker model (Player.CHARACTER_SCENE) in the slicker. Materials and added meshes only,
+## never a reshaped body: the walker's suit dyed slicker yellow over his grey trousers, and the skirt,
+## hood and buttons skinned to his skeleton. The courier's `look: "slicker"` wears it too.
+static func dress(walker: Node3D) -> void:
+	var skel := walker.find_child("GeneralSkeleton", true, false) as Skeleton3D
 	var outfit := (load(OUTFIT) as PackedScene).instantiate()
 	for part in PARTS:
 		var mi := outfit.find_child(part, true, false) as MeshInstance3D

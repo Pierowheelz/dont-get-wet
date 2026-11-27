@@ -15,6 +15,10 @@ extends Node3D
 ## - the 4th gain: he turns, aims the umbrella and fires twice (the attempt fails as `shot`)
 ## He fails the attempt as `made` if the walker comes within MADE_DIST of him (or passes him), and as
 ## `lost` once he has been off the right edge of the frame for LOST_S.
+##
+## `look: "slicker"` makes him Fairweather, the man in the yellow slicker (dressed as RaincoatFigure,
+## hood up): the rain never wets him, and his umbrella stays furled, hanging from his fist like a cane.
+## On the 4th gain he shoulders it and fires from its tip. Every rule above is the same.
 
 enum Phase { WAIT, STEP_OUT, WALK, WINDOW, DOOR, INSIDE, AIM }
 
@@ -85,17 +89,25 @@ var _pace_override := -1.0     # --courier-pace=M (testing)
 var _resume_gap := RESUME_GAP  # --courier-gap=M (testing)
 var _was := Vector3.ZERO        # where he stood last frame
 var _aim_at := -1.0            # --courier-aim=S: he is made at S s on the level clock (testing)
+var slicker := false           # look "slicker": Fairweather, his umbrella always furled
+var _canopy := 1.0             # how far he opens the umbrella out on the street: 0 in the slicker
+var _shoulder := 0.0           # the slicker: 0..1 the furled umbrella shouldered and aimed
 
 var _model: Node3D
 var _umbrella: Umbrella
 var _grip: Node3D
+var _cane: Node3D              # the slicker: his right fist, where the furled umbrella hangs
 var _twist: CourierTwist
 var _sting: AudioStreamPlayer
+var _close: Camera3D           # --courier-close (screenshots)
 
 
 func _ready() -> void:
 	var spec: Dictionary = level.data["courier"]
 	appear_x = float(spec.get("appear_x", 20.0))
+	slicker = String(spec.get("look", "")) == "slicker"
+	if slicker:
+		_canopy = 0.0
 	door_x = float(spec.get("door_x", level.end_x))
 	for s in spec.get("stops", []):
 		stops.append([float(s["x"]), float(s.get("dur", 3.0))])
@@ -111,6 +123,12 @@ func _ready() -> void:
 			_aim_at = float(a.substr(14))
 	_build_model()
 	_build_fx()
+	if OS.get_cmdline_user_args().has("--courier-close"):
+		_close = Camera3D.new()
+		_close.fov = 30.0
+		_close.top_level = true   # follows him without turning with him
+		add_child(_close)
+		_close.make_current.call_deferred()
 	var px: float = level.player.position.x
 	if level.resumed:
 		suspicion = int(Game.checkpoint.get("courier", suspicion))
@@ -119,7 +137,7 @@ func _ready() -> void:
 		position = Vector3(px + _resume_gap, level.ground_y(px + _resume_gap), LANE_Z)
 		phase = Phase.WALK
 		speed = _pace()
-		_open = 1.0
+		_open = _canopy
 		_cooldown = GLANCE_COOLDOWN
 	else:
 		position = Vector3(appear_x, level.ground_y(appear_x), DOOR_Z)
@@ -134,6 +152,49 @@ func _build_model() -> void:
 	_model.set("umbrella_left", true)   # the free right hand is on the camera side
 	add_child(_model)
 	var skel := _model.find_child("GeneralSkeleton", true, false) as Skeleton3D
+	if slicker:
+		RaincoatFigure.dress(_model)
+	else:
+		_dress_suit(skel)
+	_twist = CourierTwist.new()
+	_twist.name = "CourierTwist"
+	skel.add_child(_twist)   # after the walker's PoseModifier, so it turns the finished pose
+	_twist.setup(skel, skel.get_node("PoseModifier"))
+	if slicker:
+		# The cane hangs in the camera-side right fist, so the free hand that goes inside his coat
+		# is the left. (The model's umbrella hand stays the left: it is the one that aims.)
+		_twist.left = true
+		var att := BoneAttachment3D.new()
+		att.name = "CaneBone"
+		att.bone_name = "RightHand"
+		skel.add_child(att)
+		_cane = Node3D.new()
+		_cane.name = "Cane"
+		_cane.transform = skel.get_node("PoseModifier").get("grip_r_offset")
+		att.add_child(_cane)
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(1.0, 0.95, 0.85)
+	fill.light_energy = 1.3
+	fill.omni_range = 3.2
+	fill.omni_attenuation = 1.4
+	fill.position = Vector3(0.3, 1.4, 1.1)
+	fill.light_specular = 0.2
+	add_child(fill)
+	_grip = _model.call("get_grip", &"right")
+	_umbrella = Umbrella.new()
+	_umbrella.canopy_color = RaincoatFigure.CANOPY if slicker else UMBRELLA_YELLOW
+	_grip.add_child(_umbrella)
+	_umbrella._body.collision_layer = 0   # scenery: it shelters nobody else
+	if slicker:
+		return
+	# The only yellow umbrella in the city: a touch of glow so it reads in the dark.
+	_umbrella._canopy_mat.emission_enabled = true
+	_umbrella._canopy_mat.emission = UMBRELLA_YELLOW
+	_umbrella._canopy_mat.emission_energy_multiplier = 0.35
+
+
+## The default look: the raincoat outfit's fedora over the walker's suit dyed a plain brown.
+func _dress_suit(skel: Skeleton3D) -> void:
 	var outfit := (load(OUTFIT) as PackedScene).instantiate()
 	var hat := outfit.find_child("fedora", true, false) as MeshInstance3D
 	hat.owner = null
@@ -148,27 +209,6 @@ func _build_model() -> void:
 					var d := (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
 					d.albedo_color = SUIT_TINT
 					mi.set_surface_override_material(s, d)
-	_twist = CourierTwist.new()
-	_twist.name = "CourierTwist"
-	skel.add_child(_twist)   # after the walker's PoseModifier, so it turns the finished pose
-	_twist.setup(skel, skel.get_node("PoseModifier"))
-	var fill := OmniLight3D.new()
-	fill.light_color = Color(1.0, 0.95, 0.85)
-	fill.light_energy = 1.3
-	fill.omni_range = 3.2
-	fill.omni_attenuation = 1.4
-	fill.position = Vector3(0.3, 1.4, 1.1)
-	fill.light_specular = 0.2
-	add_child(fill)
-	_grip = _model.call("get_grip", &"right")
-	_umbrella = Umbrella.new()
-	_umbrella.canopy_color = UMBRELLA_YELLOW
-	_grip.add_child(_umbrella)
-	_umbrella._body.collision_layer = 0   # scenery: it shelters nobody else
-	# The only yellow umbrella in the city: a touch of glow so it reads in the dark.
-	_umbrella._canopy_mat.emission_enabled = true
-	_umbrella._canopy_mat.emission = UMBRELLA_YELLOW
-	_umbrella._canopy_mat.emission_energy_multiplier = 0.35
 
 
 func _build_fx() -> void:
@@ -256,7 +296,8 @@ func _process(delta: float) -> void:
 		Phase.WAIT:
 			if live and p.position.x >= appear_x - STEP_OUT_GAP:
 				_set_phase(Phase.STEP_OUT)
-				level.hint_once("courier", "That's him. Keep him in sight, and keep your distance.", 4.5)
+				level.hint_once("courier", "Yellow slicker. That's Fairweather. Keep him in sight, and keep your distance."
+						if slicker else "That's him. Keep him in sight, and keep your distance.", 4.5)
 		Phase.STEP_OUT:
 			_step_out(delta)
 		Phase.WALK:
@@ -274,6 +315,8 @@ func _process(delta: float) -> void:
 	if live and tailing():
 		_check_fails(delta, p)
 	_pose(delta)
+	if _close:
+		_close.global_position = global_position + Vector3(0.0, 1.05, 4.6)
 
 
 func _set_phase(ph: Phase) -> void:
@@ -287,9 +330,9 @@ func _pace() -> float:
 	return PACE_UNEASY if suspicion >= 2 else PACE
 
 
-## Out of the doorway and onto his lane, opening the umbrella as he goes.
+## Out of the doorway and onto his lane, opening the umbrella as he goes (never in the slicker).
 func _step_out(delta: float) -> void:
-	_open = move_toward(_open, 1.0, delta / Game.umbrella_open_time(0))
+	_open = move_toward(_open, _canopy, delta / Game.umbrella_open_time(0))
 	speed = move_toward(speed, _pace(), ACCEL * delta)
 	var vz := minf(1.0, (LANE_Z - position.z) / maxf(delta, 1e-4)) if position.z < LANE_Z else 0.0
 	var vx := maxf(speed, 0.25)
@@ -428,7 +471,8 @@ func _door(delta: float, p: Player) -> void:
 		visible = false
 
 
-## The 4th gain: he turns right round, points the umbrella at the walker and fires.
+## The 4th gain: he turns right round, points the umbrella at the walker and fires (in the slicker,
+## shouldering it furled as he turns, the shot from its tip).
 func _aim(delta: float, p: Player) -> void:
 	speed = move_toward(speed, 0.0, 3.0 * delta)
 	position.x += speed * delta
@@ -491,19 +535,37 @@ func _pose(delta: float) -> void:
 	var tilt := 0.0
 	if phase == Phase.AIM:
 		tilt = WaterJet.AIM_TILT * smoothstep(0.0, AIM_TURN_S, _phase_t)
+	if slicker:
+		_shoulder = smoothstep(0.0, AIM_TURN_S, _phase_t) if phase == Phase.AIM else 0.0
+		raise = maxf(raise, _shoulder)
+		_model.call("set_aim", _shoulder)
 	_model.call("set_umbrella_pose", raise, tilt, 0.0)
 	_model.call("set_umbrella_open", _open)
-	# Furled, it hangs from the fist like a cane, tip down and a little ahead (as the follower's).
-	var furled := _grip.global_basis.orthonormalized().inverse() * global_basis.orthonormalized() * Basis(Vector3(0, 0, 1), PI + 0.18)
-	_umbrella.basis = Basis(furled.get_rotation_quaternion().slerp(Quaternion.IDENTITY, raise))
+	if slicker:
+		_carry_cane()
+	else:
+		# Furled, it hangs from the fist like a cane, tip down and a little ahead (as the follower's).
+		var furled := _grip.global_basis.orthonormalized().inverse() * global_basis.orthonormalized() * Basis(Vector3(0, 0, 1), PI + 0.18)
+		_umbrella.basis = Basis(furled.get_rotation_quaternion().slerp(Quaternion.IDENTITY, raise))
 	_umbrella.set_state(_open, Game.umbrella_radius(0), 0.0)
 
 
+## The slicker: the furled umbrella hangs like a cane from his camera-side right fist (as
+## RaincoatFigure's does), and changes hands to the left fist as he shoulders it (as the walker's does).
+func _carry_cane() -> void:
+	var hang := Transform3D(global_basis.orthonormalized() * Basis(Vector3(0, 0, 1), PI + RaincoatFigure.CANE_LEAN), _cane.global_position)
+	var aimed := _grip.global_transform.orthonormalized()
+	var swing := smoothstep(0.0, Player.AIM_SWING, _shoulder)
+	_umbrella.global_transform = Transform3D(hang.basis.slerp(aimed.basis, swing), hang.origin.lerp(aimed.origin, swing))
+
+
 ## Runs after the walker's pose modifier: turns his chest, neck and head about the vertical (a
-## glance back), and reaches the free right hand in under the left lapel (`hand`).
+## glance back), and reaches the free right hand in under the left lapel (`hand`; with `left`, the
+## left hand in under the right).
 class CourierTwist extends SkeletonModifier3D:
 	var twist := 0.0
 	var hand := 0.0
+	var left := false
 	var _pose_mod: Node
 	var _b := {}
 	const SHARE := {"UpperChest": 0.22, "Neck": 0.3, "Head": 0.48}
@@ -511,7 +573,7 @@ class CourierTwist extends SkeletonModifier3D:
 
 	func setup(skel: Skeleton3D, pose_mod: Node) -> void:
 		_pose_mod = pose_mod
-		for n in ["UpperChest", "Neck", "Head", "RightHand"]:
+		for n in ["UpperChest", "Neck", "Head", "RightHand", "LeftHand"]:
 			_b[n] = skel.find_bone(n)
 
 	func _process_modification_with_delta(_delta: float) -> void:
@@ -528,18 +590,20 @@ class CourierTwist extends SkeletonModifier3D:
 			_reach_lapel(skel, char_from_skel, skel_from_char)
 
 	## Fingers in under the left lapel: the wrist at the right of his chest, the hand pointing up
-	## and across to the left breast pocket.
+	## and across to the left breast pocket (mirrored with `left`).
 	func _reach_lapel(skel: Skeleton3D, char_from_skel: Transform3D, skel_from_char: Transform3D) -> void:
+		var m := Vector3(1, 1, -1) if left else Vector3.ONE
+		var side := "Left" if left else "Right"
 		var neck := char_from_skel * skel.get_bone_global_pose(_b["Neck"]).origin
-		var tips := neck + Vector3(0.04, -0.22, -0.12)
-		var fingers := Vector3(-0.25, 0.3, -0.92).normalized()
+		var tips := neck + Vector3(0.04, -0.22, -0.12) * m
+		var fingers := (Vector3(-0.25, 0.3, -0.92) * m).normalized()
 		var wrist := tips - fingers * 0.17
-		var anim := skel.get_bone_global_pose(_b["RightHand"])
+		var anim := skel.get_bone_global_pose(_b[side + "Hand"])
 		var f_s := (skel_from_char.basis * fingers).normalized()
 		var b := Basis(_arc(anim.basis.orthonormalized().y, f_s)) * anim.basis.orthonormalized()
 		var target := Transform3D(b, skel_from_char * wrist)
 		var w := smoothstep(0.0, 1.0, hand)
-		_pose_mod.call("_ik_arm", skel, skel_from_char, "Right", target, ELBOW_POLE, w)
+		_pose_mod.call("_ik_arm", skel, skel_from_char, side, target, ELBOW_POLE * m, w)
 
 	func _rot_global(skel: Skeleton3D, i: int, axis_s: Vector3, ang: float) -> void:
 		var p := skel.get_bone_parent(i)

@@ -149,8 +149,8 @@ stands, defeated or at the door) and matches his walking or hurrying speed. He n
 the bots and the rain model ignore him, and a checkpoint resume skips appearances behind it. Put
 each `x` where the walker is under cover, so a player who stops to listen stays dry.
 
-**`courier`** (`{"appear_x", "door_x", "stops": [{"x", "dur"}]}`; `s.courier(appear_x, door_x,
-stops=[(x, dur), ...])`) is a scripted pedestrian the walker must keep in frame, under the only
+**`courier`** (`{"appear_x", "door_x", "stops": [{"x", "dur"}], "look"?}`; `s.courier(appear_x, door_x,
+stops=[(x, dur), ...], look=None)`) is a scripted pedestrian the walker must keep in frame, under the only
 yellow umbrella on the street. He stands in a doorway at `appear_x` and steps out onto a lane just
 behind the walker's once the walker is 8 m from it, opening the umbrella as he goes; he never furls it,
 so he needs no cover. He walks at 1.15 m/s to `door_x` (the inn door) and goes in ahead of the walker.
@@ -178,9 +178,17 @@ At each stop `x` he faces the shop window for `dur` seconds. The rules, all in `
   has to allow for his pace and stops (Atomic Avenue uses 1.25).
 - **Checkpoints.** A resume (or `--start-x`) past his doorway puts him 6.5 m ahead and already walking,
   with the stops behind spent and his suspicion as it was at the checkpoint.
+- **`look`** (optional): leave it out for the brown suit, fedora and yellow umbrella (Atomic Avenue).
+  `"slicker"` makes him Fairweather, the man in the yellow slicker: dressed as `slickers` are
+  (`RaincoatFigure.dress`, hood up), the rain never wets him, and he never opens his umbrella. It
+  hangs furled like a cane from his camera-side right fist as he walks, stops and glances, and his
+  left hand is the one that goes inside his coat. On the 4th gain he turns to the walker, shoulders
+  the furled umbrella in his left hand (the walker model's `set_aim`) and fires both barrels from its
+  tip. The step-out hint names him. Every rule above is unchanged.
 - **Testing flags:** `--courier-suspicion=N` starts him at suspicion N, `--courier-pace=M` makes him
-  walk at M m/s (to test `lost`), `--courier-gap=M` changes the 6.5 m resume gap, and
-  `--courier-aim=S` has him fire at S s on the level clock (to see the shot).
+  walk at M m/s (to test `lost`), `--courier-gap=M` changes the 6.5 m resume gap,
+  `--courier-aim=S` has him fire at S s on the level clock (to see the shot), and `--courier-close`
+  frames him with a close camera (screenshots).
 
 Put stops in front of lit windows, and give the walker somewhere to wait about 5 m short of each.
 
