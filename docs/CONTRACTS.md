@@ -103,7 +103,8 @@ Required: `sidewalk.tres`, `asphalt_wet.tres`, `curb.tres`, `brick_red.tres`, `b
 `car_pass`, `car_splash`, `umbrella_open`, `umbrella_close`, `umbrella_drop`, `ui_move`,
 `ui_confirm`, `ui_back`, `ui_denied`, `fail_sting`, `win_sting`, `token`, `door_open`,
 `music_menu_loop`, `music_level_loop`, `phone_ring`, `train_pass` (a monorail train passing
-overhead, its nose passing 2.4 s in).
+overhead, its nose passing 2.4 s in), `rotor_loop` (a turbine helicopter close overhead: three-bladed
+rotor slap at 9 Hz, turbine whine, tail-rotor buzz; mono, the game places it on the helicopter).
 
 ## 6. Awning lots — `levels/*.json`
 
@@ -137,3 +138,19 @@ A lot is retro-future when the builder swaps in the retro kit for it (probabilit
 
 Every third-party asset gets a line in `assets/CREDITS.md`: file(s), author, source URL, licence.
 CC0 preferred; CC-BY allowed with attribution. Nothing with NC/ND or unclear licences.
+
+## 8. Helicopter model — `res://assets/vehicles/helicopter.tscn` (or `.glb`)
+
+Optional: without it `src/hazards/helicopter.gd` builds a stand-in in code. A scene whose root is a
+`Node3D` with these conventions replaces it (the game duplicates it for each flight):
+
+- Origin at the **main rotor hub**. Local **+X = the nose**, +Y up, 1 unit = 1 m. Rotor radius about
+  4 m, nose to tail about 11 m; the fuselage hangs about 1 to 3 m below the hub. The game turns it
+  180° about Y to fly right to left, so both flanks are seen; livery (SKYWAY) on both.
+- Named nodes, each optional, found with `get_node_or_null` directly under the root:
+  `Rotor` (the game sets its `rotation.y`, spinning it about local Y), `TailRotor` (spun about local
+  Z: put the tail rotor's disc in the local XY plane), `SearchlightMount` (the searchlight's beam
+  starts at its origin; the game aims the light itself), `BeaconTop` and `BeaconBelly` (shown only
+  while the anti-collision light flashes) and an `OmniLight3D` named `Flash` (lit with them).
+- Everything else (pitch, bob, the searchlight, spray, sound, camera) is the game's. Keep lights in
+  the scene few and short-ranged; nav lights and lit windows are best as emissive materials.

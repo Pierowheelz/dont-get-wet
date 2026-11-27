@@ -35,7 +35,7 @@ var hurry := 0.0
 var drying := 0.0                  # current dry rate (for FX)
 var sheltered := false             # head is under fixed cover (awning/balcony)
 var gutter_on_umbrella := 0.0      # 0..1 how much of a gutter stream the umbrella is catching
-var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_hit": 0.0, "dried": 0.0}
+var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_rotor": 0.0, "wet_hit": 0.0, "dried": 0.0}
 var fail_cause := &"wet"         # what ended the attempt (HUD.FAIL_TITLES): wet, shot, lost, made
 var jet_kick := 0.0                # 0..1: a blocked jet has knocked the canopy aside (WaterJet); decays
 const JET_KICK_S := 0.7            # a full shove takes this long to recover from
@@ -143,6 +143,9 @@ func _physics_process(delta: float) -> void:
 		var ap := _autopilot(delta)
 		if level.courier:
 			ap = level.courier.steer_bot(self, ap)
+		if _rotor_threat(Game.umbrella_open_time() + 0.5):
+			ap[0] = 1.0   # whoever else wants the canopy tilted, the wash wins: up and upright
+			ap[2] = 0.0
 		if Game.debug_human:
 			ap = _humanise(ap, delta)
 		if Game.debug_lazy:
@@ -203,6 +206,10 @@ func _physics_process(delta: float) -> void:
 	if open > 0.0 and state != State.STOPPED:   # holding it up while standing still is free
 		drain += Tun.f("stamina_drain_umbrella") * open * Game.umbrella_drain_mult()
 		drain += Tun.f("stamina_drain_wind") * wind * wind * open * Game.umbrella_drain_mult()
+	# In a helicopter's wash the open canopy fights the downdraught, standing still or not.
+	var rotor: float = level.rotor_at(position.x, level.elapsed) if open > 0.0 else 0.0
+	if rotor > 0.0:
+		drain += Tun.f("stamina_drain_rotor") * open * rotor * Game.umbrella_drain_mult()
 	if hurry > 0.0:
 		# Scales from zero so a lightly-resting trigger costs almost nothing.
 		drain += Tun.f("stamina_drain_hurry") * minf(hurry * 2.0, 1.0) + (Tun.f("stamina_drain_run") - Tun.f("stamina_drain_hurry")) * maxf(hurry * 2.0 - 1.0, 0.0)
@@ -253,6 +260,9 @@ func _physics_process(delta: float) -> void:
 	var wash_hit := _wash_exposure()
 	gain += wash_hit * Tun.f("wet_wash_rate")
 	stats["wet_wash"] += wash_hit * Tun.f("wet_wash_rate") * delta
+	var rotor_hit := _rotor_exposure()
+	gain += rotor_hit * Tun.f("wet_rotor_rate")
+	stats["wet_rotor"] += rotor_hit * Tun.f("wet_rotor_rate") * delta
 	_check_puddles()
 	drying = dry_speed(level.dry_rate(position.x, open), wet / Tun.f("wet_max"))
 	stats["dried"] += minf(drying * delta, wet)
@@ -438,6 +448,41 @@ func _wash_exposure() -> float:
 	return hit / total
 
 
+## A helicopter's rotor wash drives the rain in under every kind of cover: each body sample inside
+## it is soaked, by the wash's strength there, unless the open canopy is straight above it.
+func _rotor_exposure() -> float:
+	if level.helicopters == null:
+		return 0.0
+	var t: float = level.elapsed
+	var total := 0.0
+	var hit := 0.0
+	for s in SAMPLES:
+		var p := sample_world(s[0])
+		total += s[1]
+		var k: float = level.rotor_at(p.x, t)
+		if k <= 0.0:
+			continue
+		hit += s[1] * k * (umbrella_leak() if _cast(p, Vector3(p.x, RAIN_SKY_Y, p.z), UMBRELLA_MASK) else 1.0)
+	return hit / total
+
+
+## The bots' read of the rotor wash: will it be on him anywhere he'll be over the next `horizon`
+## seconds? Walks his own path forward in time against the same Level.rotor_at gameplay uses.
+func _rotor_threat(horizon: float) -> bool:
+	if level.helicopters == null:
+		return false
+	var t: float = level.elapsed
+	var v := maxf(speed, Tun.f("walk_speed")) if state == State.WALK else 0.0
+	var tau := 0.0
+	while tau <= horizon:
+		var x := position.x + v * tau
+		for dx in [-0.35, 0.35]:
+			if level.rotor_at(x + dx, t + tau) > 0.0:
+				return true
+		tau += 0.1
+	return false
+
+
 ## Lot cover (an awning or slab) between this spot and the sheet: the wash can't land here.
 func _under_lot_cover(x: float) -> bool:
 	var p := Vector3(x, level.ground_y(x) + 1.7, position.z)
@@ -607,11 +652,13 @@ func _autopilot(delta: float) -> Array:
 	var db: DriveBy = level.drive_bys
 	var drive_by: bool = db != null and db.coming()
 	car_coming = car_coming or drive_by
-	var fill := _autopilot_refill(under_fire or car_coming or jet_in)
+	# A helicopter's wash coming his way: no resting or refilling until it has gone over.
+	var rotor_near := _rotor_threat(Game.umbrella_open_time() + 3.0)
+	var fill := _autopilot_refill(under_fire or car_coming or jet_in or rotor_near)
 	if not fill.is_empty():
 		return fill
 	if _ap_resting:
-		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5 or under_fire or car_coming:
+		if stamina >= Tun.f("stamina_max") - 0.01 or exposure > 0.5 or under_fire or car_coming or rotor_near:
 			_ap_resting = false
 			_ap_no_rest_before = position.x + 1.5
 		else:
@@ -632,6 +679,9 @@ func _autopilot(delta: float) -> Array:
 	var wash := _wash_threat(Game.umbrella_open_time() + 0.5)
 	if wash:
 		danger = true
+	var rotor := _rotor_threat(Game.umbrella_open_time() + 0.5)
+	if rotor:
+		danger = true
 	if jet_in:
 		danger = true
 	# The canopy takes umbrella_open_time to open and a shot lands about a second after its glint:
@@ -650,10 +700,10 @@ func _autopilot(delta: float) -> Array:
 	for g in level.gutters:
 		if absf(g - position.x) < 0.9:
 			tl = 0.0     # straighten up under a gutter stream
-	if wash:
+	if wash or rotor:
 		tl = 0.0
 	var stop := false
-	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire and not car_coming:
+	if stamina <= Tun.f("stop_threshold") * Tun.f("stamina_max") - 1.0 and sheltered and position.x >= _ap_no_rest_before and not under_fire and not car_coming and not rotor_near:
 		stop = true
 		for off in [-0.9, -0.45, 0.0, 0.45, 0.9]:
 			if _exposed_at(position.x + off) or _exposed_at(position.x + off, 0.5):

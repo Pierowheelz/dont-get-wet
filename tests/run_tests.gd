@@ -1190,7 +1190,7 @@ func _tests() -> Array[Callable]:
 		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
 		_test_bypass_posted_reach, _test_dynamic_resolution, _test_menu_width, _test_credits_scroll,
-		_test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
+		_test_slider_saves, _test_shop_fits, _test_small_screen_text, _test_helicopters, _run_tests
 	]
 
 
@@ -2391,3 +2391,153 @@ func _run_tests() -> void:
 	Game.autopilot = true
 	Game.runs = {}
 	Game.run = Run.new("", start)
+
+
+# --- helicopters (Skyway Terminal) ------------------------------------------------------------------
+
+const HELIS := {"helicopters": [{"x": 40.0, "dir": -1}, {"x": 100.0, "dir": 1, "speed": 7.0, "hover_x": 130.0, "hover_s": 3.0}]}
+
+
+## The share of the walker's body the rotor wash reaches at x, umbrella `open` and `tilt`, at level time t.
+func _rotor(x: float, open: float, tilt: float, t: float) -> float:
+	await _place(x, open, tilt)
+	level.elapsed = t
+	return level.player._rotor_exposure()
+
+
+func _ground_flights(hc: Helicopter) -> void:
+	for f: Dictionary in hc.flights:
+		if f["node"]:
+			f["node"].queue_free()
+	hc.flights.clear()
+	level.camera_pull = 0.0
+	await _idle_frames(2)
+
+
+## Rides the bot (or the lazy bot) through one helicopter pass from x: entry 0 is launched `lead`
+## seconds early so its wash meets him under the Bijou arcade. Returns what the pass did to him.
+func _rotor_pass(hc: Helicopter, x: float, lead: float, lazy: bool) -> Dictionary:
+	await _ground_flights(hc)
+	var p: Player = level.player
+	await _place(x, 0.0)
+	p.wet = 0.0
+	p.stamina = Tun.f("stamina_max")
+	p.speed = Tun.f("walk_speed")
+	p.state = Player.State.WALK
+	p.stats["wet_rotor"] = 0.0
+	Game.debug_lazy = lazy
+	var f := hc.launch(0, level.elapsed - lead)
+	var out := {"rested_in_it": false, "open_in_it": 1.0, "pulled": false}
+	p.set_physics_process(true)
+	var t := 0.0
+	while level.elapsed < f["t0"] + f["end"] and t < 14.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		if level.rotor_at(p.position.x, level.elapsed) > 0.0:
+			out["open_in_it"] = minf(out["open_in_it"], p.open)
+			out["rested_in_it"] = out["rested_in_it"] or p.state == Player.State.STOPPED and p.open < 0.9
+		out["pulled"] = out["pulled"] or level.camera_pull == Helicopter.PULL
+	p.set_physics_process(false)
+	Game.debug_lazy = false
+	await _idle_frames(2)
+	out["wet"] = p.stats["wet_rotor"]
+	out["pull_after"] = level.camera_pull
+	return out
+
+
+## Skyway Terminal's helicopters. Each flight is a pure function of the level clock from its launch,
+## so Level.rotor_at predicts it; its wash drives the rain in under any cover, and only the open
+## canopy straight above him keeps it off; outside the footprint nothing reaches him. The bot opens
+## up ahead of it and gets through dry, and a resume past a trigger skips that helicopter.
+func _test_helicopters() -> void:
+	level = await _street_with(HELIS)
+	var p: Player = level.player
+	_unhook_defeat(p)
+	var hc: Helicopter = level.helicopters
+	check(hc != null and hc.entries.size() == 2 and hc.flights.is_empty() and hc.next_x() == 40.0,
+		"the street has two helicopters and none flies before the walker reaches one")
+	if hc == null:
+		await _drop_street(level)
+		return
+	var arcade := -1.0
+	var awning := -1.0
+	for lot in level.data["lots"]:
+		var mid: float = float(lot["x"]) + float(lot["w"]) * 0.5
+		if lot["cover"] == "arcade" and lot["w"] >= 6.0 and arcade < 0.0:
+			arcade = mid
+		if lot["cover"] == "awning" and not lot.has("tears") and lot["w"] >= 5.0 and mid > 30.0 and awning < 0.0:
+			awning = mid
+
+	# The flight, from ahead at the default speed: where it is and when its wash reaches a spot.
+	var f := hc.launch(0, 10.0)
+	check(is_equal_approx(hc.x_at(f, 10.0), 40.0 + Helicopter.START_OFF)
+		and is_equal_approx(hc.x_at(f, 15.0), 40.0 + Helicopter.START_OFF - 5.0 * Helicopter.SPEED),
+		"from ahead it comes in %d m past its trigger and flies toward him at %.0f m/s" % [Helicopter.START_OFF, Helicopter.SPEED])
+	var t_over := hc.time_over(f, arcade)
+	check(level.rotor_at(arcade, t_over) == 1.0 and level.rotor_at(arcade, t_over - 2.0) == 0.0 and level.rotor_at(arcade, t_over + 2.0) == 0.0,
+		"its wash is on a spot as it passes over (t=%.1f) and not 2 s either side" % t_over)
+	var lead := Helicopter.WASH_REACH / Helicopter.SPEED
+	check(absf(level.rotor_eta(arcade, t_over - 2.0) - (2.0 - lead)) < 0.02 and level.rotor_eta(arcade, t_over) == 0.0
+		and is_inf(level.rotor_eta(arcade, t_over + 2.0)), "rotor_eta counts down to the wash, is 0 in it and INF once it has gone over")
+	var shut := await _rotor(arcade, 0.0, 0.0, t_over)
+	var rain := p._rain_exposure()
+	check(rain < 0.05 and shut > 0.95, "under the arcade the rain can't reach him (%.2f), the wash soaks him with the umbrella shut (%.2f)" % [rain, shut])
+	if awning > 0.0:
+		var aw := await _rotor(awning, 0.0, 0.0, hc.time_over(f, awning))
+		check(aw > 0.95, "... and under an awning (%.2f)" % aw)
+	var up := await _rotor(arcade, 1.0, 0.0, t_over)
+	check(up < 0.1, "the canopy open and upright keeps the wash off: %.2f" % up)
+	var tilted := await _rotor(arcade, 1.0, Tun.f("umbrella_max_tilt"), t_over)
+	check(tilted > 0.3, "tilted fully over, it lets the wash in: %.2f" % tilted)
+	var beside := await _rotor(arcade + Helicopter.WASH_REACH + 1.0, 0.0, 0.0, t_over)
+	check(beside == 0.0, "a step outside the footprint nothing reaches him: %.2f" % beside)
+	# The open canopy fights the downdraught: stamina drains faster in the wash than out of it.
+	await _place(arcade, 1.0)
+	p.state = Player.State.WALK
+	Game.debug_tilt = 0.0
+	var drop := []
+	for at in [t_over, t_over + 3.0]:
+		p.stamina = 80.0
+		for i in 30:
+			level.elapsed = at
+			p._physics_process(1.0 / 60.0)
+		drop.append(80.0 - p.stamina)
+	Game.debug_tilt = NAN
+	check(absf(drop[0] - drop[1] - Tun.f("stamina_drain_rotor") * 0.5) < 0.2,
+		"open in the wash, stamina drains %.1f a second more" % ((drop[0] - drop[1]) * 2.0))
+
+	# From behind, with a hover: it stops over hover_x for hover_s, then flies on.
+	var g := hc.launch(1, 0.0)
+	var t_h := hc.time_over(g, 130.0)
+	check(is_equal_approx(hc.x_at(g, 0.0), 100.0 - Helicopter.START_OFF) and absf(hc.x_at(g, t_h + 1.5) - 130.0) < 0.001
+		and level.rotor_at(130.0, t_h + 2.9) == 1.0 and hc.x_at(g, t_h + 6.0) > 131.0,
+		"from behind it hovers over 130 for 3 s and flies on")
+	# What is drawn is where gameplay says it is.
+	await _ground_flights(hc)
+	var live := hc.launch(0, level.elapsed - 4.0)
+	await _idle_frames(3)
+	var node: Node3D = live["node"]
+	check(node != null and absf(node.position.x - hc.x_at(live, level.elapsed)) < 0.15,
+		"the helicopter is drawn where rotor_at puts it (%.2f vs %.2f)" % [node.position.x if node else NAN, hc.x_at(live, level.elapsed)])
+
+	# The bots open up ahead of the wash, hold the canopy upright through it and never rest in it.
+	var start := arcade - 8.0
+	var bot := await _rotor_pass(hc, start, 6.0, false)
+	check(bot["wet"] < 1.0 and bot["open_in_it"] > 0.9 and not bot["rested_in_it"],
+		"the bot meets the wash with the umbrella up and gets through dry: wet %.2f, least open %.2f in it" % [bot["wet"], bot["open_in_it"]])
+	check(bot["pulled"] and bot["pull_after"] == 0.0, "the camera eases out while it passes and back in once it has gone")
+	check(level._seen.has("rotor"), "the first one shows its hint")
+	var lazy := await _rotor_pass(hc, start, 6.0, true)
+	check(lazy["wet"] > 4.0, "with the umbrella shut under the same arcade the wash wets him %.1f" % lazy["wet"])
+	await _drop_street(level)
+
+	# A checkpoint resume (or --start-x) past a trigger leaves that helicopter out.
+	Game.debug_start_x = 41.0
+	level = await _street_with(HELIS)
+	Game.debug_start_x = -1.0
+	check(level.helicopters._next == 1 and level.helicopters.next_x() == 100.0, "starting past the first trigger skips that helicopter")
+	await _drop_street(level)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	level.player.set_physics_process(false)

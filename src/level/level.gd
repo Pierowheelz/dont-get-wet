@@ -30,6 +30,7 @@ var camera_pull := 0.0         # metres the camera eases out from the street (a 
 var drive_bys: DriveBy         # the level's `drive_bys` (cars that pass from behind), or null
 var courier: Courier           # the level's scripted pedestrian to keep in frame, or null
 var henchmen: Node             # the level's `henchmen` (henchmen.gd), or null
+var helicopters: Helicopter    # the level's `helicopters` (shuttles whose rotor wash drives the rain in under cover), or null
 
 var player: Player
 var camera: Camera3D
@@ -181,6 +182,11 @@ func _ready() -> void:
 		drive_bys.name = "DriveBys"
 		drive_bys.level = self
 		add_child(drive_bys)
+	if data.has("helicopters"):
+		helicopters = Helicopter.new()
+		helicopters.name = "Helicopters"
+		helicopters.level = self
+		add_child(helicopters)
 	if data.has("follower"):
 		var follower := preload("res://src/level/follower.gd").new()
 		follower.name = "Follower"
@@ -331,6 +337,18 @@ func wash_at(x: float, t: float) -> bool:
 ## Seconds until a train's sheet next falls at x (0 while it is falling there, INF off the track).
 func wash_eta(x: float, t: float) -> float:
 	return track.wash_eta(x, t) if track else INF
+
+
+## 0..1 how hard a helicopter's rotor wash is driving the rain in at x at level-clock time t (callers
+## pass `elapsed`). Inside it cover is no shelter. A launched helicopter's future is known, so a later
+## t predicts it; one not yet launched reads 0.
+func rotor_at(x: float, t: float) -> float:
+	return helicopters.rotor_at(x, t) if helicopters else 0.0
+
+
+## Seconds until a launched helicopter's wash reaches x (0 while it is on x, INF if none will).
+func rotor_eta(x: float, t: float) -> float:
+	return helicopters.rotor_eta(x, t) if helicopters else INF
 
 
 ## A payphone rings from PHONE_HEAR before the walker reaches it until he passes it, or, with `keep`,
