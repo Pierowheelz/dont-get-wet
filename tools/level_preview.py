@@ -6,10 +6,10 @@
 The PNG is one long strip wrapped into rows of ROW_M metres. The report derives open-sky spans
 from the JSON the way LevelBuilder.cover_map() does and exits 1 when a design rule fails.
 
-It can't simulate scripted NPCs, so `attackers` (jets from behind) are left out of the scores and
-checks: tools/preview.sh, which plays the street with both bots, is the judge of those. The same goes
-for `helicopters`: the strip marks where each is triggered (and where it hovers); on a street with
-skyways they are weighed into the scores as threats (see threats()), elsewhere left out. A
+It can't simulate scripted threats (`attackers`, `henchmen`, `drive_bys`, the `courier`,
+`helicopters`): tools/preview.sh, which plays the street with both bots, is the judge of those. On a
+street with skyways they are weighed into the scores as threats (see threats()); elsewhere they are
+left out, and the strip only marks where each helicopter is triggered (and where it hovers). A
 `skyway` is cover like an awning, only higher, so wind slants rain in further under its ends.
 """
 import argparse
