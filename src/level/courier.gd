@@ -58,6 +58,7 @@ const TWIST := 1.9                # rad of upper-body turn at full glance (plus 
 const HIP_TURN := 0.5
 const WINDOW_TWIST := 0.9
 const AIM_TURN_S := 0.5
+const AIM_FLASH_S := 0.1          # the slicker: mid-turn, the furled umbrella points straight at the camera this long
 const DOOR_BRAKE := 4.0           # m/s2 he pulls up at for his door
 const BOT_ROOM := 2.5              # the bots keep at least this much frame ahead of him
 const SECOND_SHOT_S := 0.25        # glint before his second barrel, right after the first lands
@@ -164,6 +165,7 @@ func _build_model() -> void:
 		# The cane hangs in the camera-side right fist, so the free hand that goes inside his coat
 		# is the left. (The model's umbrella hand stays the left: it is the one that aims.)
 		_twist.left = true
+		_twist.depth = 0.07   # in behind the slicker's front, out of sight
 		var att := BoneAttachment3D.new()
 		att.name = "CaneBone"
 		att.bone_name = "RightHand"
@@ -556,7 +558,16 @@ func _carry_cane() -> void:
 	var hang := Transform3D(global_basis.orthonormalized() * Basis(Vector3(0, 0, 1), PI + RaincoatFigure.CANE_LEAN), _cane.global_position)
 	var aimed := _grip.global_transform.orthonormalized()
 	var swing := smoothstep(0.0, Player.AIM_SWING, _shoulder)
-	_umbrella.global_transform = Transform3D(hang.basis.slerp(aimed.basis, swing), hang.origin.lerp(aimed.origin, swing))
+	var basis := hang.basis.slerp(aimed.basis, swing)
+	var origin := hang.origin.lerp(aimed.origin, swing)
+	var cam := get_viewport().get_camera_3d()
+	if phase == Phase.AIM and cam:
+		# Half way round, its tip sweeps past the camera: for a moment we look straight down the barrels.
+		var mid := AIM_TURN_S * 0.5
+		var k := smoothstep(mid - AIM_FLASH_S, mid - AIM_FLASH_S * 0.5, _phase_t) * (1.0 - smoothstep(mid + AIM_FLASH_S * 0.5, mid + AIM_FLASH_S, _phase_t))
+		var at_us := (cam.global_position - origin).normalized()
+		basis = basis.slerp(Basis(Quaternion(Vector3.UP, at_us)), k)
+	_umbrella.global_transform = Transform3D(basis, origin)
 
 
 ## Runs after the walker's pose modifier: turns his chest, neck and head about the vertical (a
@@ -566,6 +577,7 @@ class CourierTwist extends SkeletonModifier3D:
 	var twist := 0.0
 	var hand := 0.0
 	var left := false
+	var depth := 0.0   # how much further in toward his chest the hand goes (under a bulkier coat)
 	var _pose_mod: Node
 	var _b := {}
 	const SHARE := {"UpperChest": 0.22, "Neck": 0.3, "Head": 0.48}
@@ -595,7 +607,7 @@ class CourierTwist extends SkeletonModifier3D:
 		var m := Vector3(1, 1, -1) if left else Vector3.ONE
 		var side := "Left" if left else "Right"
 		var neck := char_from_skel * skel.get_bone_global_pose(_b["Neck"]).origin
-		var tips := neck + Vector3(0.04, -0.22, -0.12) * m
+		var tips := neck + Vector3(0.04 - depth, -0.22, -0.12) * m
 		var fingers := (Vector3(-0.25, 0.3, -0.92) * m).normalized()
 		var wrist := tips - fingers * 0.17
 		var anim := skel.get_bone_global_pose(_b[side + "Hand"])
