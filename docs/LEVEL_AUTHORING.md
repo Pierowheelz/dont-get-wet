@@ -61,6 +61,10 @@ S needs 950, which a run at par reaches with up to 20% wet.
 | `arcade` | flat slab at 4.15 m, 2.9 m deep, columns every 3.5 m | Reads as a colonnade. Columns can hide part of a sign. |
 | `canopy` | gas-station roof | Only with `style: "gas_station"`, which draws it. |
 | `walkway` | flat slab at 3.0 m, 2.4 m deep, steel posts at its front edge | A motel's upper walkway roofing the lower one; use with `style: "motel"`. |
+| `trees` | a tree's crown, underside 3.6 m, from z -1.5 out to 3.7 | **Partial cover** on any street (`TreeCover`, below): it keeps off all but `tree_leak` (15%) of the rain, so the walker gets a little wet with the umbrella shut and none with it open. Not shelter: no checkpoint, no resting. |
+| `shelter` | roof at 2.6 m, 2.4 m deep | A bus shelter's or a lychgate's roof; use with `style: "bus_shelter"` or `"lychgate"`. |
+| `barn` | roof at 4.4 m from 7 m back to z 2.6 | An open-fronted Dutch barn; use with `style: "barn"`. Wind slants rain in further under its ends. |
+| `porch` | roof at 2.55 m, 2.35 m deep, over part of the lot | A porch over the door: 2.6 m centred on it, or the lot's own `porch: [x0, x1]` (local; `[0, w]` is a verandah along the whole front). Use with `cottage` or a country `inn`; the cover draws it. |
 | `none` | open sky | |
 
 `style` picks the ground-floor kit module: `shop_lit` (lit window, warm sign), `shop_dark`,
@@ -98,6 +102,53 @@ The towers' lobbies are lit unless the lot sets `"lit": false`; `"palette": 0-3`
 lot is lined with glass over lit shop windows, and low glass blocks close its far end so the skyline
 stands over them. Under a skyway the towers and the skyline need a camera that looks up: Skyway
 Terminal's (distance 13, pitch 7) shows some 5 m of tower above the skyway's roof.
+
+**The country** (`aesthetic: "country"`, `src/level/country_builder.gd`) has no pavement: the walker
+follows a worn footpath down a grass verge at the pavement's height (every lane, camera and hazard
+number still holds), with a narrow lane in front, fields behind the hedge line and two ridges of hills
+behind them, telegraph poles along the hedge every 42 m or so (none within 8 m of a `lamp_post` prop),
+a sky of broken rain cloud with the sun low behind it, and daylight. A side street is a lane between
+hedges with a fingerpost at its corner. Sun breaks there are stronger and fall on the grass. The rain
+falls behind the hedge line too, onto the fields, the hedge tops and the walls. Its lot styles
+(any street may use them, but they are drawn to stand in a verge):
+
+| `style` | look | cover |
+|---|---|---|
+| `hedge` | hawthorn hedge, 1.6 to 1.9 m, fields beyond | `none` |
+| `field_gate` | the hedge with a five-bar gate in the middle and a track into the field, bales beyond | `none` |
+| `stone_wall` | dry stone wall, 1.15 m, coping stones on end | `none` |
+| `tree` | a big oak in the hedge, its crown out over the verge, the hedge running on under it | `trees` |
+| `bus_shelter` | timber shelter over the path (4 m wide, stretched to fit) | `shelter` |
+| `barn` | open-fronted Dutch barn full of hay (8 m, stretched) | `barn` |
+| `lychgate` | roofed churchyard gate, gable to the lane, lantern lit; the church and churchyard behind (4 m) | `shelter` |
+| `cottage` | whitewash or stone, slate or thatch, dormers (`floors` 0: one storey); `door` (local x, default the middle) | `porch` or `none` |
+| `inn` | on a country street, the pub: two storeys, its `sign` on a board over the upper windows and on a hanging sign, windows lit. Its door is 4 m into the lot, as the kit inn's | `porch` or `none` |
+
+Props: `hay_bales` (in the field, z -8), `milk_churn_stand`, `milestone`, `signpost`, `telegraph_pole`.
+Each uses `res://assets/country/<name>.glb` when it exists (docs/CONTRACTS.md §10), else a stand-in
+drawn in code; cover and collisions never come from a model. Lot widths: shelters and lychgates 4 to
+6 m, barns 8 to 16 m, trees 10 to 24 m (an oak every 11 m or so). The awning styles `wide_stripe`,
+`waterfall` and `tin` are picked on a country street, with the ones for any street.
+
+**`TreeCover`** (`src/level/tree_cover.gd`) is the tree for any street. A lot with `cover: "trees"`
+gets a crown on physics layer 6 `trees` over its whole width, from 3.6 m (`UNDERSIDE`, well above an
+open umbrella) to 8 m and z -1.5 to 3.7 (`Z0`, `Z1`): a body sample whose ray to the sky only a crown
+stops takes `tree_leak` (tunable, 0.15) of the rain, none under the open umbrella
+(`Player._rain_exposure`). The visual rain matches it: below the crown's underside only that share of
+the drops falls on, out to the camera as under a deck, and drips fall from the leaves
+(`&"tree_drips"`). A lot's style builder calls
+
+    TreeCover.build(b: LevelBuilder, x: float, w: float, look: Dictionary = {}) -> Node3D
+
+to put the crown over the lot and draw it; `look` takes `"crown": false` (gameplay only: the caller
+draws its own tree), `"models": ["oak_a", ...]` (a model every 11 m, a name under
+`res://assets/country/` or a full `res://` path), `"leaf_dark"` / `"leaf_light"` (the code crown's
+greens) and `"trunk": false`. With no model it draws a broadleaf in code. If the style doesn't call it,
+LevelBuilder does with no `look`, so a `trees` lot always has its crown. `TreeCover.foliage_material`,
+`foliage_node` and `puff` draw more leaves the same way. Every leafy node (crowns, hedges a few metres
+at a time, a model's foliage) is in the group `&"foliage"` with its own material on
+`src/fx/foliage.gdshader`, whose `gust` (0 to 1) and `gust_dir` (+1 toward +X) the squalls drive.
+`Level.under_trees(x)` and `Level.tree_spans` read the same lots.
 
 **`camera`** (`{"distance", "height", "fov", "pitch", "lead"}`, any of them;
 `Street(..., camera={...})`) replaces the camera tunables (`camera_distance`, `camera_height`,
@@ -617,6 +668,13 @@ The report also prints the share of `end_x` under cover and under a skyway; a sk
 at least 60%. A skyway counts as cover everywhere in the preview, and its ends are pulled in by its
 own height (4.45 m) times the wind slant, so checkpoints sit further inside it in wind.
 
+Trees are neither cover nor open sky in the preview: a metre under a `trees` lot scores `tree_leak` of
+a metre of open sky, the strip draws it in green, and the decile table gets a `trees` column. On a
+country street (or any with trees) span-crossable also splits a span wherever a sun break of 4 m or
+more lets the walker shut the umbrella (`SUN_RECOVER_M`), as it does under trees, and the report adds
+the shares of `end_x` under full cover, under trees, in sun and in open rain. Checkpoints still need
+full cover (`shelter`, `barn`, `porch` count; trees don't), and start-covered wants full cover too.
+
 A decile is short, so a breather has to sit inside the same decile as its test. A decile that is all
 cover right after a hard one fails the ramp check. Sun breaks count as zero rain, so a sun decile
 needs other gaps or gutters to stay inside the hold band. A big set piece can straddle a decile
@@ -661,7 +719,8 @@ stretch with the umbrella up, which is what makes Pawn Row a stamina test.
   real player who keeps the umbrella tilted into the wind.
 - **Exhaustion is a cliff.** Once stamina hits 0 the umbrella droops and wetness climbs 15 to 35 in a
   few metres. Keep the human bot's minimum stamina above about 10.
-- **span-crossable treats a rain/sun/rain field as one span**, so such a field is capped at about
+- **span-crossable treats a rain/sun/rain field as one span** (except on a country street, where a sun
+  break of 4 m or more splits it), so such a field is capped at about
   26 m even though the sun lets a player recover.
 - **`--start-x` for screenshots:** start under cover. Cars whose crossing is behind the start never
   drive.

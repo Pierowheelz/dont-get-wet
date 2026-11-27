@@ -206,6 +206,7 @@ static func model(b: LevelBuilder, name: String, pos: Vector3, parent: Node3D = 
 	n.position = pos
 	(parent if parent else b.root).add_child(n)
 	_swap_foliage(b, n, pos.y)
+	tag_foliage(n, pos.x - 0.5, pos.x + 0.5)   # a lot piece's caller tags its real span over this
 	return n
 
 
@@ -232,7 +233,10 @@ static func _swap_foliage(b: LevelBuilder, n: Node, base_y: float) -> void:
 				if sm.albedo_texture:
 					fm.set_shader_parameter("leaf_tex", sm.albedo_texture)
 					fm.set_shader_parameter("use_tex", true)
-			mi.set_surface_override_material(i, fm)
+			if mi.mesh.get_surface_count() == 1:
+				mi.material_override = fm   # a model's Foliage and Grass nodes are one surface each
+			else:
+				mi.set_surface_override_material(i, fm)
 			if not mi.is_in_group(FOLIAGE_GROUP):
 				mi.add_to_group(FOLIAGE_GROUP)
 	for ch in n.get_children():

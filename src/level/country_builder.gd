@@ -394,7 +394,6 @@ static func _lychgate(b: LevelBuilder, x: float, w: float) -> void:
 	mi.material_override = tile
 	b.root.add_child(mi)
 	# Barge boards on the gable facing the lane.
-	var sts2 := {}
 	for k in 2:
 		var ex: float = e0.x if k == 0 else e1.x
 		var d := Vector2(rr.x - ex, rr.y - e0.y)
@@ -409,7 +408,6 @@ static func _lychgate(b: LevelBuilder, x: float, w: float) -> void:
 	gi.mesh = gst.commit()
 	gi.material_override = b._mat("lych_gable", Color(0.22, 0.16, 0.11), 0.85)
 	b.root.add_child(gi)
-	RoadsideBuilder._commit(b, sts2)
 
 
 ## The church behind a lychgate: a nave with a slate roof along the street and a west tower with

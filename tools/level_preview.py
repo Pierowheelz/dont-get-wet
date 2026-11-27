@@ -46,7 +46,7 @@ COVER_COLORS = {
 }
 # Drawn and listed in the legend only on a street that has them, so other streets' strips are unchanged.
 COUNTRY_COLORS = {
-    "shelter": (150, 112, 70),
+    "shelter": (214, 170, 60),
     "barn": (120, 70, 50),
     "porch": (205, 150, 120),
     "trees": (96, 160, 80),
@@ -831,11 +831,17 @@ def render(st, tun, traces, out, title):
         # cover
         d.text((LEFT - 8, y + 13), "cover", fill=INK, font=font(12, True), anchor="rm")
         d.rectangle([LEFT, y + 2, right_px, y + H_COVER - 4], fill=SKY)
+        for a, b in st.trees:   # a band of green with the crowns' bumps along its top; cover is drawn over it
+            if b > x0m and a < x1m:
+                xa, xb = X(max(a, x0m)), X(min(b, x1m))
+                d.rectangle([xa, y + 2, xb, y + H_COVER - 4], fill=COUNTRY_COLORS["trees"])
+                for cx in range(int(xa) + 6, int(xb) - 3, 12):
+                    d.ellipse([cx - 6, y - 2, cx + 6, y + 8], fill=(70, 130, 58))
         for a, b, kind in sorted(st.covers, key=lambda c: c[2] in ("deck", "skyway")):
             if b > x0m and a < x1m:
                 # A deck or skyway is a band across the top, so the lot cover beneath it still shows.
                 y1 = y + 9 if kind in ("deck", "skyway") else y + H_COVER - 4
-                d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y1], fill=COVER_COLORS[kind])
+                d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y1], fill={**COVER_COLORS, **COUNTRY_COLORS}[kind])
         for s0, s1 in st.open_spans():
             if s1 > x0m and s0 < x1m and s1 - s0 >= 5.0:
                 xa, xb = X(max(s0, x0m)), X(min(s1, x1m))
@@ -930,6 +936,13 @@ def render(st, tun, traces, out, title):
         glyph(d, kind, x + 14, ly - 8, 20)
         d.text((x + 34, ly + 8), FEATURE_NAMES[kind], fill=INK, font=font(12), anchor="lm")
         x += 140
+    present = {k for _, _, k in st.covers} | ({"trees"} if st.trees else set())
+    for kind, col in COUNTRY_COLORS.items():   # only on a street that has them
+        if kind in present:
+            d.rectangle([x, ly + 2, x + 22, ly + 14], fill=col)
+            d.text((x + 28, ly + 8), f"trees ({st.tree_leak:.0%} rain)" if kind == "trees" else kind, fill=INK,
+                   font=font(12), anchor="lm")
+            x += 130 if kind == "trees" else 90
     ly += 30
     d.line([(LEFT, ly), (LEFT + 24, ly)], fill=RAIN_C, width=2)
     d.text((LEFT + 30, ly), "rain 0-1.5", fill=INK, font=font(12), anchor="lm")
