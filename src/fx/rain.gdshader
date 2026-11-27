@@ -3,7 +3,8 @@ shader_type particles;
 // `fall_dir`. They stop (and splash) on a cover height map built from the level data (awnings,
 // slabs, roofs, ground) and on the umbrella canopy, and vanish inside sunny zones — so the visual
 // rain matches the gameplay rain model exactly — under deck spans, out to the camera, and inside a
-// skyway (between its soffit, `volume_floor`, and its roof).
+// skyway (between its soffit, `volume_floor`, and its roof). Under a tree's crown only `tree_leak` of
+// them fall on through the leaves (Player._rain_exposure lets the same share of the rain through).
 
 uniform vec3 box_extents = vec3(14.0, 7.0, 5.0);
 uniform vec3 fall_dir = vec3(0.0, -1.0, 0.0);
@@ -18,6 +19,7 @@ uniform vec3 cam_pos = vec3(0.0, 0.0, 10.0);
 uniform float player_plane_z = 1.6;
 uniform float sky_y = 3.6;              // Player.RAIN_SKY_Y
 uniform float splash_fraction = 0.25;
+uniform float tree_leak = 0.15;         // share of the drops that fall through a tree's crown
 uniform sampler2D cover_map : filter_nearest, repeat_disable;
 uniform vec4 cover_rect = vec4(0.0, -2.0, 100.0, 16.0);   // x0, z0, size_x, size_z (metres)
 uniform vec4 umbrella = vec4(0.0, -100.0, 0.0, 0.0);      // canopy centre xyz, radius (0 = closed)
@@ -40,7 +42,7 @@ void start() {
 	TRANSFORM = mat4(1.0);
 	TRANSFORM[3].xyz = pos;
 	VELOCITY = dir * fall_speed * (0.85 + 0.3 * hash(seed + 4u));
-	CUSTOM = vec4(hash(seed + 5u), 0.0, 0.0, 0.0);
+	CUSTOM = vec4(hash(seed + 5u), hash(seed + 6u), 0.0, 0.0);
 	ACTIVE = CUSTOM.x < clamp(intensity / 1.5, 0.0, 1.0);
 }
 
@@ -56,9 +58,12 @@ void process() {
 		if (dot(d, d) < umbrella.w * umbrella.w && pos.y < umbrella.y + 0.12 && pos.y > umbrella.y - 0.35) hit = true;
 	}
 	// Inside a skyway (COVER_VOLUME): splash on its roof, gone (no splash) inside the glass.
-	if (cm.g > 2.5 && pos.y < cm.r && pos.y > cm.r - 0.3) hit = true;
+	bool volume = cm.g > 2.5 && cm.g < 3.5;
+	if (volume && pos.y < cm.r && pos.y > cm.r - 0.3) hit = true;
 	bool dead = hit || (cm.g > 1.5 && cm.g < 2.5 && pos.y < cm.r);   // under a deck: gone, no splash
-	if (cm.g > 2.5 && pos.y < cm.r && pos.y > volume_floor) dead = true;
+	if (volume && pos.y < cm.r && pos.y > volume_floor) dead = true;
+	// A tree's crown (COVER_TREE): most drops end in the leaves; the rest fall on to the ground.
+	if (cm.g > 3.5 && cm.g < 4.5 && pos.y < cm.r && CUSTOM.y >= tree_leak) dead = true;
 	// Sun test, matching Player._rain_exposure: a drop reads as falling on whatever it covers on
 	// screen, so move it along its camera ray into the player's plane, then follow its fall line to
 	// sky_y, where gameplay decides whether that spot is rained on. Testing raw world x instead

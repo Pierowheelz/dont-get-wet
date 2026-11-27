@@ -299,15 +299,17 @@ func _soft_texture() -> GradientTexture2D:
 
 func _sun(x: float, w: float) -> void:
 	# A break in the clouds: a warm shaft of light through the fog onto a drying patch of pavement.
+	# In the country it is the morning sun, broad and strong, on the grass.
+	var country: bool = level.builder.country()
 	var cx := x + w * 0.5
 	var sl := SpotLight3D.new()
-	sl.light_color = Color(1.0, 0.78, 0.45)
-	sl.light_energy = 13.0
+	sl.light_color = Color(1.0, 0.8, 0.5) if country else Color(1.0, 0.78, 0.45)
+	sl.light_energy = 16.0 if country else 13.0
 	sl.spot_range = 45.0
 	sl.spot_angle = rad_to_deg(atan2(w * 0.5, 24.0)) + 1.5
 	sl.spot_angle_attenuation = 0.4
 	sl.spot_attenuation = 0.15
-	sl.light_volumetric_fog_energy = 1.2
+	sl.light_volumetric_fog_energy = 0.6 if country else 1.2
 	sl.shadow_enabled = true
 	sl.position = Vector3(cx - 5.0, 24.0, 1.0)
 	if level.data.get("aesthetic", "") == "suburban":
@@ -328,7 +330,7 @@ func _sun(x: float, w: float) -> void:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.albedo_color = Color(1.0, 0.8, 0.5, 0.16)
+	m.albedo_color = Color(1.0, 0.8, 0.5, 0.22 if country else 0.16)
 	m.albedo_texture = _shaft_texture()
 	m.disable_receive_shadows = true
 	shaft.material_override = m
@@ -342,7 +344,7 @@ func _sun(x: float, w: float) -> void:
 	pm.size = Vector2(w, 3.4)
 	patch.mesh = pm
 	var pmat := StandardMaterial3D.new()
-	pmat.albedo_color = Color(0.55, 0.48, 0.38)
+	pmat.albedo_color = Color(0.5, 0.52, 0.26, 0.6) if country else Color(0.55, 0.48, 0.38)
 	pmat.roughness = 0.8
 	pmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	pmat.albedo_texture = _soft_texture()

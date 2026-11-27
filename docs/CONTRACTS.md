@@ -52,7 +52,8 @@ breathes while the umbrella is raised: the canopy's cover follows the hand.
 
 Physics layers (`project.godot`): 1 `world`, 2 `cover` (awnings, balconies, arches: the walker's rain
 cover), 3 `player`, 4 `umbrella` (the walker's canopy), 5 `npc_umbrella` (soakable NPCs' canopies:
-they stop droplets flown at those NPCs and never shelter the walker).
+they stop droplets flown at those NPCs and never shelter the walker), 6 `trees` (tree crowns over lots
+with `cover: "trees"`, `TreeCover.LAYER`: they keep off all but `tree_leak` of the rain).
 
 ## 2. Building kit — `res://assets/buildings/kit.json`
 
