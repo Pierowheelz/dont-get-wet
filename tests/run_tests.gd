@@ -1190,7 +1190,7 @@ func _tests() -> Array[Callable]:
 		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
 		_test_bypass_posted_reach, _test_skyway, _test_street_camera, _test_modern_lots,
-		_test_courier_slicker, _test_helicopters, _test_dynamic_resolution, _test_menu_width,
+		_test_courier_slicker, _test_helicopters, _test_skyway_terminal, _test_dynamic_resolution, _test_menu_width,
 		_test_credits_scroll, _test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
 	]
 
@@ -2710,3 +2710,72 @@ func _test_helicopters() -> void:
 	add_child(level)
 	await _frames(5)
 	level.player.set_physics_process(false)
+
+
+# --- Skyway Terminal ------------------------------------------------------------------------------
+
+## The street itself: seventh from Main Street toward the city, so armed; it opens once Rocket Row is
+## walked; it is played from further back; most of it is under cover; and every set piece is on it:
+## the skyways, four helicopters, Fairweather in his slicker, his three men and two drive-bys.
+func _test_skyway_terminal() -> void:
+	Game.current_level = "skyway_terminal"
+	if is_instance_valid(level):
+		level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	var p: Player = level.player
+	p.set_physics_process(false)
+	p.speed = 0.0
+	_unhook_defeat(p)
+	var d: Dictionary = level.data
+	check(Game.street_number("skyway_terminal") == 7 and p.gun.armed, "Skyway Terminal is street 7 and armed")
+	check(level.cam("distance") > Tun.f("camera_distance") + 2.0 and is_equal_approx(level.camera.fov, float(d["camera"]["fov"])),
+		"it is played from further back (%.1f m, fov %.0f)" % [level.cam("distance"), level.camera.fov])
+	# Share of the walking line under a skyway or an awning: the street is meant to be mostly dry.
+	var covered := 0
+	var n := 0
+	var x := 0.05
+	while x < level.end_x:
+		n += 1
+		var under: bool = d["skyways"].any(func(s: Dictionary) -> bool: return x >= float(s["x0"]) and x < float(s["x1"]))
+		if not under:
+			under = d["lots"].any(func(l: Dictionary) -> bool:
+				return l.get("cover", "none") == "awning" and x >= float(l["x"]) and x < float(l["x"]) + float(l["w"]))
+		covered += 1 if under else 0
+		x += 0.1
+	check(float(covered) / n >= 0.6, "at least 60%% of the street is under cover: %.0f%%" % (100.0 * covered / n))
+	check(level.helicopters != null and level.helicopters.entries.size() == 4
+		and level.helicopters.entries.any(func(e: Dictionary) -> bool: return e.has("hover_x")),
+		"four helicopters, one of them hovering")
+	check(level.courier != null and level.courier.slicker and float(d["courier"]["door_x"]) < level.end_x - 50.0,
+		"Fairweather in his slicker, going in at the terminal well short of the hotel")
+	check(level.henchmen != null and level.henchmen.men.size() == 3 and level.drive_bys != null,
+		"three of his men and the drive-bys")
+	# Every downpipe stands clear of every man's reach, so a walker bracing for a jet is never in a stream.
+	var close: Array = []
+	for g in level.gutters:
+		for m in level.henchmen.men:
+			if absf(float(g) - float(m.x)) < level.henchmen.RANGE + 1.0:
+				close.append([g, m.x])
+	check(close.is_empty(), "no downpipe within a man's reach: %s" % [close])
+
+	var r := Run.new("right", Game.start_node)
+	r.completed = [Game.start_node, "arcade_lane", "neon_junction", "telstar_parade", "atomic_avenue", "rocket_row"]
+	r.current_node = "rocket_row"
+	var run_was := Game.run
+	Game.run = r
+	check(not Game.is_soon("skyway_terminal") and Game.can_select("skyway_terminal"), "the map opens Skyway Terminal once Rocket Row is walked")
+	r.completed.pop_back()
+	r.current_node = "atomic_avenue"
+	check(not Game.can_select("skyway_terminal"), "... and not before")
+	Game.run = run_was
+	var hud := preload("res://src/ui/hud.gd")
+	check(hud.fail_line("skyway_terminal", &"shot") == "Right through the lapels." and hud.fail_line("skyway_terminal", &"lost") != ""
+		and hud.fail_line("skyway_terminal", &"made") != "", "Skyway Terminal's fail lines")
+	var node: Dictionary = Game.nodes["skyway_terminal"]
+	check(String(node["outro"][-1]).contains("The Zenith") and Game.is_soon("the_zenith"), "the outro points on to The Zenith, still to come")
+	level.queue_free()
+	await _frames(2)
+	Game.current_level = "main_street"

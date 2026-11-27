@@ -284,7 +284,52 @@ WASH_W = 5.2      # a metre the wash can land on scores this x its wash duty of 
 HOLD_TOL = 0.30
 
 
+# Scripted threats the preview can't simulate carry a street's pacing where cover has taken the rain
+# away, so on a street with skyways they are weighed in like gutters, per 100 m of the decile they land
+# in. Other streets were paced on the rain alone and leave them out.
+# A helicopter's wash meets a walking walker some metres past its trigger (HELI_MEET_M, by direction);
+# a hover adds its seconds. The courier's tail is spread over his walk from doorway to door.
+HELI_W = 3.0
+HELI_HOVER_W = 1.0          # per second hovering
+HELI_MEET_M = {-1: 8.0, 1: 12.0}
+HENCHMAN_W = 2.5
+DRIVE_BY_W = 2.5
+ATTACKER_W = 2.0
+COURIER_W = 3.0             # per 100 m of his walk
+COURIER_STOP_W = 1.0
+
+
+def threats(st):
+    """[(x0, x1, weight)] of the street's scripted threats, a point threat as x0 == x1."""
+    out = []
+    for h in st.d.get("helicopters", []):
+        if "hover_x" in h:
+            hx = float(h["hover_x"])
+            out.append((hx, hx, HELI_W + HELI_HOVER_W * float(h.get("hover_s", 3.0))))
+        else:
+            hx = float(h["x"]) + HELI_MEET_M.get(int(h.get("dir", -1)), 8.0)
+            out.append((hx, hx, HELI_W))
+    out += [(float(h["x"]), float(h["x"]), HENCHMAN_W) for h in st.d.get("henchmen", [])]
+    out += [(float(d["x"]), float(d["x"]), DRIVE_BY_W) for d in st.d.get("drive_bys", [])]
+    out += [(float(a["x"]), float(a["x"]), ATTACKER_W) for a in st.d.get("attackers", [])]
+    c = st.d.get("courier")
+    if c:
+        a0, a1 = float(c["appear_x"]), float(c.get("door_x", st.end_x))
+        out.append((a0, a1, COURIER_W * (a1 - a0) / 100.0))
+        out += [(float(w["x"]), float(w["x"]), COURIER_STOP_W) for w in c.get("stops", [])]
+    return out
+
+
+def _threat_in(t, a, b):
+    """The share of threat t's weight that lands in [a, b)."""
+    x0, x1, w = t
+    if x1 <= x0:
+        return w if a <= x0 < b else 0.0
+    return w * max(0.0, min(b, x1) - max(a, x0)) / (x1 - x0)
+
+
 def decile_table(st, tun):
+    thr = threats(st) if st.d.get("skyways") else []
     spans = st.open_spans()
     rows = []
     step = st.end_x / 10.0
@@ -304,8 +349,10 @@ def decile_table(st, tun):
         wash = sum(1 for x in xs if st.washed(x)) / n
         diff = 10.0 * sum((not st.covered(x)) * st.rain(x) * (1 + abs(st.wind(x))) for x in xs) / n \
             + 10.0 * WASH_W * st.wash_duty * wash + (0.5 * g + 0.4 * c) * per100
+        threat = sum(_threat_in(t, a, b) for t in thr) * per100
+        diff += threat
         rows.append(dict(a=a, b=b, open=open_frac, longest=longest, longest_full=longest_full,
-                         g=g, p=p, c=c, rain=rain, wind=wind, wash=wash, diff=diff))
+                         g=g, p=p, c=c, rain=rain, wind=wind, wash=wash, threat=threat, diff=diff))
     return rows
 
 
@@ -313,7 +360,10 @@ DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
                 f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.4*crossings) per 100 m, per decile "
                 "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover (a railway's arches count as "
                 "lot cover); duty = share of the "
-                "time a sheet falls on a spot, Track.WASH_S over the mean train gap)")
+                "time a sheet falls on a spot, Track.WASH_S over the mean train gap) + threat (skyway streets only, scripted: "
+                f"{HELI_W:g} per helicopter pass + {HELI_HOVER_W:g}/s hovering, {HENCHMAN_W:g} per henchman, "
+                f"{DRIVE_BY_W:g} per drive-by, {ATTACKER_W:g} per pursuer, the courier's tail {COURIER_W:g} per "
+                f"100 m + {COURIER_STOP_W:g} per window stop) per 100 m")
 
 
 def crossable_m(tun, wind):
@@ -435,18 +485,19 @@ def print_report(st, tun, rows, checks, name):
     print(f"== {name}: end_x {st.end_x:.1f} m, {len(st.open_spans())} open spans, "
           f"gusts {'yes' if st.gusts else 'no'} ==")
     print(f"{'decile':>6} {'metres':>11} {'open':>5} {'longest':>8} {'gut':>3} {'pud':>3} {'xing':>4} "
-          f"{'rain':>5} {'|wind|':>6} {'wash':>5} {'diff':>6}")
+          f"{'rain':>5} {'|wind|':>6} {'wash':>5} {'threat':>6} {'diff':>6}")
     for k, r in enumerate(rows, 1):
         longest = f"{r['longest_full']:.1f}"
         print(f"{k:>6} {r['a']:>5.0f}-{r['b']:<5.0f} {r['open']:>5.0%} {longest:>8} {r['g']:>3} {r['p']:>3} "
-              f"{r['c']:>4} {r['rain']:>5.2f} {r['wind']:>6.2f} {r['wash']:>5.0%} {r['diff']:>6.1f}")
+              f"{r['c']:>4} {r['rain']:>5.2f} {r['wind']:>6.2f} {r['wash']:>5.0%} {r['threat']:>6.1f} {r['diff']:>6.1f}")
     print(DIFF_FORMULA)
     if st.d.get("courier"):
         print("courier: the scripted pedestrian is not simulated here; tools/preview.sh is the judge of tailing him")
     helis = st.d.get("helicopters", [])
     if helis:
         print(f"helicopters: {len(helis)} triggered at x " + ", ".join(f"{float(h['x']):.0f}" for h in helis)
-              + "; their rotor wash is not scored here, tools/preview.sh is the judge")
+              + ("; weighed in as a threat (not simulated)" if st.d.get("skyways") else "; their rotor wash is not scored here")
+              + ", tools/preview.sh is the judge")
     print("longest = full length of the longest open span touching the decile (may extend past it)")
     share, sky = st.cover_share()
     line = f"cover: {share:.0%} of end_x under cover ({sky:.0%} under a skyway)"

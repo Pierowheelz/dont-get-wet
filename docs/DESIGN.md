@@ -102,6 +102,7 @@ The game is only fair if it's readable, so exposure is **analytic** (not per-dro
 | Gutter stream (awning edge, downpipe) | Heavy local stream, high rate | Umbrella, tilt toward it |
 | Car splash (side-street crossings) | Big burst from the front just before the crossing | Tilt umbrella forward |
 | Wind (later levels) | Bends rain, extra stamina drain, slows when open into a headwind | Tilt into the rain |
+| Helicopter rotor wash (Skyway Terminal) | A moving footprint where the downdraught drives the rain in under any cover | Open canopy held upright |
 | Hurricane wind (future) | Damages umbrella | Upgrades |
 | Sunny patch | Dries slowly | Close umbrella to enjoy it |
 | Warm vent / aircon / fire barrel | Dries faster, local | — |
@@ -139,6 +140,17 @@ The game is only fair if it's readable, so exposure is **analytic** (not per-dro
 
 Aesthetic rule: adjacent locations share a look. Moving toward the centre adds retro-future neon;
 moving toward the country thins out buildings.
+
+### Skyway Terminal (street 7 toward the centre)
+
+The downtown air terminal: jet-age glass towers and an enclosed glass skyway over the pavement, seen
+from further back (the street's `camera`) so the towers read at their size. From here on the rain
+stops being the umbrella's main job: at least 60% of the street is under cover (88% as built). The
+umbrella is for the airport helicopters' rotor wash, which drives the rain in under any cover where it
+passes (held up and upright), for Fairweather's glances while you tail him (tilted fully forward to
+hide your face), for his men's jets and the drive-bys (tilted at the shot), and for the shot itself.
+Story: you tail Fairweather, the man in the yellow slicker, to the terminal; his men are waiting; his
+helicopter passes over as you reach the Skyway Terminal Hotel, and the outro sends you on to The Zenith.
 
 ## 8. Map, scoring, progression
 
@@ -205,4 +217,5 @@ that thins when you're drenched.
 
 ## 11. Out of scope for the prototype
 
-Story, hurricane damage, other level aesthetics beyond the five, localisation, mobile export.
+Hurricane damage, localisation, mobile export. The story is told only through each street's text in
+`levels/index.json` (blurb, loading line, fail lines, outro) and its hints.

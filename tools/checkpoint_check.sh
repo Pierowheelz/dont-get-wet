@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 levels=()
 extra=()
 for a in "$@"; do if [[ $a == --* ]]; then extra+=("$a"); else levels+=("$a"); fi; done
-if [ ${#levels[@]} -eq 0 ]; then levels=(main_street arcade_lane neon_junction canal_row mill_road kiln_street telstar_parade viaduct_road atomic_avenue rocket_row); fi
+if [ ${#levels[@]} -eq 0 ]; then levels=(main_street arcade_lane neon_junction canal_row mill_road kiln_street telstar_parade viaduct_road atomic_avenue rocket_row skyway_terminal); fi
 out=$(mktemp -d)
 clear_m=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import level_preview; print(level_preview.CLEAR_M)")
 

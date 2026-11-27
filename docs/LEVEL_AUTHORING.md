@@ -525,7 +525,15 @@ crossings. A deck counts as cover. Every metre of track with no lot cover beneat
 sky, scores `WASH_W` (5.2) x the wash duty of a metre of open sky at rain 1 on top. The duty is the
 share of the time a sheet falls on a spot, 0.92 s over the mean gap (0.052 for `gap` 10 to 25 s),
 because the preview can't know an attempt's timing. The `wash` column shows that share, and the strip
-draws it in the hazards lane. The checks are:
+draws it in the hazards lane.
+
+On a street with `skyways`, cover has taken the rain away and the scripted threats carry the pacing,
+so the preview weighs them in too (the `threat` column), per 100 m of the decile they land in, like
+gutters: 3 per helicopter pass (where its wash meets a walking walker, about 8 m past a trigger from
+ahead and 12 m from behind) plus 1 per second of a hover, 2.5 per henchman and per drive-by, 2 per
+pursuer, and the courier's tail at 3 per 100 m of his walk plus 1 per window stop
+(`level_preview.threats`). Other streets were paced on the rain alone and leave them out. The checks
+are:
 
 - **start-covered.** The first 20 m has no open sky.
 - **ramp-to-midpoint.** Through decile 5, no decile falls more than 20% of the peak below the one
