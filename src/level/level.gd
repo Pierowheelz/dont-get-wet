@@ -757,6 +757,8 @@ func _setup_environment() -> void:
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 40.0
 	moon.light_volumetric_fog_energy = 0.3
+	if builder.country():
+		CountryBuilder.environment(env, moon)
 	add_child(moon)
 	if Game.settings["low_quality"]:
 		GraphicsCheck.apply_low(env, moon)

@@ -31,6 +31,7 @@
   "wet_gutter_rate": 38.0,
   "wet_wash_rate": 36.0,
   "wet_rotor_rate": 10.0,
+  "tree_leak": 0.15,
   "wet_shower_rate": 6.0,
   "gust_wind": 0.8,
   "gust_shove": 0.3,

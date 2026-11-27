@@ -13,6 +13,11 @@ scores as threats (see threats()); elsewhere they are left out, and the strip on
 helicopter (and where it hovers), drive-by, runner and squall is triggered (and where its gust blows on
 a walking walker). A
 `skyway` is cover like an awning, only higher, so wind slants rain in further under its ends.
+
+On a country street a lot with `cover: "trees"` is neither cover nor open sky: its crown lets
+`tree_leak` of the rain through, so it scores that share of the rain, counts as a place to recover in
+span-crossable (as does a sun break of SUN_RECOVER_M or more), and never holds a checkpoint. The
+country's other cover (`shelter`, `barn`, `porch`) is cover like an awning.
 """
 import argparse
 import json
@@ -38,6 +43,13 @@ COVER_COLORS = {
     "canopy": (46, 148, 150),
     "deck": (92, 104, 122),
     "skyway": (60, 175, 90),
+}
+# Drawn and listed in the legend only on a street that has them, so other streets' strips are unchanged.
+COUNTRY_COLORS = {
+    "shelter": (214, 170, 60),
+    "barn": (120, 70, 50),
+    "porch": (205, 150, 120),
+    "trees": (96, 160, 80),
 }
 WASH_C = (60, 150, 225)
 HELI_C = (150, 60, 150)
@@ -99,6 +111,10 @@ class Street:
         self.wash_duty = WASH_S / ((float(tr["gap"][0]) + float(tr["gap"][1])) / 2.0) if tr else 0.0
         self.decks = [(float(v["x0"]), float(v["x1"])) for v in data.get("viaducts", [])]
         self.skyways = [(float(v["x0"]), float(v["x1"])) for v in data.get("skyways", [])]
+        self.trees = [(float(lot["x"]), float(lot["x"]) + float(lot["w"])) for lot in data.get("lots", [])
+                      if lot.get("cover") == "trees"]
+        self.tree_leak = float(load_tunables().get("tree_leak", 0.15))
+        self.country = data.get("aesthetic") == "country" or bool(self.trees)
         self.covers = self._cover_spans()
         self.wash = self._wash_zones()
 
@@ -119,8 +135,11 @@ class Street:
                             nxt.append((max(t1, a), b))
                     segs = nxt
                 out += [(lx + a, lx + b, kind) for a, b in segs if b > a]
-            elif kind in ("balcony", "arcade", "walkway"):
+            elif kind in ("balcony", "arcade", "walkway", "shelter", "barn"):
                 out.append((lx, lx + lw, kind))
+            elif kind == "porch":
+                a, b = porch_span(lot)
+                out.append((lx + a, lx + b, kind))
             elif kind == "canopy":
                 out.append((lx + 0.15, lx + lw - 0.15, kind))
         return out + [(a, b, "deck") for a, b in self.decks] + [(a, b, "skyway") for a, b in self.skyways]
@@ -148,6 +167,8 @@ class Street:
             return ARCH_H if self.railway else DECK_H
         if self.under_skyway(x) and not any(a <= x <= b for a, b, kind in self.covers if kind not in ("deck", "skyway")):
             return SKYWAY_H
+        if any(a <= x <= b for a, b, kind in self.covers if kind == "barn"):
+            return BARN_H
         return SLANT_H
 
     def cover_share(self):
@@ -171,12 +192,61 @@ class Street:
         # Cover is painted after the crossing's open road in cover_map, so cover wins.
         return any(a <= x <= b for a, b, _ in self.covers)
 
+    def treed(self, x):
+        """Under a tree's crown and no cover: tree_leak of the rain gets through."""
+        return any(a <= x <= b for a, b in self.trees) and not self.covered(x)
+
+    def sunny(self, x):
+        return any(a < x < b for a, b in self.sun)
+
+    def exposure(self, x):
+        """Share of the rain that reaches a walker with the umbrella shut: 0 under cover, tree_leak
+        under trees, 1 in the open."""
+        return 0.0 if self.covered(x) else (self.tree_leak if self.treed(x) else 1.0)
+
+    def shares(self):
+        """Shares of end_x under full cover, in sun, under trees (and not in sun) and in open rain."""
+        n = max(int(self.end_x / STEP), 1)
+        c = s = t = 0
+        for i in range(n):
+            x = (i + 0.5) * STEP
+            if self.covered(x):
+                c += 1
+            elif self.sunny(x):
+                s += 1
+            elif self.treed(x):
+                t += 1
+        return c / n, s / n, t / n, 1.0 - (c + s + t) / n
+
+    def uncovered_spans(self):
+        """Spans with no full cover (open sky and trees)."""
+        return self._spans(lambda x: not self.covered(x))
+
     def open_spans(self):
+        """Spans of open sky: no cover and no trees."""
+        return self._spans(lambda x: not self.covered(x) and not self.treed(x))
+
+    def recovery_spans(self):
+        """Open sky the walker has to cross with the umbrella up: open spans, split on a country street
+        wherever a sun break of SUN_RECOVER_M or more lets him shut it and get his breath back (under
+        trees he can too). Other streets were checked with a sun break inside its span, and still are."""
+        if not self.country:
+            return self.open_spans()
+        out = []
+        for a, b in self.open_spans():
+            runs = [(a, b)]
+            for s0, s1 in self.sun:
+                if min(b, s1) - max(a, s0) >= SUN_RECOVER_M:
+                    runs = _subtract(runs, [(s0, s1)])
+            out += [r for r in runs if r[1] - r[0] > 1e-6]
+        return out
+
+    def _spans(self, pred):
         spans, start, i = [], None, 0
         n = int(self.end_x / STEP)
         while i <= n:
             x = i * STEP
-            if not self.covered(x):
+            if pred(x):
                 if start is None:
                     start = x
             elif start is not None:
@@ -202,6 +272,10 @@ SLANT_H = 3.1                            # awning height the wind slants rain ac
 DECK_H = 3.35                            # Track.DECK_Y: a deck's ends let slanted rain further in
 ARCH_H = 3.1                             # Track.RAIL_SOFFIT: the same at the ends of a run of railway arches
 SKYWAY_H = 4.45                          # SkywayBuilder.SOFFIT_Y: the same at a skyway's ends
+BARN_H = 4.4                             # CountryBuilder.BARN_Y: the same at a Dutch barn's ends
+SUN_RECOVER_M = 4.0                      # a sun break this long splits an open span for span-crossable
+PORCH_W = 2.6                            # CountryBuilder.PORCH_W
+INN_DOOR = 4.0                           # CountryBuilder.INN_DOOR
 SKYWAY_TARGET = 0.6                      # a skyway street keeps at least this share of end_x under cover
 WASH_S = 11.0 / 12.0                     # Track.WASH_S: seconds a sheet falls on any one spot
 WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind
@@ -209,6 +283,17 @@ GUST_MAX = 1.4                           # Level.wind: gusts scale wind by up to
 BODY_HALF_M = 0.3
 GUTTER_HALF_M = 0.6
 CAR_THREAT_M = 10.5                      # headlights start this far before a car crossing
+
+
+def porch_span(lot):
+    """Local (x0, x1) of a `porch` lot's porch, as CountryBuilder.porch_span: its `porch` field, else
+    PORCH_W centred on its door."""
+    w = float(lot["w"])
+    if "porch" in lot:
+        return (min(max(float(lot["porch"][0]), 0.0), w), min(max(float(lot["porch"][1]), 0.0), w))
+    door = INN_DOOR if lot.get("style") == "inn" else float(lot.get("door", w / 2))
+    a = min(max(door - PORCH_W / 2, 0.0), max(w - PORCH_W, 0.0))
+    return (a, min(a + PORCH_W, w))
 
 
 def _subtract(runs, zones):
@@ -363,7 +448,8 @@ def decile_table(st, tun):
         a, b = k * step, (k + 1) * step
         n = max(int((b - a) / STEP), 1)
         xs = [a + (i + 0.5) * (b - a) / n for i in range(n)]
-        open_frac = sum(1 for x in xs if not st.covered(x)) / n
+        open_frac = sum(1 for x in xs if not st.covered(x) and not st.treed(x)) / n
+        trees = sum(1 for x in xs if st.treed(x)) / n
         longest = max([min(b, s1) - max(a, s0) for s0, s1 in spans if s1 > a and s0 < b] + [0.0])
         longest_full = max([s1 - s0 for s0, s1 in spans if s1 > a and s0 < b] + [0.0])
         g = sum(1 for f in st.features if f["type"] == "gutter" and a <= f["x"] < b)
@@ -373,11 +459,11 @@ def decile_table(st, tun):
         wind = sum(abs(st.wind(x)) for x in xs) / n
         per100 = 100.0 / (b - a)
         wash = sum(1 for x in xs if st.washed(x)) / n
-        diff = 10.0 * sum((not st.covered(x)) * st.rain(x) * (1 + abs(st.wind(x))) for x in xs) / n \
+        diff = 10.0 * sum(st.exposure(x) * st.rain(x) * (1 + abs(st.wind(x))) for x in xs) / n \
             + 10.0 * WASH_W * st.wash_duty * wash + (0.5 * g + 0.4 * c) * per100
         threat = sum(_threat_in(t, a, b) for t in thr) * per100
         diff += threat
-        rows.append(dict(a=a, b=b, open=open_frac, longest=longest, longest_full=longest_full,
+        rows.append(dict(a=a, b=b, open=open_frac, trees=trees, longest=longest, longest_full=longest_full,
                          g=g, p=p, c=c, rain=rain, wind=wind, wash=wash, threat=threat, diff=diff))
     return rows
 
@@ -403,7 +489,7 @@ def crossable_m(tun, wind):
 def run_checks(st, tun, rows):
     checks = []
 
-    first_open = [s for s in st.open_spans() if s[0] < START_COVER_M]
+    first_open = [s for s in st.uncovered_spans() if s[0] < START_COVER_M]
     ok = not first_open
     msg = (f"first {START_COVER_M:.0f} m is under continuous cover" if ok else
            f"open sky at {first_open[0][0]:.1f}-{min(first_open[0][1], START_COVER_M):.1f} m. DESIGN §7: the start is a "
@@ -439,7 +525,7 @@ def run_checks(st, tun, rows):
     checks.append(("hold-after-midpoint", ok, msg))
 
     worst = None
-    for s0, s1 in st.open_spans():
+    for s0, s1 in st.recovery_spans() or [(0.0, 0.0)]:
         w = max(abs(st.wind(s0 + i * STEP)) for i in range(int((s1 - s0) / STEP) + 1))
         head = min(st.wind(s0 + i * STEP) for i in range(int((s1 - s0) / STEP) + 1))
         reach, secs, drain = crossable_m(tun, w)
@@ -511,11 +597,14 @@ def run_checks(st, tun, rows):
 def print_report(st, tun, rows, checks, name):
     print(f"== {name}: end_x {st.end_x:.1f} m, {len(st.open_spans())} open spans, "
           f"gusts {'yes' if st.gusts else 'no'} ==")
-    print(f"{'decile':>6} {'metres':>11} {'open':>5} {'longest':>8} {'gut':>3} {'pud':>3} {'xing':>4} "
+    trees = bool(st.trees)
+    print(f"{'decile':>6} {'metres':>11} {'open':>5} " + (f"{'trees':>5} " if trees else "")
+          + f"{'longest':>8} {'gut':>3} {'pud':>3} {'xing':>4} "
           f"{'rain':>5} {'|wind|':>6} {'wash':>5} {'threat':>6} {'diff':>6}")
     for k, r in enumerate(rows, 1):
         longest = f"{r['longest_full']:.1f}"
-        print(f"{k:>6} {r['a']:>5.0f}-{r['b']:<5.0f} {r['open']:>5.0%} {longest:>8} {r['g']:>3} {r['p']:>3} "
+        print(f"{k:>6} {r['a']:>5.0f}-{r['b']:<5.0f} {r['open']:>5.0%} " + (f"{r['trees']:>5.0%} " if trees else "")
+              + f"{longest:>8} {r['g']:>3} {r['p']:>3} "
               f"{r['c']:>4} {r['rain']:>5.2f} {r['wind']:>6.2f} {r['wash']:>5.0%} {r['threat']:>6.1f} {r['diff']:>6.1f}")
     print(DIFF_FORMULA)
     if st.d.get("courier"):
@@ -535,6 +624,13 @@ def print_report(st, tun, rows, checks, name):
     if st.skyways:
         line += f"; a skyway street aims for at least {SKYWAY_TARGET:.0%}" + (" (short)" if share < SKYWAY_TARGET else "")
     print(line)
+    if st.country:
+        print(f"country: a tree's crown lets {st.tree_leak:.0%} of the rain through, so a metre under trees scores that "
+              f"share of open sky; trees and sun breaks of {SUN_RECOVER_M:.0f} m or more split spans for span-crossable")
+    if st.country:
+        c, s, t, o = st.shares()
+        print(f"country: of end_x {c:.0%} under full cover, {t:.0%} under trees ({st.tree_leak:.0%} of the rain gets "
+              f"through), {s:.0%} in sun, {o:.0%} open rain")
     print("checks:")
     for cid, ok, msg in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}] {cid}: {msg}")
@@ -774,11 +870,17 @@ def render(st, tun, traces, out, title):
         # cover
         d.text((LEFT - 8, y + 13), "cover", fill=INK, font=font(12, True), anchor="rm")
         d.rectangle([LEFT, y + 2, right_px, y + H_COVER - 4], fill=SKY)
+        for a, b in st.trees:   # a band of green with the crowns' bumps along its top; cover is drawn over it
+            if b > x0m and a < x1m:
+                xa, xb = X(max(a, x0m)), X(min(b, x1m))
+                d.rectangle([xa, y + 2, xb, y + H_COVER - 4], fill=COUNTRY_COLORS["trees"])
+                for cx in range(int(xa) + 6, int(xb) - 3, 12):
+                    d.ellipse([cx - 6, y - 2, cx + 6, y + 8], fill=(70, 130, 58))
         for a, b, kind in sorted(st.covers, key=lambda c: c[2] in ("deck", "skyway")):
             if b > x0m and a < x1m:
                 # A deck or skyway is a band across the top, so the lot cover beneath it still shows.
                 y1 = y + 9 if kind in ("deck", "skyway") else y + H_COVER - 4
-                d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y1], fill=COVER_COLORS[kind])
+                d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y1], fill={**COVER_COLORS, **COUNTRY_COLORS}[kind])
         for s0, s1 in st.open_spans():
             if s1 > x0m and s0 < x1m and s1 - s0 >= 5.0:
                 xa, xb = X(max(s0, x0m)), X(min(s1, x1m))
@@ -887,6 +989,14 @@ def render(st, tun, traces, out, title):
     x += 170
     runner_glyph(d, x + 18, ly - 14)
     d.text((x + 34, ly + 8), "runner", fill=INK, font=font(12), anchor="lm")
+    x += 110
+    present = {k for _, _, k in st.covers} | ({"trees"} if st.trees else set())
+    for kind, col in COUNTRY_COLORS.items():   # only on a street that has them
+        if kind in present:
+            d.rectangle([x, ly + 2, x + 22, ly + 14], fill=col)
+            d.text((x + 28, ly + 8), f"trees ({st.tree_leak:.0%} rain)" if kind == "trees" else kind, fill=INK,
+                   font=font(12), anchor="lm")
+            x += 130 if kind == "trees" else 90
     ly += 30
     d.line([(LEFT, ly), (LEFT + 24, ly)], fill=RAIN_C, width=2)
     d.text((LEFT + 30, ly), "rain 0-1.5", fill=INK, font=font(12), anchor="lm")

@@ -40,7 +40,7 @@ const AWNING_STYLES := {
 		"profile": "line", "wall_y": 3.05, "front_y": 2.6, "fabric": "canvas", "stripe_w": 0.45, "hem": 0.0,
 		"sag": 0.05, "valance": "scallop", "valance_h": 0.28, "valance_solid": false, "piping": false,
 		"frame": "arms", "ends": false, "glow": false},
-	"wide_stripe": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon", "outskirts"],
+	"wide_stripe": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon", "outskirts", "country"],
 		"profile": "line", "wall_y": 3.05, "front_y": 2.55, "fabric": "canvas", "stripe_w": 1.1, "hem": 0.0,
 		"sag": 0.06, "valance": "straight", "valance_h": 0.3, "valance_solid": true, "piping": true,
 		"frame": "arms", "ends": false, "glow": false},
@@ -52,11 +52,11 @@ const AWNING_STYLES := {
 		"profile": "dome", "wall_y": 2.83, "front_y": 2.5, "fabric": "canvas", "stripe_w": 0.0, "hem": 0.1, "seam_w": 0.75,
 		"sag": 0.0, "valance": "none", "valance_h": 0.0, "valance_solid": false, "piping": false,
 		"frame": "none", "ends": true, "glow": false},
-	"waterfall": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "industrial", "outskirts"],
+	"waterfall": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "industrial", "outskirts", "country"],
 		"profile": "line", "wall_y": 3.05, "front_y": 2.6, "fabric": "canvas", "stripe_w": 0.7, "hem": 0.0,
 		"sag": 0.0, "valance": "straight", "valance_h": 0.34, "valance_solid": false, "piping": false,
 		"frame": "none", "ends": true, "glow": false},
-	"tin": {"eras": ["60s"], "aesthetics": ["industrial", "outskirts"],
+	"tin": {"eras": ["60s"], "aesthetics": ["industrial", "outskirts", "country"],
 		"profile": "line", "wall_y": 2.95, "front_y": 2.65, "fabric": "tin", "stripe_w": 0.0, "hem": 0.0,
 		"sag": 0.0, "valance": "none", "valance_h": 0.0, "valance_solid": false, "piping": false,
 		"frame": "brackets", "ends": false, "glow": false},
@@ -98,6 +98,7 @@ var _prev_awning := [-INF, ""]      # [end x, style] of the last awning built
 var _awning_used := {}              # style -> lots given it so far
 var gutters: Array = []             # resolved gutter streams, see _resolve_gutters
 var track: Track                    # parsed once here; Level takes it from the builder
+var tree_covers := {}               # lot x (snapped to 0.01) -> the TreeCover node built over it
 
 
 func build(p_root: Node3D, p_data: Dictionary) -> void:
@@ -113,7 +114,10 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 		track = Track.parse(data["track"], data.get("viaducts", []), Game.train_seed())
 	if ResourceLoader.exists("res://assets/fonts/sign.ttf"):
 		sign_font = load("res://assets/fonts/sign.ttf")
-	_build_ground()
+	if country():
+		CountryBuilder.ground(self)
+	else:
+		_build_ground()
 	for lot in data.get("lots", []):
 		_build_lot(lot)
 	FinBuilder.new().build(self, _fin_canopies, _sign_rects)
@@ -123,13 +127,20 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	if data.has("skyways"):
 		SkywayBuilder.new().build(self)
 	for c in data.get("crossings", []):
-		_build_crossing(c)
+		if country():
+			CountryBuilder.crossing(self, c)
+		else:
+			_build_crossing(c)
 	if modern():
 		ModernBuilder.skyline(self)
+	elif country():
+		CountryBuilder.backdrop(self)
 	else:
 		_build_backdrop()
 	for p in data.get("props", []):
 		_build_prop(p)
+	if country():
+		CountryBuilder.poles(self)
 
 
 ## Cover height map for the visual rain, over x (whole level) and z (behind facades → camera side):
@@ -138,7 +149,8 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 ## (windy) rain blows in under the edges exactly as the gameplay rays assume. G = COVER_HIDE: drops
 ## vanish below R without a splash (the open air under a deck span). G = COVER_VOLUME: a skyway, solid
 ## from its soffit (the shader's `volume_floor`) up to R: drops splash on its roof and vanish inside it,
-## and slanted rain still falls under it below the soffit.
+## and slanted rain still falls under it below the soffit. G = COVER_TREE: a tree's crown; below R only
+## `tree_leak` of the drops carry on, the rest stop in the leaves.
 const COVER_RES := 10.0          # texels per metre along x
 const COVER_RES_Z := 4.0
 const COVER_Z0 := -3.0
@@ -146,6 +158,7 @@ const COVER_Z1 := 13.0
 const COVER_SHELL := 1.0
 const COVER_HIDE := 2.0
 const COVER_VOLUME := 3.0        # a solid from SkywayBuilder.SOFFIT_Y up to R: drops stop on its roof
+const COVER_TREE := 4.0          # a tree's crown, its underside at R: most drops stop in it
 
 
 func cover_map() -> Array:
@@ -169,9 +182,15 @@ func cover_map() -> Array:
 			if z < 0.0 and not in_cross:
 				y = 30.0            # inside buildings / behind facades: never visible
 			img.set_pixel(ix, iz, Color(y, 0, y))
+	if country():
+		CountryBuilder.cover_map_ground(self, img, x0)
 	for lot in data.get("lots", []):
 		var lx: float = lot["x"]
 		var lw: float = lot["w"]
+		if lot.get("cover", "none") == "trees":
+			TreeCover.cover_map(self, img, x0, lx, lw)
+		elif CountryBuilder.COVERS.has(String(lot.get("cover", "none"))):
+			CountryBuilder.cover_map_lot(self, img, x0, lot)
 		match lot.get("cover", "none"):
 			"awning":
 				var s: Dictionary = AWNING_STYLES[_awning_style_at.get(lx, "classic")]
@@ -287,6 +306,17 @@ func _collapses_on(x: float, s: Dictionary) -> Array:
 	return out
 
 
+## Solid ground (or a hedge, a wall) of height y from x a to b, z z0 to z1: drops splash on its top.
+func _solid_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, y: float) -> void:
+	var ia := int((a - x0) * COVER_RES)
+	var ib := int((b - x0) * COVER_RES)
+	for ix in range(maxi(ia, 0), mini(ib, img.get_width())):
+		for iz in img.get_height():
+			var z := COVER_Z0 + (iz + 0.5) / COVER_RES_Z
+			if z >= z0 and z <= z1:
+				img.set_pixel(ix, iz, Color(y, 0, y))
+
+
 func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float, height: Callable,
 		kind := COVER_SHELL) -> void:
 	var ia := int((a - x0) * COVER_RES)
@@ -305,6 +335,11 @@ func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float
 ## The jet-age city centre (`aesthetic: "modern"`): glass towers, a skyscraper skyline.
 func modern() -> bool:
 	return data.get("aesthetic", "") == "modern"
+
+
+## The country lane (`aesthetic: "country"`): a grass verge and a lane, hedges, fields and hills.
+func country() -> bool:
+	return data.get("aesthetic", "") == "country"
 
 
 func _mat(key: String, color: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:
@@ -453,6 +488,8 @@ func _build_lot(lot: Dictionary) -> void:
 		RoadsideBuilder.motel(self, x, w, floors)
 	elif ModernBuilder.STYLES.has(style):
 		ModernBuilder.lot(self, x, w, style, floors, lot)
+	elif CountryBuilder.STYLES.has(style) or style == "inn" and country():
+		CountryBuilder.lot(self, x, w, style, lot)
 	else:
 		_build_facade(x, w, style, floors, lot)
 	match lot.get("cover", "none"):
@@ -471,8 +508,14 @@ func _build_lot(lot: Dictionary) -> void:
 			# Gas-station canopy (the kit module draws it; we add the collider).
 			_cover_box(Vector3(w - 0.3, 0.4, 3.5), Transform3D(Basis(), Vector3(x + w * 0.5, 3.75, 1.55)))
 			_drips(x + 0.15, x + w - 0.15, 3.5, 3.32)
+		"trees":
+			if not tree_covers.has(snappedf(x, 0.01)):   # the lot's style didn't draw its tree
+				TreeCover.build(self, x, w)
+		"shelter", "barn", "porch":
+			CountryBuilder.cover(self, lot)
 	var under_viaduct: bool = track != null and track.railway() and lot.get("cover", "none") == "awning"
-	if lot.has("sign") and style not in ["vacant", "forecourt", "motel"] + ModernBuilder.STYLES and not under_viaduct:   # a railway viaduct hides an awning lot's sign
+	var drawn_sign: bool = style in ["vacant", "forecourt", "motel"] + ModernBuilder.STYLES + CountryBuilder.STYLES or style == "inn" and country()
+	if lot.has("sign") and not drawn_sign and not under_viaduct:   # a railway viaduct hides an awning lot's sign
 		_build_sign(x, w, String(lot["sign"]), style, bool(lot.get("neon", false)))
 	# Rolled before the skyway test, so a street without skyways rolls exactly as it always has.
 	var clear: bool = not SkywayBuilder.under(data, x + w * 0.5) and not ModernBuilder.STYLES.has(style)
@@ -1437,6 +1480,8 @@ func _build_prop(p: Dictionary) -> void:
 	for c in data.get("crossings", []):
 		if x > float(c["x"]) - 0.4 and x < float(c["x"]) + float(c["w"]) + 0.4:
 			return     # never in the roadway
+	if CountryBuilder.prop(self, id, x, p):
+		return
 	if props_kit.has(id):
 		var n := _instance(props_kit[id]["scene"])
 		if n:
