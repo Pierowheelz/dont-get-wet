@@ -354,6 +354,40 @@ def rotor(seed, dur):
     return out + 0.25 * cconv(out, ir)
 
 
+# --------------------------------------------------------------------------- gust
+
+def gust(seed, dur):
+    """A squall's gust coming down a country lane: a heavy roar of wind with deep buffeting, the
+    hiss and thrash of hedges and trees (leaves rattling in fast flurries), and a low moan through
+    the branches. Mono: the game places it at the gust's front and moves it past the walker. Every
+    modulation is periodic in the loop."""
+    r = rng(seed)
+    n = nsamp(dur)
+    t = tax(n)
+    surge = smooth_rand(n, r, 0.6)                       # the gust heaving, about twice a second
+    g = undb(5 * surge / 2)
+    g /= g.mean()
+    roar = cnoise(n, r, lambda f: pink(f) * mag_bp(f, 90, 1800, 2)) * g ** 1.3
+    buffet = cnoise(n, r, lambda f: brown(f) * mag_bp(f, 22, 140, 2))
+    buffet *= 0.5 + 0.5 * np.clip(1 + smooth_rand(n, r, 3.0) * 0.6, 0, None) * g
+    flurry = np.clip(smooth_rand(n, r, 14.0) * 0.8 + 0.4, 0, None) ** 1.5   # leaves rattling in bursts
+    thrash = cnoise(n, r, lambda f: mag_bp(f, 1800, 7500, 2)) * (0.35 + flurry) * g ** 2
+    hiss = cnoise(n, r, lambda f: pink(f) * mag_bp(f, 900, 5000, 2)) * g ** 1.8
+    moan = np.zeros(n)
+    for fc in (310.0, 345.0, 420.0):
+        band = cnoise(n, r, lambda f, fc=fc: np.exp(-0.5 * ((f - fc) / (fc / 40)) ** 2))
+        moan += unit(band) * np.maximum(g - 0.9, 0) ** 2
+    out = (unit(roar) + undb(-4) * unit(buffet) + undb(-9) * unit(thrash) + undb(-8) * unit(hiss)
+           + undb(-20) * moan / (np.sqrt(np.mean(moan ** 2)) + 1e-12))
+    out = match_spectrum(out, GUST_SPEC, 0.5)
+    ir = make_ir(r, t60=0.6, pre_ms=4, channels=1, hf_ratio=0.5, density_ms=5, early=8)[0]
+    return out + 0.15 * cconv(out, ir)
+
+
+GUST_SPEC = [(30, -12), (40, -7), (80, -2), (160, 0), (315, -1), (630, -3), (1250, -6),
+             (2500, -10), (5000, -15), (10000, -24), (20000, -40)]
+
+
 LOOPS = {
     "rain_light_loop": (lambda: rain(101, 40.0, heavy=False)),
     "rain_heavy_loop": (lambda: rain(202, 40.0, heavy=True)),
@@ -364,4 +398,5 @@ LOOPS = {
     "wind_loop": (lambda: wind(606, 45.0)),
     "traffic_distant_loop": (lambda: traffic(707, 50.0)),
     "rotor_loop": (lambda: rotor(808, 4.0)),
+    "gust_loop": (lambda: gust(909, 8.0)),
 }

@@ -1190,7 +1190,7 @@ func _tests() -> Array[Callable]:
 		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
 		_test_bypass_posted_reach, _test_skyway, _test_street_camera, _test_modern_lots,
-		_test_courier_slicker, _test_helicopters, _test_skyway_terminal, _test_dynamic_resolution, _test_menu_width,
+		_test_courier_slicker, _test_helicopters, _test_squalls, _test_skyway_terminal, _test_dynamic_resolution, _test_menu_width,
 		_test_credits_scroll, _test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
 	]
 
@@ -2782,3 +2782,191 @@ func _test_skyway_terminal() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.current_level = "main_street"
+
+
+
+# --- squalls (Long Lane) -----------------------------------------------------------------------------
+
+const SQUALLS := [{"x": 61.0, "dur": 3.0}, {"x": 120.0}]
+
+
+## Main Street with gusts, and its 5 m vacant lot at 63.5 under trees (cover "trees").
+func _squall_street() -> Level:
+	var lots: Array = Game.level_data("main_street")["lots"].duplicate(true)
+	for lot in lots:
+		if is_equal_approx(float(lot["x"]), 63.5):
+			lot["cover"] = "trees"
+	return await _street_with({"squalls": SQUALLS, "lots": lots})
+
+
+## The share of the walker's body the trees' shower reaches at x, umbrella `open` and `tilt`, at level time t.
+func _shower(x: float, open: float, tilt: float, t: float) -> float:
+	await _place(x, open, tilt)
+	level.elapsed = t
+	return level.player._shower_exposure()
+
+
+func _calm(sq: Squall) -> void:
+	for g: Dictionary in sq.gusts:
+		if g["fx"]:
+			for n: Node in g["fx"].values():
+				n.queue_free()
+	sq.gusts.clear()
+	await _idle_frames(2)
+
+
+## Walks the bot (lazy: umbrella shut) from under the awning at 59 through the trees, letting the
+## first squall trigger as he passes 61 the way it does in play. Returns what the gust did to him.
+func _gust_pass(sq: Squall, lazy: bool, human := false) -> Dictionary:
+	await _calm(sq)
+	sq._next = 0
+	var p: Player = level.player
+	await _place(59.0, 0.0)
+	p.wet = 0.0
+	p.stamina = Tun.f("stamina_max")
+	p.speed = Tun.f("walk_speed")
+	p.state = Player.State.WALK
+	p.stats["wet_shower"] = 0.0
+	level._seen.erase("gust")
+	Game.debug_lazy = lazy
+	Game.debug_human = human
+	var out := {"least_open": 1.0, "rested": false, "in_it": 0.0, "most_tilt": 0.0}
+	p.set_physics_process(true)
+	var t := 0.0
+	while t < 10.0 and p.position.x < 70.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		if level.under_trees(p.position.x) and level.gust_at(p.position.x, level.elapsed) > 0.0:
+			out["in_it"] += get_physics_process_delta_time()
+			out["least_open"] = minf(out["least_open"], p.open)
+			out["most_tilt"] = maxf(out["most_tilt"], absf(p.tilt))
+			out["rested"] = out["rested"] or p.state == Player.State.STOPPED
+	p.set_physics_process(false)
+	Game.debug_lazy = false
+	Game.debug_human = false
+	out["wet"] = p.stats["wet_shower"]
+	out["launched"] = sq.gusts.size() == 1
+	out["hinted"] = level._seen.has("gust")
+	return out
+
+
+## Long Lane's squalls. Each gust is a pure function of the level clock from its trigger, so
+## Level.gust_at predicts it; in it the rain slants, the trees shed their water on whoever is under
+## them (only the open canopy straight above keeps it off) and an open umbrella costs stamina and is
+## shoved about. The foliage thrashes by its x, the bots open up upright ahead of it under trees, and
+## a resume past a trigger skips that gust.
+func _test_squalls() -> void:
+	level = await _squall_street()
+	var p: Player = level.player
+	_unhook_defeat(p)
+	var sq: Squall = level.squalls
+	check(sq != null and sq.entries.size() == 2 and sq.gusts.is_empty() and sq.next_x() == 61.0 and level.tree_spans == [[63.5, 68.5]],
+		"the street has two squalls, none blowing before the walker reaches one, and one lot of trees")
+	if sq == null:
+		await _drop_street(level)
+		return
+	# Something for the gust to thrash: trees whose shader has the `gust` uniform, and a node without one.
+	var sh := Shader.new()
+	sh.code = "shader_type spatial;\nuniform float gust = 0.0;\nuniform float gust_dir = 0.0;\nvoid fragment() { ALBEDO = vec3(gust); }\n"
+	var shared := ShaderMaterial.new()
+	shared.shader = sh
+	var trees: Array[MeshInstance3D] = []
+	for x in [66.0, 100.0]:
+		var tree := MeshInstance3D.new()
+		tree.mesh = BoxMesh.new()
+		tree.material_override = shared
+		tree.position = Vector3(x, 5.0, 0.5)
+		tree.add_to_group(&"foliage")
+		level.world.add_child(tree)
+		trees.append(tree)
+	var plain := Node3D.new()
+	plain.add_to_group(&"foliage")
+	level.world.add_child(plain)
+
+	# The gust, from ahead (the street has no wind): it sets off START_OFF upwind of its trigger and
+	# its front reaches each spot at SPEED; there it blows for `dur`.
+	var g := sq.launch(0, 10.0)
+	var arrive := 10.0 + (61.0 + Squall.START_OFF - 66.0) / Squall.SPEED
+	check(g["dir"] == -1.0 and level.gust_at(66.0, arrive - 0.05) == 0.0 and level.gust_at(66.0, arrive + Squall.RISE + 0.1) == 1.0
+		and level.gust_at(66.0, arrive + 2.6) > 0.0 and level.gust_at(66.0, arrive + 2.6) < 1.0 and level.gust_at(66.0, arrive + 3.05) == 0.0,
+		"its front reaches x 66 at t=%.2f, blows full there within %.1f s and dies away by 3 s on" % [arrive, Squall.RISE])
+	check(absf(level.gust_eta(66.0, arrive - 1.0) - 1.0) < 0.001 and level.gust_eta(66.0, arrive + 1.0) == 0.0
+		and is_inf(level.gust_eta(66.0, arrive + 3.5)) and level.gust_at(61.0 + Squall.START_OFF + 1.0, arrive) == 0.0,
+		"gust_eta counts down to it, is 0 in it and INF once it has gone; nothing blows upwind of where it set off")
+	level.elapsed = arrive + 1.0
+	check(level.wind(66.0, false) == 0.0 and absf(level.wind(66.0) + Tun.f("gust_wind")) < 0.001 and level.rain_dir(66.0).x < -0.5,
+		"in it the wind blows %.1f from ahead and the rain slants hard" % Tun.f("gust_wind"))
+
+	# The trees' shower: only under the trees, only in the gust; only the canopy straight above keeps it off.
+	var t_full := arrive + 1.0
+	var shut := await _shower(66.0, 0.0, 0.0, t_full)
+	var up := await _shower(66.0, 1.0, 0.0, t_full)
+	var tilted := await _shower(66.0, 1.0, Tun.f("umbrella_max_tilt"), t_full)
+	check(shut > 0.95 and up < 0.1 and tilted > 0.3,
+		"under the trees the gust shakes their water down on him: shut %.2f, open upright %.2f, tilted over %.2f" % [shut, up, tilted])
+	var calm := await _shower(66.0, 0.0, 0.0, arrive - 0.5)
+	var awning := await _shower(61.0, 0.0, 0.0, 10.0 + Squall.START_OFF / Squall.SPEED + 1.0)
+	check(calm == 0.0 and awning == 0.0, "nothing falls before the gust (%.2f) or under the awning beside the trees in it (%.2f)" % [calm, awning])
+
+	# An open canopy in the gust fights it: stamina drains faster, and it is shoved over the way it blows.
+	await _place(66.0, 1.0)
+	p.state = Player.State.WALK
+	p.wet = 0.0
+	Game.debug_tilt = 0.0
+	var drop := []
+	var kick := []
+	var sturdy_was: int = Game.run.upgrades[&"sturdy"]
+	for case in [[t_full, 0], [t_full + 20.0, 0], [t_full, 3]]:
+		Game.run.upgrades[&"sturdy"] = case[1]
+		p.stamina = 80.0
+		p.gust_kick = 0.0
+		p.gust_droop = 0.0
+		for i in 30:
+			level.elapsed = case[0]
+			p._physics_process(1.0 / 60.0)
+		drop.append(80.0 - p.stamina)
+		kick.append(p.gust_kick)
+	Game.run.upgrades[&"sturdy"] = sturdy_was
+	Game.debug_tilt = NAN
+	check(absf(drop[0] - drop[1] - Tun.f("stamina_drain_gust") * 0.5) < 0.2,
+		"open in the gust, stamina drains %.1f a second more" % ((drop[0] - drop[1]) * 2.0))
+	check(kick[0] < -0.15 and kick[1] == 0.0 and kick[2] < 0.0 and kick[2] > kick[0] * 0.5,
+		"the gust shoves the canopy back toward him (%.2f rad), Sturdy Frame holds it steadier (%.2f)" % [kick[0], kick[2]])
+	p.wet = 0.0
+
+	# The trees thrash by their own x: the one in the gust, not the one beyond it; each has its own material.
+	sq._extra = 0.0
+	level.elapsed = t_full
+	await _idle_frames(1)
+	var m0 := trees[0].material_override as ShaderMaterial
+	var m1 := trees[1].material_override as ShaderMaterial
+	check(m0 != shared and m0 != m1 and float(m0.get_shader_parameter("gust")) > 0.8 and float(m1.get_shader_parameter("gust")) < 0.01
+		and float(m0.get_shader_parameter("gust_dir")) == -1.0,
+		"the tree in the gust thrashes (%.2f), the one past it doesn't (%.2f)" % [float(m0.get_shader_parameter("gust")), float(m1.get_shader_parameter("gust"))])
+	sq._extra = 0.0
+	level.elapsed = t_full + 20.0
+	await _idle_frames(1)
+	check(float(m0.get_shader_parameter("gust")) < 0.01, "and it is still once the gust has gone")
+
+	# The bots: the gust triggers as he passes 61 and meets him under the trees.
+	var bot := await _gust_pass(sq, false)
+	check(bot["launched"] and bot["hinted"] and bot["in_it"] > 1.0, "the walker sets the gust off, it shows its hint and meets him under the trees (%.1f s)" % bot["in_it"])
+	check(bot["wet"] < 1.0 and bot["least_open"] > 0.9 and bot["most_tilt"] < 0.1 and not bot["rested"],
+		"the bot meets it with the umbrella up and upright, not tilted into the slanting rain (%.2f rad): the shower wets him %.2f, least open %.2f in it"
+		% [bot["most_tilt"], bot["wet"], bot["least_open"]])
+	var human := await _gust_pass(sq, false, true)
+	check(human["wet"] < 1.5, "the human bot too, a reaction time late: %.2f" % human["wet"])
+	var lazy := await _gust_pass(sq, true)
+	check(lazy["wet"] > 6.0, "with the umbrella shut the trees' shower wets him %.1f" % lazy["wet"])
+	await _drop_street(level)
+
+	# A checkpoint resume (or --start-x) past a trigger leaves that gust out.
+	Game.debug_start_x = 62.0
+	level = await _squall_street()
+	Game.debug_start_x = -1.0
+	check(level.squalls._next == 1 and level.squalls.next_x() == 120.0, "starting past the first trigger skips that gust")
+	await _drop_street(level)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	level.player.set_physics_process(false)

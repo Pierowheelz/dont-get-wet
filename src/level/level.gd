@@ -33,6 +33,7 @@ var drive_bys: DriveBy         # the level's `drive_bys` (cars that pass from be
 var courier: Courier           # the level's scripted pedestrian to keep in frame, or null
 var henchmen: Node             # the level's `henchmen` (henchmen.gd), or null
 var helicopters: Helicopter    # the level's `helicopters` (shuttles whose rotor wash drives the rain in under cover), or null
+var squalls: Squall            # the level's `squalls` (gusts down the lane that shake the trees' water down), or null
 
 var player: Player
 var camera: Camera3D
@@ -193,6 +194,11 @@ func _ready() -> void:
 		helicopters.name = "Helicopters"
 		helicopters.level = self
 		add_child(helicopters)
+	if data.has("squalls"):
+		squalls = Squall.new()
+		squalls.name = "Squalls"
+		squalls.level = self
+		add_child(squalls)
 	if data.has("follower"):
 		var follower := preload("res://src/level/follower.gd").new()
 		follower.name = "Follower"
@@ -299,11 +305,14 @@ func under_trees(x: float) -> bool:
 	return false
 
 
-## Signed wind strength 0..~1 (+ blows toward +X = tailwind).
-func wind(x: float) -> float:
+## Signed wind strength 0..~1 (+ blows toward +X = tailwind). In a squall's gust it adds `gust_wind`
+## times the gust's strength in the gust's direction, unless `with_squalls` is false.
+func wind(x: float, with_squalls := true) -> float:
 	var w := _curve(_wind_curve, x)
 	if _gusts:
 		w *= 1.0 + 0.4 * sin(_t * 0.9) * sin(_t * 0.37 + 1.3)
+	if with_squalls and squalls:
+		w += squalls.push_at(x, elapsed) * Tun.f("gust_wind")
 	return w
 
 
@@ -363,6 +372,22 @@ func rotor_at(x: float, t: float) -> float:
 ## Seconds until a launched helicopter's wash reaches x (0 while it is on x, INF if none will).
 func rotor_eta(x: float, t: float) -> float:
 	return helicopters.rotor_eta(x, t) if helicopters else INF
+
+
+## 0..1 how hard a squall's gust is blowing at x at level-clock time t (callers pass `elapsed`). A
+## triggered gust's future is known, so a later t predicts it; one not yet triggered reads 0.
+func gust_at(x: float, t: float) -> float:
+	return squalls.gust_at(x, t) if squalls else 0.0
+
+
+## The gust at x at level-clock time t, signed by the way it blows (+ toward +X).
+func gust_push(x: float, t: float) -> float:
+	return squalls.push_at(x, t) if squalls else 0.0
+
+
+## Seconds until a triggered gust reaches x (0 while one is on x, INF if none will).
+func gust_eta(x: float, t: float) -> float:
+	return squalls.gust_eta(x, t) if squalls else INF
 
 
 ## A payphone rings from PHONE_HEAR before the walker reaches it until he passes it, or, with `keep`,
@@ -531,7 +556,7 @@ func _first_encounters() -> void:
 			if z[0] - x > 0.0 and z[0] - x < 4.0:
 				_seen["sun"] = true
 				hud.hint("A break in the clouds. Close the umbrella and let the sun dry you off.", 3.5)
-	if not _seen.has("wind") and absf(wind(x)) > 0.18:
+	if not _seen.has("wind") and absf(wind(x, false)) > 0.18:
 		_seen["wind"] = true
 		hud.hint("The wind is slanting the rain — tilt the umbrella into it ({tilt}).", 4.0)
 	if not _seen.has("gun") and player.gun.armed and elapsed > 1.5:
