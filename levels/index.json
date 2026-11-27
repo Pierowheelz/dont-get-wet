@@ -264,7 +264,29 @@
     "rocket_row",
     "the_zenith"
    ],
-   "soon": true
+   "blurb": "Glass towers and skyways over the pavement. The airport helicopters come and go from the terminal roof.",
+   "difficulty": 8,
+   "file": "res://levels/skyway_terminal.json",
+   "outro": [
+    "His helicopter didn't go to the airport.",
+    "It put down on the roof of The Zenith."
+   ],
+   "load": "The matchbook had a flight number written inside.",
+   "fail": {
+    "lost": [
+     "Yellow slicker. Hard to lose. You managed it."
+    ],
+    "made": [
+     "He'd seen your face before. In a photograph, maybe."
+    ],
+    "shot": [
+     "Right through the lapels."
+    ],
+    "wet": [
+     "The rotors saw to that.",
+     "Dry under the skyway. Not dry enough."
+    ]
+   }
   },
   {
    "id": "the_zenith",
