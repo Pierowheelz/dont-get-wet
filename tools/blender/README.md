@@ -14,7 +14,8 @@ tools/blender/build_all.sh          # ~40 s: textures, materials, buildings, pro
 | `buildings.py` | `blender -b --factory-startup --python` | `assets/buildings/*.glb` + `kit.json` |
 | `props.py` | `blender -b --factory-startup --python` | `assets/props/*.glb` + `props.json` |
 | `vehicles.py` | `blender -b --factory-startup --python` | `assets/vehicles/helicopter.glb` (docs/CONTRACTS.md §8); `-- --preview DIR` renders views of it |
-| `configure_imports.py` | `python3` | sets `import_script/path` of every kit `.glb.import` to `assets/buildings/kit_import.gd` (vehicles: `assets/vehicles/vehicle_import.gd`, which also makes their lights) |
+| `country.py` | `blender -b -P` | `assets/country/*.glb`: the country lane's trees, hedge, barn and furniture and two suburban street trees, painted in vertex colours (docs/CONTRACTS.md §10); `-- --preview DIR` renders views, `--only a,b` builds some |
+| `configure_imports.py` | `python3` | sets `import_script/path` of every kit `.glb.import` to `assets/buildings/kit_import.gd` (vehicles: `assets/vehicles/vehicle_import.gd`, which also makes their lights; country: `assets/country/country_import.gd`, which shows their vertex paint) |
 
 * `kitlib.py` — geometry helpers (bevelled boxes, sweeps/mouldings, lathes, walls with reveals);
   takes game coordinates (+X walk, +Y up, +Z toward the camera) and writes metre-scale box UVs.
