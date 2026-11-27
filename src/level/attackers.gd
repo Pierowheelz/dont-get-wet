@@ -368,7 +368,7 @@ func _draw_shadow(delta: float) -> void:
 func _camera_bias() -> float:
 	var cam: Camera3D = level.camera
 	var half := cam.global_position.x - _frame_edge()
-	return minf(half - hold_gap() - IN_FRAME - Tun.f("camera_lead"), 0.0)
+	return minf(half - hold_gap() - IN_FRAME - level.cam("lead"), 0.0)
 
 
 ## World x of the left edge of the frame, on his lane.

@@ -13,6 +13,11 @@ var _near_mat: ShaderMaterial
 var _debris: GPUParticles3D
 var _zones_set := false
 var _debris_mat: ParticleProcessMaterial
+var _rain_y := 6.5                  # centre of the main layer's box, raised for a taller view
+
+const BOX := Vector3(16.0, 7.0, 5.5)   # the main layer's half extents under the default camera
+const BOX_Z := 1.0                     # its centre in z
+const MAX_GROW := 1.8                  # a wider view gets at most this many times the drops
 
 
 ## Detach the splash sub-emitter before anything is freed: tearing down a GPUParticles3D whose
@@ -33,7 +38,14 @@ func _ready() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = shader
 	var low: bool = Game.settings.get("low_quality", false)
-	_rain = _make_layer(_mat, 7000 if low else 16000, Vector3(16.0, 7.0, 5.5), 0.42, 0.010, 0.33)
+	# A street with a wider camera gets a bigger box with proportionally more drops, a little thicker so
+	# they still read at that distance; every other street gets exactly the default layer.
+	var view := view_scale()
+	var ext := Vector3(BOX.x * view.x, BOX.y + view.y * 0.5, BOX.z)
+	_rain_y = 6.5 + view.y * 0.5
+	var grow := clampf(view.x * ext.y / BOX.y, 1.0, MAX_GROW)
+	_rain = _make_layer(_mat, int((7000 if low else 16000) * grow), ext, 0.42 * sqrt(view.x), 0.010, 0.33)
+	_mat.set_shader_parameter("streak_width", 0.012 * pow(view.x, 0.7))
 	add_child(_rain)
 	_rain.sub_emitter = _rain.get_path_to(_splash)
 
@@ -48,10 +60,29 @@ func _ready() -> void:
 
 	var cover: Array = level.builder.cover_map()
 	for m in [_mat, _near_mat]:
+		m.set_shader_parameter("volume_floor", SkywayBuilder.SOFFIT_Y)
 		m.set_shader_parameter("cover_map", cover[0])
 		m.set_shader_parameter("cover_rect", cover[1])
 		m.set_shader_parameter("player_plane_z", Tun.f("player_z"))
 		m.set_shader_parameter("sky_y", Player.RAIN_SKY_Y)
+
+
+## How much more the street's camera sees than the default one at the back of the main rain box:
+## x, the ratio of the view's widths there; y, how many metres higher its top edge reaches. (1, 0)
+## on every street without a `camera` override, and on the title screen.
+func view_scale() -> Vector2:
+	if not level.has_method("cam"):
+		return Vector2(1.0, 0.0)   # the title screen's rain, under the default camera
+	var back := BOX_Z - BOX.z
+	var pz := Tun.f("player_z")
+	var d0 := pz + Tun.f("camera_distance") - back
+	var d1 := pz + float(level.cam("distance")) - back
+	var f0 := deg_to_rad(Tun.f("camera_fov")) * 0.5
+	var f1 := deg_to_rad(float(level.cam("fov"))) * 0.5
+	var kx := tan(f1) * d1 / (tan(f0) * d0)
+	var top0 := Tun.f("camera_height") + d0 * tan(f0 + deg_to_rad(Tun.f("camera_pitch_deg")))
+	var top1 := float(level.cam("height")) + d1 * tan(f1 + deg_to_rad(float(level.cam("pitch"))))
+	return Vector2(maxf(kx, 1.0), maxf(top1 - top0, 0.0))
 
 
 func _make_layer(mat: ShaderMaterial, amount: int, extents: Vector3, length: float, width: float, alpha: float) -> GPUParticles3D:
@@ -167,7 +198,7 @@ func _process(_delta: float) -> void:
 	var cx := camera.global_position.x
 	var dir: Vector3 = level.rain_dir(cx)
 	var inten: float = level.rain_intensity_raw(cx)
-	_rain.global_position = Vector3(cx, 6.5, 1.0)
+	_rain.global_position = Vector3(cx, _rain_y, BOX_Z)
 	_near.global_position = Vector3(cx, 3.0, camera.global_position.z - 2.2)
 	for m in [_mat, _near_mat]:
 		m.set_shader_parameter("fall_dir", dir)

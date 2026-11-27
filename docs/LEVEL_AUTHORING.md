@@ -77,6 +77,31 @@ shrinks to fit the lot width. `neon=True` gives a signed lot tube lettering on e
 street with `neon` above 0 the builder swaps some lots to the retro kit, and a signless retro lot gets
 a random filler name; pass `sign=" "` on narrow seams to keep it blank.
 
+**The glass city** (`aesthetic: "modern"`, `src/level/modern_builder.gd`) draws three more styles in
+code, all without cover, and a skyline of skyscrapers (offices lit, red beacons on the tall ones)
+behind the street instead of the usual dark silhouette. Its kit lots (`shop_lit`, `inn`, ...) all use
+the retro kit, and only the lots its `neon` roll picks get tube lettering or a filler name.
+
+- `glass_tower`: a curtain-wall tower, 4 m + 3.2 m per `floors` (8 to 20 or more): travertine pilotis at
+  the lot line in front of a lobby 1.8 m back on a terrazzo floor, `sign` in stainless capitals on the
+  fascia over it (3.3 to 4 m).
+- `lobby`: a double-height glass lobby (7.2 m) with a mezzanine and globe lamps, the tower above it;
+  the same sign band. Pair it with a `revolving_door` for a terminal or hotel entrance.
+- `plaza`: an open travertine plaza (open sky) with planters, flagpoles and globe lamps, its tower
+  16 m back. Keep its `floors` low (3 to 6) so the skyline shows above it.
+
+The towers' lobbies are lit unless the lot sets `"lit": false`; `"palette": 0-3` picks the glass
+(blue-green, bronze, white spandrels, black) instead of the automatic one. A side street beside a modern
+lot is lined with glass, and towers close its far end.
+
+**`camera`** (`{"distance", "height", "fov", "pitch", "lead"}`, any of them;
+`Street(..., camera={...})`) replaces the camera tunables (`camera_distance`, `camera_height`,
+`camera_fov`, `camera_pitch_deg`, `camera_lead`) for one street. Pitch is in degrees, positive looks
+up. The frame checks (`Level.in_frame`, the courier's frame edge, the henchmen's) follow the real
+camera, the drive-by pull eases out from it, and the rain box grows to fill the wider view with up to
+1.8 times the drops. A wider view makes the walker smaller: at distance 10.5, fov 52 he is about a
+sixth of the screen's height (a quarter by default). Keep his feet well above the bottom edge.
+
 The level ends at the inn door. The builder sets `end_x` from the kit door: an 8 m `inn` lot puts the
 door at `x + 4`. Keep the JSON `end_x` in step with it, because the preview uses the JSON value.
 
@@ -259,6 +284,18 @@ hangs from the girders where each span meets the arches and on every column; `s.
 hangs another anywhere. Lamp posts, balconies and arcades still fail track-clearance. The trains are
 two carriages of country stock, seen over the parapet from about 3.9 m up. level_preview counts the
 arches as cover and leaves them out of the wash. `Track.arch_at(x)` is true under a railway's arches.
+
+**`skyways`** (`[{"x0", "x1"}]`; `s.skyway(from_tag, to_tag)`, `src/level/skyway_builder.gd`) are
+enclosed glass galleries over the pavement from the start of `from_tag` to the end of `to_tag`, and
+cover. One may bridge a side street. Its underside is at 4.45 m, above the sign band, so shop signs
+beneath it show; it reaches from the facades to 3.3 m, short of the kerb, and its roof is at 7.6 m.
+Slim columns stand under its front edge at most 9 m apart, never in a side street's road and 0.6 m
+clear of kerb props. Rain drips from its front edge, and the visual rain stops on its roof and never
+shows inside the glass. Because it is high, wind slants rain in under its ends much further than
+under an awning: 1 m inside the upwind end in a 0.6 wind the walker is fully wet (under an awning,
+about an eighth), and dry again some 5 m in. Lots under a skyway normally take `cover: "none"`; an
+awning beneath it keeps its own drip line off. Lamp posts, balconies and arcades under a skyway fail
+the **skyway-clearance** check, and a lot beneath one gets no blade sign, hologram or overhead cables.
 
 **`idling_sedan`** (`s.prop("idling_sedan", x)`, x inside a crossing without `car`) stops a black
 sedan nose-out in that side street with its engine running: wipers, exhaust, headlamps and a hat
@@ -464,6 +501,11 @@ draws it in the hazards lane. The checks are:
   inside those 4 m.
 - **track-clearance** (streets with a `track`). No lamp post, balcony or arcade under the track and no
   gutter under a deck, as described under `track` above.
+- **skyway-clearance** (streets with `skyways`). No lamp post, balcony or arcade under a skyway.
+
+The report also prints the share of `end_x` under cover and under a skyway; a skyway street aims for
+at least 60%. A skyway counts as cover everywhere in the preview, and its ends are pulled in by its
+own height (4.45 m) times the wind slant, so checkpoints sit further inside it in wind.
 
 A decile is short, so a breather has to sit inside the same decile as its test. A decile that is all
 cover right after a hard one fails the ramp check. Sun breaks count as zero rain, so a sun decile

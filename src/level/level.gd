@@ -112,10 +112,10 @@ func _ready() -> void:
 	player.arrived.connect(_on_arrived)
 
 	camera = Camera3D.new()
-	camera.fov = Tun.f("camera_fov")
-	camera.far = 200.0
+	camera.fov = cam("fov")
+	camera.far = 400.0 if data.has("camera") else 200.0
 	add_child(camera)
-	_cam_x = player.position.x + Tun.f("camera_lead")
+	_cam_x = player.position.x + cam("lead")
 	_update_camera(1.0)
 	camera.make_current()
 	if OS.get_cmdline_user_args().has("--player-close"):   # screenshot aid: a close camera on the walker
@@ -538,6 +538,15 @@ func _train_and_phone_hints(delta: float) -> void:
 
 const CAM_PULL_EASE := 2.2     # 1/s: how quickly the camera eases out or back in for camera_pull
 const CAM_PULL_RISE := 0.12    # and rises this much per metre, so the pavement stays mid-frame
+## The level field `camera` overrides these tunables for one street (a wider shot of a tall street).
+const CAM_KEYS := {"distance": "camera_distance", "height": "camera_height", "fov": "camera_fov",
+	"pitch": "camera_pitch_deg", "lead": "camera_lead"}
+
+
+## The street's camera setting `key` (a CAM_KEYS key): its `camera` override, else the tunable.
+func cam(key: String) -> float:
+	var c: Dictionary = data.get("camera", {})
+	return float(c[key]) if c.has(key) else Tun.f(CAM_KEYS[key])
 
 
 func _update_camera(delta: float) -> void:
@@ -545,12 +554,12 @@ func _update_camera(delta: float) -> void:
 		return
 	if not _cam_locked:
 		_cam_bias = move_toward(_cam_bias, camera_bias, 1.6 * delta)
-		var target := player.position.x + Tun.f("camera_lead") + _cam_bias
+		var target := player.position.x + cam("lead") + _cam_bias
 		_cam_x = lerpf(_cam_x, target, 1.0 - exp(-6.0 * delta))
 		_cam_pull = lerpf(_cam_pull, camera_pull, 1.0 - exp(-CAM_PULL_EASE * delta))
-	var z := Tun.f("player_z") + Tun.f("camera_distance") + _cam_pull
-	camera.position = Vector3(_cam_x, Tun.f("camera_height") + _cam_pull * CAM_PULL_RISE, z)
-	camera.rotation = Vector3(deg_to_rad(Tun.f("camera_pitch_deg")), 0, 0)
+	var z := Tun.f("player_z") + cam("distance") + _cam_pull
+	camera.position = Vector3(_cam_x, cam("height") + _cam_pull * CAM_PULL_RISE, z)
+	camera.rotation = Vector3(deg_to_rad(cam("pitch")), 0, 0)
 
 
 # --- flow -----------------------------------------------------------------------------------
