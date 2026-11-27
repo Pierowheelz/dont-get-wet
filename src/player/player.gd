@@ -15,6 +15,7 @@ const HIT_BLAME_S := 1.5
 
 const COVER_MASK := 1 << 1
 const UMBRELLA_MASK := 1 << 3
+const TREE_MASK := TreeCover.LAYER   # tree crowns: they let `tree_leak` of the rain through
 const HIP_Y := 0.95                # lean pivot for the body samples
 const NECK_Y := 1.55               # head-duck pivot
 const RAIN_SKY_Y := 3.6            # above every cover: where a drop's x decides if it's raining
@@ -367,6 +368,7 @@ func umbrella_leak() -> float:
 func _rain_exposure() -> float:
 	var up := -rain_dir() * 30.0
 	var leak := umbrella_leak()
+	var trees: bool = not level.tree_spans.is_empty()
 	var total := 0.0
 	var hit := 0.0
 	for s in SAMPLES:
@@ -379,10 +381,12 @@ func _rain_exposure() -> float:
 		var x_sky := p.x + up.x / maxf(up.y, 0.01) * maxf(RAIN_SKY_Y - p.y, 0.0)
 		if level.rain_intensity(x_sky) <= 0.0:
 			continue
+		# A tree's crown keeps off all but tree_leak of it.
+		var k := Tun.f("tree_leak") if trees and _cast(p, p + up, TREE_MASK) else 1.0
 		if _cast(p, p + up, UMBRELLA_MASK):
-			hit += s[1] * leak            # under the umbrella: only leaks while it moves
+			hit += s[1] * leak * k        # under the umbrella: only leaks while it moves
 		else:
-			hit += s[1]
+			hit += s[1] * k
 	return hit / total
 
 

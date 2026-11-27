@@ -35,6 +35,7 @@ theme/custom="res://src/ui/theme.tres"
 3d_physics/layer_3="player"
 3d_physics/layer_4="umbrella"
 3d_physics/layer_5="npc_umbrella"
+3d_physics/layer_6="trees"
 
 [physics]
 

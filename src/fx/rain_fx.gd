@@ -65,6 +65,7 @@ func _ready() -> void:
 		m.set_shader_parameter("cover_rect", cover[1])
 		m.set_shader_parameter("player_plane_z", Tun.f("player_z"))
 		m.set_shader_parameter("sky_y", Player.RAIN_SKY_Y)
+		m.set_shader_parameter("tree_leak", Tun.f("tree_leak"))
 
 
 ## How much more the street's camera sees than the default one at the back of the main rain box:

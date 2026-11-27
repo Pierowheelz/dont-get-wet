@@ -1191,7 +1191,8 @@ func _tests() -> Array[Callable]:
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
 		_test_bypass_posted_reach, _test_skyway, _test_street_camera, _test_modern_lots,
 		_test_courier_slicker, _test_helicopters, _test_skyway_terminal, _test_dynamic_resolution, _test_menu_width,
-		_test_credits_scroll, _test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
+		_test_credits_scroll, _test_slider_saves, _test_shop_fits, _test_small_screen_text, _test_tree_cover,
+		_test_country_build, _run_tests
 	]
 
 
@@ -2782,3 +2783,105 @@ func _test_skyway_terminal() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.current_level = "main_street"
+
+
+# --- trees as cover and the country (Long Lane / The County Road) ----------------------------------
+
+## A lot with `cover: "trees"` on any street: the crown lets tree_leak of the rain through to a walker
+## with the umbrella shut and none past the open umbrella. A lot whose style draws no tree still gets
+## TreeCover's crown, and the rain's cover map thins the drops beneath it.
+func _test_tree_cover() -> void:
+	var lots: Array = Game.level_data("main_street")["lots"].duplicate(true)
+	var tx := -1.0
+	for l: Dictionary in lots:
+		if is_equal_approx(float(l["x"]), 63.5):
+			l["cover"] = "trees"
+			tx = float(l["x"]) + float(l["w"]) * 0.5
+	level = await _street_with({"lots": lots})
+	var lv: Level = level
+	check(tx > 0.0 and lv.under_trees(tx) and not lv.under_trees(tx - 10.0), "Level.under_trees knows the tree lot at x %.1f" % tx)
+	var shut := await _place(tx, 0.0)
+	check(absf(shut - Tun.f("tree_leak")) < 0.03, "under a tree with the umbrella shut, tree_leak of the rain gets through: exposure %.2f" % shut)
+	var opened := await _place(tx, 1.0)
+	check(opened < 0.01, "under a tree with the umbrella open none does: exposure %.3f" % opened)
+	var bare := await _place(43.5, 0.0)
+	check(bare > 0.95, "an open lot elsewhere is still open sky: exposure %.2f" % bare)
+	check(lv.builder.tree_covers.size() == 1 and not lv.player.sheltered, "a vacant lot with cover trees gets TreeCover's crown; a crown isn't shelter to rest under")
+	var foliage := get_tree().get_nodes_in_group(TreeCover.FOLIAGE_GROUP)
+	var shaken := foliage.filter(func(n: Node) -> bool:
+		var mi := n as MeshInstance3D
+		var sm := mi.material_override as ShaderMaterial if mi else null
+		return sm != null and sm.shader.get_shader_uniform_list().any(func(u: Dictionary) -> bool: return u["name"] == "gust"))
+	check(not foliage.is_empty() and shaken.size() == foliage.size(), "every foliage node has its own material with a gust uniform (%d)" % foliage.size())
+	var cm: Array = lv.builder.cover_map()
+	var img: Image = (cm[0] as ImageTexture).get_image()
+	var rect: Vector4 = cm[1]
+	var px := int((tx - rect.x) * LevelBuilder.COVER_RES)
+	var c := img.get_pixel(px, int((1.6 - rect.y) * LevelBuilder.COVER_RES_Z))
+	var c_cam := img.get_pixel(px, int((8.0 - rect.y) * LevelBuilder.COVER_RES_Z))
+	check(is_equal_approx(c.g, LevelBuilder.COVER_TREE) and is_equal_approx(c.r, TreeCover.UNDERSIDE) and is_equal_approx(c_cam.g, LevelBuilder.COVER_TREE),
+		"the rain's cover map marks the crown over the path and out to the camera (G %.1f, R %.2f)" % [c.g, c.r])
+	await _drop_street(lv)
+
+
+## Every country lot style builds; cover sits where the docs say; behind the hedge is field the rain
+## falls on; the pub's door is 4 m into its lot; the awning table has styles for a country street.
+func _test_country_build() -> void:
+	var d := {"id": "_country_test", "length": 90.0, "aesthetic": "country", "neon": 0.0, "wind": [[0, 0.1], [1, 0.1]],
+		"lots": [
+			{"x": 0.0, "w": 6.0, "style": "bus_shelter", "cover": "shelter"},
+			{"x": 6.0, "w": 8.0, "style": "hedge", "cover": "none"},
+			{"x": 14.0, "w": 12.0, "style": "tree", "cover": "trees"},
+			{"x": 26.0, "w": 8.0, "style": "field_gate", "cover": "none"},
+			{"x": 34.0, "w": 6.0, "style": "stone_wall", "cover": "none"},
+			{"x": 40.0, "w": 12.0, "style": "barn", "cover": "barn"},
+			{"x": 52.0, "w": 4.0, "style": "lychgate", "cover": "shelter"},
+			{"x": 56.0, "w": 8.0, "style": "cottage", "cover": "porch", "floors": 1},
+			{"x": 70.0, "w": 12.0, "style": "inn", "cover": "porch", "sign": "THE PLOUGH", "floors": 1}],
+		"crossings": [{"x": 64.0, "w": 6.0}],
+		"props": [{"id": "milestone", "x": 8.0}, {"id": "signpost", "x": 36.0}, {"id": "milk_churn_stand", "x": 30.0}]}
+	var root := Node3D.new()
+	root.position = Vector3(0.0, 0.0, -600.0)   # well clear of anything else in the physics world
+	add_child(root)
+	var lb := LevelBuilder.new()
+	lb.build(root, d)
+	await _frames(3)
+	check(is_equal_approx(lb.inn_door_x, 74.0), "the pub's door is 4 m into its lot, like the kit inn's: x %.1f" % lb.inn_door_x)
+	var space := root.get_world_3d().direct_space_state
+	var up := func(x: float, mask: int) -> float:
+		var q := PhysicsRayQueryParameters3D.create(Vector3(x, 1.5, -600.0 + 1.6), Vector3(x, 30.0, -600.0 + 1.6), mask)
+		q.hit_from_inside = true
+		var hit := space.intersect_ray(q)
+		return hit["position"].y if hit else INF
+	var cover := Player.COVER_MASK
+	var got := [up.call(3.0, cover), up.call(10.0, cover), up.call(20.0, cover), up.call(20.0, TreeCover.LAYER), up.call(46.0, cover),
+		up.call(54.0, cover), up.call(60.0, cover), up.call(58.2, cover), up.call(74.0, cover)]
+	check(absf(got[0] - CountryBuilder.SHELTER_Y) < 0.05 and is_inf(got[1]) and is_inf(got[2]) and absf(got[3] - TreeCover.UNDERSIDE) < 0.05
+		and absf(got[4] - CountryBuilder.BARN_Y) < 0.05 and absf(got[5] - CountryBuilder.SHELTER_Y) < 0.05,
+		"shelter, barn and lychgate are cover over the path, the hedge and the tree's crown are not: %s" % [got.slice(0, 6)])
+	check(absf(got[6] - CountryBuilder.PORCH_Y) < 0.05 and is_inf(got[7]) and absf(got[8] - CountryBuilder.PORCH_Y) < 0.05,
+		"a cottage's porch covers its door and not the rest of the front, and the pub's covers its door: %s" % [got.slice(6)])
+	var own := CountryBuilder.porch_span({"x": 0.0, "w": 10.0, "style": "cottage", "porch": [0.5, 9.5]})
+	var pub := CountryBuilder.porch_span({"x": 0.0, "w": 12.0, "style": "inn"})
+	check(is_equal_approx(own[0], 0.5) and is_equal_approx(own[1], 9.5) and is_equal_approx(pub[0], 2.7) and is_equal_approx(pub[1], 5.3),
+		"porch spans: a lot's own, else 2.6 m on the door: %s %s" % [own, pub])
+	var cm: Array = lb.cover_map()
+	var img: Image = (cm[0] as ImageTexture).get_image()
+	var rect: Vector4 = cm[1]
+	var at := func(x: float, z: float) -> Color:
+		return img.get_pixel(int((x - rect.x) * LevelBuilder.COVER_RES), int((z - rect.y) * LevelBuilder.COVER_RES_Z))
+	check(is_zero_approx(at.call(10.0, -2.5).b) and absf(at.call(10.0, -0.5).b - CountryBuilder.HEDGE_H) < 0.01
+		and at.call(60.0, -2.5).b > 20.0 and is_zero_approx(at.call(30.0, -0.5).b),
+		"behind the hedge is field the rain falls on, it lands on the hedge top and in the gate's gap, a cottage hides it")
+	check(is_equal_approx(at.call(3.0, 1.6).g, LevelBuilder.COVER_SHELL) and is_equal_approx(at.call(20.0, 1.6).g, LevelBuilder.COVER_TREE),
+		"in the cover map the shelter's roof is a shell and the tree a crown")
+	var foliage := root.find_children("*", "MeshInstance3D", true, false).filter(func(n: Node) -> bool: return n.is_in_group(TreeCover.FOLIAGE_GROUP))
+	var hedge_bits := foliage.filter(func(n: Node) -> bool: return float(n.get_meta("x0")) >= 6.0 and float(n.get_meta("x1")) <= 14.0)
+	check(hedge_bits.size() >= 2 and hedge_bits.all(func(n: Node) -> bool: return float(n.get_meta("x1")) - float(n.get_meta("x0")) <= CountryBuilder.HEDGE_PIECE + 0.01),
+		"a hedge is in pieces of up to %.0f m so a gust moves it piecewise (%d in 8 m)" % [CountryBuilder.HEDGE_PIECE, hedge_bits.size()])
+	var country_styles: Array = LevelBuilder.AWNING_STYLES.keys().filter(func(k: String) -> bool:
+		var aes: Array = LevelBuilder.AWNING_STYLES[k]["aesthetics"]
+		return aes.is_empty() or aes.has("country"))
+	check(country_styles.size() >= 4, "the awning table has styles for a country street: %s" % [country_styles])
+	root.queue_free()
+	await _frames(2)
