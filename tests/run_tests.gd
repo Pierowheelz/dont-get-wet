@@ -1190,7 +1190,7 @@ func _tests() -> Array[Callable]:
 		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
 		_test_bypass_posted_reach, _test_dynamic_resolution, _test_menu_width, _test_credits_scroll,
-		_test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
+		_test_slider_saves, _test_shop_fits, _test_small_screen_text, _test_courier_slicker, _run_tests
 	]
 
 
@@ -2391,3 +2391,70 @@ func _run_tests() -> void:
 	Game.autopilot = true
 	Game.runs = {}
 	Game.run = Run.new("", start)
+
+
+# --- The courier's look: Fairweather in the yellow slicker ------------------------------------------
+
+const SLICKER_COURIER := {"courier": {"appear_x": 30.0, "door_x": 200.0, "stops": [{"x": 120.0, "dur": 2.0}], "look": "slicker"}}
+
+
+## `look: "slicker"`: dressed as the man in the yellow slicker, the umbrella furled like a cane in his
+## camera-side fist. He glances and gains suspicion as ever, and on the 4th gain shoulders the furled
+## umbrella and fires from its tip.
+func _test_courier_slicker() -> void:
+	var lv := await _street_with(SLICKER_COURIER)
+	var p: Player = lv.player
+	var c: Courier = lv.courier
+	var skel := c._model.find_child("GeneralSkeleton", true, false) as Skeleton3D
+	check(c.slicker and RaincoatFigure.PARTS.all(func(n: String) -> bool: return skel.find_child(n, false, false) is MeshInstance3D)
+		and skel.find_child("fedora", false, false) == null, "look slicker: the slicker's skirt, hood and buttons, and no fedora")
+	_unhook_defeat(p)
+	p.position.x = 23.0
+	await _tail(lv, 3.5, 7.0)
+	var tip_down := c._umbrella.global_basis.y.y
+	var hand_z := c._umbrella.global_position.z - c.global_position.z
+	check(c.phase == c.Phase.WALK and c._umbrella.open == 0.0 and tip_down < -0.8 and hand_z > 0.1
+		and String(lv.hud._hint_template).contains("Fairweather"),
+		"he steps out with the umbrella furled, hanging tip down (%.2f) from his camera-side fist (z %+.2f), and the hint names him" % [tip_down, hand_z])
+	var widest := {"open": 0.0}
+	var gained := await _tail(lv, 8.0, 3.5, 0.0, 0.0, func() -> bool:
+		widest.open = maxf(widest.open, c._umbrella.open)
+		return c.suspicion > 0)
+	check(gained >= 0.0 and c.suspicion == 1 and widest.open == 0.0,
+		"the walker 3.5 m behind, face showing: he glances back and gains suspicion, the umbrella still furled")
+
+	# The 4th gain: the furled umbrella shouldered, the shot from its tip.
+	c.suspicion = 3
+	await _tail(lv, 12.0, 3.5, 0.0, 0.0, func() -> bool: return c.phase == c.Phase.AIM)
+	check(c.phase == c.Phase.AIM, "the 4th gain: he turns to aim")
+	var jets := []
+	await _tail(lv, 2.0, 0.0, 0.0, 0.0, func() -> bool:
+		jets.assign(lv.get_children().filter(func(n: Node) -> bool: return n is WaterJet))
+		return not jets.is_empty())
+	var muzzle: Transform3D = jets[0].muzzle.call() if not jets.is_empty() else Transform3D()
+	var tip := c._umbrella.global_transform * Vector3(0.0, Umbrella.SHAFT_LEN + 0.09, 0.0)
+	var shaft := c._umbrella.global_basis.y.normalized()
+	check(not jets.is_empty() and muzzle.origin.distance_to(tip) < 0.01 and c._umbrella.open == 0.0
+		and shaft.x < -0.8 and muzzle.origin.x < c.global_position.x - 0.5 and muzzle.origin.y > c.global_position.y + 1.1,
+		"the glint at the furled umbrella's tip, shouldered and pointed back at the walker (shaft %s, tip %.2f m up)" % [shaft, muzzle.origin.y - c.global_position.y])
+	p.wet = 0.0
+	seed(13)
+	await _tail(lv, 6.0, 0.0, 0.0, 0.0, func() -> bool: return p.state == Player.State.DEFEATED)
+	check(p.fail_cause == &"shot" and p.wet >= 0.8 * Tun.f("wet_max"),
+		"... both barrels, then the attempt fails as SHOT (%s, wet %.1f)" % [p.fail_cause, p.wet])
+	await _drop_street(lv)
+
+	# Atomic Avenue's courier keeps his brown suit, fedora and the yellow umbrella he opens.
+	var spec: Dictionary = Game.level_data("atomic_avenue")["courier"]
+	lv = await _street_with({"courier": spec})
+	c = lv.courier
+	skel = c._model.find_child("GeneralSkeleton", true, false) as Skeleton3D
+	check(not c.slicker and not spec.has("look") and skel.find_child("fedora", false, false) is MeshInstance3D
+		and RaincoatFigure.PARTS.all(func(n: String) -> bool: return skel.find_child(n, false, false) == null)
+		and c._umbrella.canopy_color == Courier.UMBRELLA_YELLOW and c._cane == null,
+		"Atomic Avenue's courier: fedora, brown suit and the yellow umbrella, no slicker")
+	await _tail(lv, 3.5, 7.0)
+	check(c.phase == c.Phase.WALK and c._umbrella.open > 0.9
+		and lv.hud._hint_template == "That's him. Keep him in sight, and keep your distance.",
+		"... he opens it as he steps out, with the old hint (phase %d, open %.2f, %s)" % [c.phase, c._umbrella.open, lv.hud._hint_template])
+	await _drop_street(lv)
