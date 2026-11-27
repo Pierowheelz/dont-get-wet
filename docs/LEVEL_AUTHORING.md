@@ -450,8 +450,9 @@ walker passes `x`:
   the camera eases out 4 m (`Level.camera_pull`, as for a drive-by) so it is seen whole, and it
   shakes as it goes over; under it the rain is driven in sideways and spray blows out along the
   pavement. The first one each attempt shows "Rotor wash! It blows the rain in under cover. Umbrella
-  up ({umbrella})." 3.5 s before its wash reaches him. Its rotor hub flies just under the top of that
-  eased-out frame, between 9 and 14 m up.
+  up ({umbrella})." 3.5 s before its wash reaches him. Its rotor hub flies 1.7 m under the top of that
+  eased-out frame, between 11 and 14 m up: a camera that shows less than 12.7 m of height where it
+  flies cuts its rotor off.
 
 `Level.rotor_at(x, t)` (0 to 1) and `Level.rotor_eta(x, t)` read the wash on the level clock: a
 triggered helicopter's future is known, so a later `t` predicts it. The bots open up, upright,
@@ -464,8 +465,9 @@ has some 10 m of cover ahead, so a player who reads it has time to open up, and 
 open canopy walking in the wash costs 7 stamina a second.
 
 `--start-x` past a trigger skips that helicopter too; for screenshots, start about 2 m short of it.
-A modelled helicopter at `res://assets/vehicles/helicopter.tscn` (or `.glb`) replaces the stand-in
-built in code; docs/CONTRACTS.md §8 says what it must provide.
+The helicopter is `res://assets/vehicles/helicopter.glb` (`tools/blender/vehicles.py`); a
+`helicopter.tscn` beside it would replace it, and without either the game builds a stand-in in code.
+docs/CONTRACTS.md §9 says what a model must provide.
 
 **`slickers`** (`[{"x", "z", "facing", "pose"}]`; `s.slicker(x, z=0.8, facing=1,
 pose="stand")`) place a man in a yellow slicker (`RaincoatFigure`) at x on lane z:
