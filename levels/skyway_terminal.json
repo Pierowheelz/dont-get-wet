@@ -7,14 +7,14 @@
  "neon": 0.35,
  "length": 405.5,
  "end_x": 393.5,
- "checkpoints": [85.0, 208.0, 306.27],
+ "checkpoints": [85.0, 179.82, 306.27],
  "rain": [[0.0, 1.0], [0.5, 1.15], [1.0, 1.3]],
  "wind": [[0.0, 0.06], [0.4, 0.12], [0.7, 0.18], [1.0, 0.14]],
  "gusts": false,
  "set_pieces": [
   {"name": "Terminal Approach", "x0": 0.0, "x1": 44.0, "teaches": "the first skyway, dry underfoot with the wider camera; the first helicopter comes in low from ahead and its rotor wash drives the rain in under the skyway: umbrella up, upright"},
   {"name": "The Concourse", "x0": 44.0, "x1": 84.5, "teaches": "the skyway breaks off for short gaps and a downpipe, then carries on over Jetway Street, whose car comes at a walker under cover"},
-  {"name": "Tailing Fairweather", "x0": 84.5, "x1": 231.5, "teaches": "the man in the yellow slicker steps out of the travel bureau and walks to the terminal under the skyway, stopping at four windows: keep him in frame, out of his glance, hide your face when he looks round; two plazas in the rain, and a car at Runway Street"},
+  {"name": "Tailing Fairweather", "x0": 84.5, "x1": 231.5, "teaches": "the man in the yellow slicker steps out of the travel bureau and walks to the terminal under the skyway, stopping at four windows: keep him in frame, out of his glance, hide your face when he looks round; two plazas in the rain, and Runway Street"},
   {"name": "At the terminal door", "x0": 213.5, "x1": 233.0, "teaches": "a helicopter coming in to land on the terminal roof as he goes in: umbrella up for the wash"},
   {"name": "His Men", "x0": 233.0, "x1": 268.5, "teaches": "two men posted under the skyway, downpipes before and after them to refill the shot"},
   {"name": "The Hover", "x0": 268.5, "x1": 298.0, "teaches": "a helicopter overtakes and hangs over the skyway: hold the canopy up through the wash (stopping is free) until it flies on"},
@@ -85,7 +85,7 @@
  "crossings": [
   {"x": 75.5, "w": 9.0, "car": true},
   {"x": 112.5, "w": 10.0},
-  {"x": 198.5, "w": 9.0, "car": true},
+  {"x": 198.5, "w": 9.0},
   {"x": 351.0, "w": 9.0, "car": true}
  ],
  "features": [
@@ -161,5 +161,5 @@
   {"x": 375.5, "dir": 1}
  ],
  "par_speed": 1.2,
- "camera": {"distance": 10.5, "height": 3.2, "fov": 52.0, "pitch": 3.0, "lead": 2.8}
+ "camera": {"distance": 13.0, "height": 3.2, "fov": 54.0, "pitch": 7.0, "lead": 3.2}
 }

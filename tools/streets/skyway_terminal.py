@@ -21,7 +21,7 @@ s = Street("skyway_terminal", "Skyway Terminal",
            aesthetic="modern", neon=0.35, rain=[[0.0, 1.0], [0.5, 1.15], [1.0, 1.3]],
            wind=[[0.0, 0.06], [0.4, 0.12], [0.7, 0.18], [1.0, 0.14]],
            gusts=False, par_speed=1.2,
-           camera={"distance": 10.5, "height": 3.2, "fov": 52.0, "pitch": 3.0, "lead": 2.8})
+           camera={"distance": 13.0, "height": 3.2, "fov": 54.0, "pitch": 7.0, "lead": 3.2})
 
 
 def tower(tag, w, sign=None, floors=16, **kw):
@@ -84,7 +84,7 @@ plaza("plaza4", 4)
 tower("tower10", 6, floors=18)
 lobby("tailor", 6, "TAILOR", floors=14)
 tower("tower11", 8, floors=20)
-s.xing("runway", 9, car=True)
+s.xing("runway", 9)
 lobby("cocktail", 6, "COCKTAILS", floors=16)
 tower("tower12", 6, floors=18)
 lobby("terminal", 12, "SKYWAY TERMINAL", floors=24)
@@ -199,7 +199,7 @@ s.set_piece("The Concourse", s.start("plaza1"), s.end("jetway"),
 s.set_piece("Tailing Fairweather", s.start("bureau"), s.end("terminal"),
             "the man in the yellow slicker steps out of the travel bureau and walks to the terminal "
             "under the skyway, stopping at four windows: keep him in frame, out of his glance, hide your "
-            "face when he looks round; two plazas in the rain, and a car at Runway Street")
+            "face when he looks round; two plazas in the rain, and Runway Street")
 s.set_piece("At the terminal door", s.start("tower12"), s.end("pipe2"),
             "a helicopter coming in to land on the terminal roof as he goes in: umbrella up for the wash")
 s.set_piece("His Men", s.start("tower13"), s.end("pipe3"),
