@@ -38,6 +38,8 @@ COVER_COLORS = {
     "canopy": (46, 148, 150),
     "deck": (92, 104, 122),
     "skyway": (60, 175, 90),
+    "shelter": (176, 120, 70),
+    "bridge": (110, 110, 118),
 }
 WASH_C = (60, 150, 225)
 HELI_C = (150, 60, 150)
@@ -116,7 +118,7 @@ class Street:
                             nxt.append((max(t1, a), b))
                     segs = nxt
                 out += [(lx + a, lx + b, kind) for a, b in segs if b > a]
-            elif kind in ("balcony", "arcade", "walkway"):
+            elif kind in ("balcony", "arcade", "walkway", "shelter", "bridge"):
                 out.append((lx, lx + lw, kind))
             elif kind == "canopy":
                 out.append((lx + 0.15, lx + lw - 0.15, kind))
@@ -143,6 +145,8 @@ class Street:
         else an awning's or slab's, else a skyway's."""
         if self.under_deck(x):
             return ARCH_H if self.railway else DECK_H
+        if any(a <= x <= b for a, b, kind in self.covers if kind == "bridge"):
+            return BRIDGE_H
         if self.under_skyway(x) and not any(a <= x <= b for a, b, kind in self.covers if kind not in ("deck", "skyway")):
             return SKYWAY_H
         return SLANT_H
@@ -199,6 +203,7 @@ SLANT_H = 3.1                            # awning height the wind slants rain ac
 DECK_H = 3.35                            # Track.DECK_Y: a deck's ends let slanted rain further in
 ARCH_H = 3.1                             # Track.RAIL_SOFFIT: the same at the ends of a run of railway arches
 SKYWAY_H = 4.45                          # SkywayBuilder.SOFFIT_Y: the same at a skyway's ends
+BRIDGE_H = 4.8                           # SuburbanBuilder.BRIDGE_Y: the same at a rail overbridge's
 SKYWAY_TARGET = 0.6                      # a skyway street keeps at least this share of end_x under cover
 WASH_S = 11.0 / 12.0                     # Track.WASH_S: seconds a sheet falls on any one spot
 WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind

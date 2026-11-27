@@ -752,6 +752,8 @@ func _setup_environment() -> void:
 	moon.directional_shadow_max_distance = 40.0
 	moon.light_volumetric_fog_energy = 0.3
 	add_child(moon)
+	if data.get("aesthetic", "") == "suburban":
+		SuburbanBuilder.mood(env, moon)   # a grey late afternoon: daylight, not night
 	if Game.settings["low_quality"]:
 		GraphicsCheck.apply_low(env, moon)
 

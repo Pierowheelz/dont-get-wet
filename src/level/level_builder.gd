@@ -36,11 +36,11 @@ const AWNING_COLORS := {
 ##   ends: closed side cheeks; glow: neon strip under the front edge
 ##   A style with no eras is never picked automatically: only by name.
 const AWNING_STYLES := {
-	"classic": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon"],
+	"classic": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon", "suburban"],
 		"profile": "line", "wall_y": 3.05, "front_y": 2.6, "fabric": "canvas", "stripe_w": 0.45, "hem": 0.0,
 		"sag": 0.05, "valance": "scallop", "valance_h": 0.28, "valance_solid": false, "piping": false,
 		"frame": "arms", "ends": false, "glow": false},
-	"wide_stripe": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon", "outskirts"],
+	"wide_stripe": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "neon", "outskirts", "suburban"],
 		"profile": "line", "wall_y": 3.05, "front_y": 2.55, "fabric": "canvas", "stripe_w": 1.1, "hem": 0.0,
 		"sag": 0.06, "valance": "straight", "valance_h": 0.3, "valance_solid": true, "piping": true,
 		"frame": "arms", "ends": false, "glow": false},
@@ -52,11 +52,11 @@ const AWNING_STYLES := {
 		"profile": "dome", "wall_y": 2.83, "front_y": 2.5, "fabric": "canvas", "stripe_w": 0.0, "hem": 0.1, "seam_w": 0.75,
 		"sag": 0.0, "valance": "none", "valance_h": 0.0, "valance_solid": false, "piping": false,
 		"frame": "none", "ends": true, "glow": false},
-	"waterfall": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "industrial", "outskirts"],
+	"waterfall": {"eras": ["60s"], "aesthetics": ["rundown", "rundown_neon", "industrial", "outskirts", "suburban"],
 		"profile": "line", "wall_y": 3.05, "front_y": 2.6, "fabric": "canvas", "stripe_w": 0.7, "hem": 0.0,
 		"sag": 0.0, "valance": "straight", "valance_h": 0.34, "valance_solid": false, "piping": false,
 		"frame": "none", "ends": true, "glow": false},
-	"tin": {"eras": ["60s"], "aesthetics": ["industrial", "outskirts"],
+	"tin": {"eras": ["60s"], "aesthetics": ["industrial", "outskirts", "suburban"],
 		"profile": "line", "wall_y": 2.95, "front_y": 2.65, "fabric": "tin", "stripe_w": 0.0, "hem": 0.0,
 		"sag": 0.0, "valance": "none", "valance_h": 0.0, "valance_solid": false, "piping": false,
 		"frame": "brackets", "ends": false, "glow": false},
@@ -126,6 +126,8 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 		_build_crossing(c)
 	if modern():
 		ModernBuilder.skyline(self)
+	elif suburban():
+		SuburbanBuilder.backdrop(self)
 	else:
 		_build_backdrop()
 	for p in data.get("props", []):
@@ -195,6 +197,8 @@ func cover_map() -> Array:
 			_cover_fill(img, x0, d[0], d[1], 0.0, COVER_Z1, func(_z): return Track.DECK_TOP, COVER_HIDE)
 	for sp in SkywayBuilder.spans(data):
 		_cover_fill(img, x0, sp[0], sp[1], 0.0, SkywayBuilder.Z1, func(_z): return SkywayBuilder.ROOF_Y, COVER_VOLUME)
+	if suburban():
+		SuburbanBuilder.cover_map(self, img, x0)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
 
@@ -307,6 +311,11 @@ func modern() -> bool:
 	return data.get("aesthetic", "") == "modern"
 
 
+## The edge of town (`aesthetic: "suburban"`): houses behind front gardens, a nature strip, power poles.
+func suburban() -> bool:
+	return data.get("aesthetic", "") == "suburban"
+
+
 func _mat(key: String, color: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:
 	if _mats.has(key):
 		return _mats[key]
@@ -363,6 +372,8 @@ func _load_kits() -> void:
 			var aes: String = data.get("aesthetic", "rundown")
 			if aes == "modern":
 				aes = "neon"   # the jet-age city builds its kit lots from the retro-future kit
+			elif aes == "suburban":
+				aes = "outskirts"   # the suburb's shopping strip is the outskirts' kit
 			for m in d.get("modules", []):
 				if not ResourceLoader.exists(m["scene"]):
 					continue
@@ -405,7 +416,9 @@ func _build_ground() -> void:
 	var sx := x0
 	for c in cuts + [[x1, x1]]:
 		var ex: float = c[0]
-		if ex > sx:
+		if ex > sx and suburban():
+			SuburbanBuilder.ground(self, sx, ex)   # a footpath and a nature strip instead of a pavement
+		elif ex > sx:
 			_box(Vector3(ex - sx, 0.3, SIDEWALK_W), Vector3((sx + ex) * 0.5, -0.15, SIDEWALK_W * 0.5), sidewalk)
 			_box(Vector3(ex - sx, 0.32, 0.25), Vector3((sx + ex) * 0.5, -0.15, SIDEWALK_W - 0.12), curb)
 		sx = c[1]
@@ -413,6 +426,9 @@ func _build_ground() -> void:
 	_box(Vector3(x1 - x0, 0.2, 14.0), Vector3((x0 + x1) * 0.5, ROAD_Y - 0.1, SIDEWALK_W + 7.0), road)
 	for c in cuts:
 		_box(Vector3(c[1] - c[0], 0.2, 60.0), Vector3((c[0] + c[1]) * 0.5, ROAD_Y - 0.1, SIDEWALK_W - 30.0), road)
+		if suburban():
+			continue   # a suburban side street has no zebra crossing
+
 		# zebra crossing stripes along the walking line
 		var stripe := _mat("zebra", Color(0.75, 0.74, 0.7), 0.35)
 		var zx: float = c[0] + 0.8
@@ -451,6 +467,8 @@ func _build_lot(lot: Dictionary) -> void:
 		RoadsideBuilder.forecourt(self, x, w, lot)
 	elif style == "motel":
 		RoadsideBuilder.motel(self, x, w, floors)
+	elif SuburbanBuilder.draws(self, style):
+		SuburbanBuilder.lot(self, x, w, style, floors, lot)
 	elif ModernBuilder.STYLES.has(style):
 		ModernBuilder.lot(self, x, w, style, floors, lot)
 	else:
@@ -471,8 +489,11 @@ func _build_lot(lot: Dictionary) -> void:
 			# Gas-station canopy (the kit module draws it; we add the collider).
 			_cover_box(Vector3(w - 0.3, 0.4, 3.5), Transform3D(Basis(), Vector3(x + w * 0.5, 3.75, 1.55)))
 			_drips(x + 0.15, x + w - 0.15, 3.5, 3.32)
+	if suburban():
+		SuburbanBuilder.cover(self, lot)   # street trees over a lot with cover "trees"
 	var under_viaduct: bool = track != null and track.railway() and lot.get("cover", "none") == "awning"
-	if lot.has("sign") and style not in ["vacant", "forecourt", "motel"] + ModernBuilder.STYLES and not under_viaduct:   # a railway viaduct hides an awning lot's sign
+	if lot.has("sign") and style not in ["vacant", "forecourt", "motel"] + ModernBuilder.STYLES and not under_viaduct \
+			and not SuburbanBuilder.draws(self, style):   # a railway viaduct hides an awning lot's sign
 		_build_sign(x, w, String(lot["sign"]), style, bool(lot.get("neon", false)))
 	# Rolled before the skyway test, so a street without skyways rolls exactly as it always has.
 	var clear: bool = not SkywayBuilder.under(data, x + w * 0.5) and not ModernBuilder.STYLES.has(style)
@@ -1251,6 +1272,9 @@ func _build_holo(x: float, w: float, floors: int) -> void:
 func _build_crossing(c: Dictionary) -> void:
 	var x0: float = c["x"]
 	var x1: float = x0 + float(c["w"])
+	if suburban():
+		SuburbanBuilder.crossing(self, x0, x1)
+		return
 	var floors_l := 2
 	var floors_r := 2
 	for lot in data.get("lots", []):
@@ -1437,6 +1461,9 @@ func _build_prop(p: Dictionary) -> void:
 	for c in data.get("crossings", []):
 		if x > float(c["x"]) - 0.4 and x < float(c["x"]) + float(c["w"]) + 0.4:
 			return     # never in the roadway
+	if suburban() and SuburbanBuilder.PROPS.has(id):
+		SuburbanBuilder.prop(self, p)   # power poles, with sodium lamps on their arms
+		return
 	if props_kit.has(id):
 		var n := _instance(props_kit[id]["scene"])
 		if n:

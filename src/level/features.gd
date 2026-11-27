@@ -310,6 +310,13 @@ func _sun(x: float, w: float) -> void:
 	sl.light_volumetric_fog_energy = 1.2
 	sl.shadow_enabled = true
 	sl.position = Vector3(cx - 5.0, 24.0, 1.0)
+	if level.data.get("aesthetic", "") == "suburban":
+		# The low late sun under the cloud's edge, from behind and to the left: long warm shadows.
+		var low: Array = SuburbanBuilder.low_sun(cx, w)
+		sl.position = low[0]
+		sl.light_color = low[1]
+		sl.light_energy = low[2]
+		sl.spot_angle = rad_to_deg(atan2(w * 0.5, sl.position.distance_to(Vector3(cx, 0.0, 1.6)))) + 1.0
 	root.add_child(sl)
 	sl.look_at(Vector3(cx, 0.0, 1.6), Vector3.UP)
 	# Soft additive shaft so the beam reads even through the painterly filter.
