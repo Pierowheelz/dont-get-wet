@@ -120,10 +120,12 @@ static func door_x(lot_d: Dictionary) -> float:
 	return float(lot_d.get("door", float(lot_d["w"]) * 0.5))
 
 
-## Height of the rain-stopping surface of a cover at depth z (the rain's cover map).
-static func cover_top(kind: String) -> float:
+## Height of the rain-stopping surface of a cover at depth z (the rain's cover map): on its roof,
+## falling toward the lane, so no drop shows under it.
+static func cover_top(kind: String, z := 0.0) -> float:
+	var back := clampf(1.0 - z / SHELTER_Z, 0.0, 1.0)
 	match kind:
-		"shelter": return SHELTER_Y + 0.2
+		"shelter": return SHELTER_Y + 0.05 + 0.4 * back
 		"porch": return PORCH_Y + 0.2
 		"barn": return BARN_Y + 0.25
 	return 0.0
@@ -353,6 +355,13 @@ static func _lychgate(b: LevelBuilder, x: float, w: float) -> void:
 	var m := TreeCover.model(b, "lychgate", Vector3(x, 0.0, 0.0))
 	if m:
 		m.scale.x = w / 4.0
+		var lamp := m.get_node_or_null("Lamp") as Node3D
+		if lamp:   # the model's lantern
+			var om := OmniLight3D.new()
+			om.light_color = Color(1.0, 0.76, 0.45)
+			om.light_energy = 1.2
+			om.omni_range = 4.0
+			lamp.add_child(om)
 		return
 	var sts := {}
 	var oak := b._mat("lych_oak", Color(0.26, 0.19, 0.13), 0.8)
@@ -932,12 +941,16 @@ static func poles(b: LevelBuilder) -> void:
 		x = px + POLE_GAP
 	var sts := {}
 	var wire := b._mat("wire", Color(0.05, 0.05, 0.05), 0.5)
+	# Where the wires leave each pole: the model's insulators (docs/CONTRACTS.md §10), else the stand-in's.
+	var model := TreeCover.model_scene(b, "telegraph_pole") != null
+	var ends: Array = [Vector3(0.145, 7.79, -0.36), Vector3(0.145, 7.79, 0.36), Vector3(0.145, 7.24, -0.26),
+		Vector3(0.145, 7.24, 0.26)] if model else [Vector3(0.0, WIRE_Y, -0.32), Vector3(0.0, WIRE_Y, 0.32)]
 	for i in xs.size():
 		_pole(b, xs[i])
 		if i > 0 and xs[i] - xs[i - 1] < POLE_GAP * 1.6:
-			for dz in [-0.32, 0.32]:
-				var a := Vector3(xs[i - 1], WIRE_Y, POLE_Z + dz)
-				var c := Vector3(xs[i], WIRE_Y, POLE_Z + dz)
+			for e: Vector3 in ends:
+				var a := Vector3(xs[i - 1], 0.0, POLE_Z) + e
+				var c := Vector3(xs[i], 0.0, POLE_Z) + e
 				var n := 10
 				var prev := a
 				for k in range(1, n + 1):
@@ -1052,7 +1065,7 @@ static func cover_map_lot(b: LevelBuilder, img: Image, x0: float, l: Dictionary)
 	var lw := float(l["w"])
 	match String(l.get("cover", "none")):
 		"shelter":
-			b._cover_fill(img, x0, lx, lx + lw, -0.2, SHELTER_Z, func(_z): return cover_top("shelter"))
+			b._cover_fill(img, x0, lx, lx + lw, -0.2, SHELTER_Z, func(z): return cover_top("shelter", z))
 		"barn":
 			b._cover_fill(img, x0, lx, lx + lw, LevelBuilder.COVER_Z0, BARN_Z, func(_z): return cover_top("barn"))
 		"porch":

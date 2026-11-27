@@ -36,12 +36,15 @@ var hurry := 0.0
 var drying := 0.0                  # current dry rate (for FX)
 var sheltered := false             # head is under fixed cover (awning/balcony)
 var gutter_on_umbrella := 0.0      # 0..1 how much of a gutter stream the umbrella is catching
-var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_rotor": 0.0, "wet_hit": 0.0, "dried": 0.0}
+var stats := {"exposure_time": 0.0, "splashes": 0, "puddles": 0, "wet_rain": 0.0, "wet_gutter": 0.0, "wet_splash": 0.0, "wet_wash": 0.0, "wet_rotor": 0.0, "wet_shower": 0.0, "wet_hit": 0.0, "dried": 0.0}
 var fail_cause := &"wet"         # what ended the attempt (HUD.FAIL_TITLES): wet, shot, lost, made
 var jet_kick := 0.0                # 0..1: a blocked jet has knocked the canopy aside (WaterJet); decays
 const JET_KICK_S := 0.7            # a full shove takes this long to recover from
 const JET_KICK_TILT := 0.6         # rad the canopy is knocked forward by a full shove
 const JET_KICK_DROOP := 0.7        # and how far it sags (as when exhausted)
+var gust_kick := 0.0               # rad a squall's gust is shoving the open canopy over (+ ahead)
+var gust_droop := 0.0              # and how far it is bending it (as when exhausted)
+const GUST_DROOP := 0.35           # the droop of a full gust on an open canopy, before Sturdy Frame
 const RECOIL_TILT := 0.22          # rad the canopy kicks away from a shot as it fires
 const AIM_RAISE_S := 0.2           # s to bring the furled shaft up from his side to aim, or back down
 const AIM_SWING := 0.8              # share of the raise over which the furled umbrella changes hands
@@ -59,6 +62,7 @@ var _ap_no_rest_before := -INF      # autopilot won't settle to rest again befor
 var _ap_filling := false          # autopilot is stopped under a stream, refilling the shot
 var _ap_fill_dry := 0.0           # s it has stood there without the stream refilling it
 const FILL_GIVE_UP_S := 1.5
+const SHOWER_UPRIGHT_S := 0.6     # autopilot straightens the canopy this long before a gust is on him under trees
 var _drips: GPUParticles3D                 # autopilot: keep umbrella up a little after leaving rain
 
 
@@ -149,6 +153,10 @@ func _physics_process(delta: float) -> void:
 		if _rotor_threat(Game.umbrella_open_time() + 0.5):
 			ap[0] = 1.0   # whoever else wants the canopy tilted, the wash wins: up and upright
 			ap[2] = 0.0
+		elif _shower_threat(Game.umbrella_open_time() + 0.5):
+			ap[0] = 1.0   # a gust will shake the trees' water down on him: up, and upright just before
+			if _shower_threat(SHOWER_UPRIGHT_S):
+				ap[2] = 0.0
 		if Game.debug_human:
 			ap = _humanise(ap, delta)
 		if Game.debug_lazy:
@@ -208,11 +216,21 @@ func _physics_process(delta: float) -> void:
 	var drain := 0.0
 	if open > 0.0 and state != State.STOPPED:   # holding it up while standing still is free
 		drain += Tun.f("stamina_drain_umbrella") * open * Game.umbrella_drain_mult()
-		drain += Tun.f("stamina_drain_wind") * wind * wind * open * Game.umbrella_drain_mult()
+		var still: float = level.wind(position.x, false)   # a squall's gust costs stamina_drain_gust instead
+		drain += Tun.f("stamina_drain_wind") * still * still * open * Game.umbrella_drain_mult()
 	# In a helicopter's wash the open canopy fights the downdraught, standing still or not.
 	var rotor: float = level.rotor_at(position.x, level.elapsed) if open > 0.0 else 0.0
 	if rotor > 0.0:
 		drain += Tun.f("stamina_drain_rotor") * open * rotor * Game.umbrella_drain_mult()
+	# In a squall's gust it fights the wind too, and is shoved over the way it blows and bent (less
+	# with Sturdy Frame), buffeting.
+	var push: float = level.gust_push(position.x, level.elapsed) * open
+	if push != 0.0:
+		drain += Tun.f("stamina_drain_gust") * absf(push) * Game.umbrella_drain_mult()
+	var shove := push * Game.jet_shove_mult()
+	var buffet := 0.8 + 0.2 * sin(level.elapsed * 8.3) * sin(level.elapsed * 3.1 + 0.6)
+	gust_kick = move_toward(gust_kick, shove * Tun.f("gust_shove") * buffet, 2.5 * delta)
+	gust_droop = move_toward(gust_droop, absf(shove) * GUST_DROOP, 1.5 * delta)
 	if hurry > 0.0:
 		# Scales from zero so a lightly-resting trigger costs almost nothing.
 		drain += Tun.f("stamina_drain_hurry") * minf(hurry * 2.0, 1.0) + (Tun.f("stamina_drain_run") - Tun.f("stamina_drain_hurry")) * maxf(hurry * 2.0 - 1.0, 0.0)
@@ -266,6 +284,9 @@ func _physics_process(delta: float) -> void:
 	var rotor_hit := _rotor_exposure()
 	gain += rotor_hit * Tun.f("wet_rotor_rate")
 	stats["wet_rotor"] += rotor_hit * Tun.f("wet_rotor_rate") * delta
+	var shower_hit := _shower_exposure()
+	gain += shower_hit * Tun.f("wet_shower_rate")
+	stats["wet_shower"] += shower_hit * Tun.f("wet_shower_rate") * delta
 	_check_puddles()
 	drying = dry_speed(level.dry_rate(position.x, open), wet / Tun.f("wet_max"), level.dry_falloff)
 	stats["dried"] += minf(drying * delta, wet)
@@ -288,8 +309,8 @@ func _process(delta: float) -> void:
 	visual.set_stopped(state == State.STOPPED or (state == State.DONE))
 	if visual.has_method("set_winded"):
 		visual.set_winded(1.0 - stamina / Tun.f("stamina_max"))
-	var kick := jet_kick * JET_KICK_TILT - gun.recoil * RECOIL_TILT * gun.aim_sign()
-	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt + kick, maxf(droop, jet_kick * JET_KICK_DROOP))
+	var kick := jet_kick * JET_KICK_TILT - gun.recoil * RECOIL_TILT * gun.aim_sign() + gust_kick
+	visual.set_umbrella_pose(arm_raise() if not _dropped_umbrella else 0.0, tilt + kick, _canopy_droop())
 	if visual.has_method("set_aim"):
 		visual.set_aim(aim if open <= 0.0 and not _dropped_umbrella else 0.0)
 	if visual.has_method("set_umbrella_open"):
@@ -329,7 +350,12 @@ func _update_umbrella() -> void:
 			var from: Transform3D = visual.get_grip(&"left").global_transform
 			umbrella.global_transform = Transform3D(from.basis.orthonormalized().slerp(grip.global_basis.orthonormalized(), swing),
 					from.origin.lerp(grip.global_position, swing))
-	umbrella.set_state(open, Game.umbrella_radius(), maxf(droop, jet_kick * JET_KICK_DROOP))
+	umbrella.set_state(open, Game.umbrella_radius(), _canopy_droop())
+
+
+## How far the canopy sags: exhausted, knocked by a jet or bent by a gust, whichever is most.
+func _canopy_droop() -> float:
+	return maxf(maxf(droop, jet_kick * JET_KICK_DROOP), gust_droop)
 
 
 ## A blocked jet knocks the canopy aside for a moment, letting the rain in. `amount` 0..1 is the
@@ -470,6 +496,46 @@ func _rotor_exposure() -> float:
 			continue
 		hit += s[1] * k * (umbrella_leak() if _cast(p, Vector3(p.x, RAIN_SKY_Y, p.z), UMBRELLA_MASK) else 1.0)
 	return hit / total
+
+
+## A squall's gust shakes the trees' water down: each body sample under a lot of trees is soaked, by
+## the gust's strength there, unless cover or the open canopy is straight above it.
+func _shower_exposure() -> float:
+	if level.squalls == null or level.tree_spans.is_empty():
+		return 0.0
+	var t: float = level.elapsed
+	var total := 0.0
+	var hit := 0.0
+	for s in SAMPLES:
+		var p := sample_world(s[0])
+		total += s[1]
+		if not level.under_trees(p.x):
+			continue
+		var k: float = level.gust_at(p.x, t)
+		if k <= 0.0:
+			continue
+		var top := Vector3(p.x, RAIN_SKY_Y, p.z)
+		if _cast(p, top, COVER_MASK):
+			continue
+		hit += s[1] * k * (umbrella_leak() if _cast(p, top, UMBRELLA_MASK) else 1.0)
+	return hit / total
+
+
+## The bots' read of the trees' shower: will a gust be on him under trees anywhere he'll be over the
+## next `horizon` seconds? A gust is heard from the moment it is triggered, so this is fair.
+func _shower_threat(horizon: float) -> bool:
+	if level.squalls == null or level.tree_spans.is_empty():
+		return false
+	var t: float = level.elapsed
+	var v := maxf(speed, Tun.f("walk_speed")) if state == State.WALK else 0.0
+	var tau := 0.0
+	while tau <= horizon:
+		var x := position.x + v * tau
+		for dx in [-0.35, 0.35]:
+			if level.under_trees(x + dx) and level.gust_at(x + dx, t + tau) > 0.0:
+				return true
+		tau += 0.1
+	return false
 
 
 ## The bots' read of the rotor wash: will it be on him anywhere he'll be over the next `horizon`
@@ -659,7 +725,7 @@ func _autopilot(delta: float) -> Array:
 	var drive_by: bool = db != null and db.coming()
 	car_coming = car_coming or drive_by
 	# A helicopter's wash coming his way: no resting or refilling until it has gone over.
-	var rotor_near := _rotor_threat(Game.umbrella_open_time() + 3.0)
+	var rotor_near := _rotor_threat(Game.umbrella_open_time() + 3.0) or _shower_threat(Game.umbrella_open_time() + 3.0)
 	var fill := _autopilot_refill(under_fire or car_coming or jet_in or rotor_near)
 	if not fill.is_empty():
 		return fill

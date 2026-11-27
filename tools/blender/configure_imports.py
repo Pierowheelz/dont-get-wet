@@ -13,7 +13,9 @@ import re
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 SCRIPT = "res://assets/buildings/kit_import.gd"
 # folder -> its post-import script (vehicles add their lights on top of the kit's material swap)
-FOLDERS = {"assets/buildings": SCRIPT, "assets/props": SCRIPT, "assets/vehicles": "res://assets/vehicles/vehicle_import.gd"}
+FOLDERS = {"assets/buildings": SCRIPT, "assets/props": SCRIPT, "assets/vehicles": "res://assets/vehicles/vehicle_import.gd",
+           # the country models are painted in vertex colours: their script makes every material show them
+           "assets/country": "res://assets/country/country_import.gd"}
 
 
 def main():

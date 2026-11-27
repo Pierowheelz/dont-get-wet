@@ -70,7 +70,7 @@ static func build(b: LevelBuilder, x: float, w: float, look: Dictionary = {}) ->
 		var seed := b._lot_hash(tx, "tree")
 		var m: Node3D = null
 		if not models.is_empty():
-			m = model(b, String(models[seed % models.size()]), Vector3(tx, 0.0, -0.3), node)
+			m = model(b, String(models[seed % models.size()]), Vector3(tx, 0.0, -0.2), node)
 		if m:
 			m.scale.x = clampf(span / 10.0, 0.75, 1.35)
 			tag_foliage(m, tx - span * 0.5, tx + span * 0.5)
@@ -210,7 +210,8 @@ static func model(b: LevelBuilder, name: String, pos: Vector3, parent: Node3D = 
 
 
 ## Every surface of a model whose material is named for leaves ("foliage", "leaf", "leaves") gets its
-## own foliage material, coloured and textured from the model's, and its node joins &"foliage".
+## own foliage material, painted from the model's vertex colours (docs/CONTRACTS.md §10: COLOR.a is how
+## far each leaf may move) or coloured and textured from its material, and its node joins &"foliage".
 static func _swap_foliage(b: LevelBuilder, n: Node, base_y: float) -> void:
 	var mi := n as MeshInstance3D
 	if mi and mi.mesh:
@@ -219,9 +220,13 @@ static func _swap_foliage(b: LevelBuilder, n: Node, base_y: float) -> void:
 			var nm := (src.resource_name if src else "").to_lower()
 			if not (nm.contains("foliage") or nm.contains("leaf") or nm.contains("leaves")):
 				continue
-			var fm := foliage_material(b, LEAF_DARK, LEAF_LIGHT, 0.1, base_y + 3.0, 6.0)
+			var low := nm.contains("hedge") or nm.contains("grass")
+			var fm := foliage_material(b, LEAF_DARK, LEAF_LIGHT, 0.03 if low else 0.12, base_y + (0.2 if low else 3.0), 1.6 if low else 6.0)
 			var sm := src as BaseMaterial3D
-			if sm:
+			if sm and sm.vertex_color_use_as_albedo:
+				fm.set_shader_parameter("vertex_paint", true)
+				fm.set_shader_parameter("wet", 0.5)
+			elif sm:
 				fm.set_shader_parameter("leaf_dark", sm.albedo_color.darkened(0.45))
 				fm.set_shader_parameter("leaf_light", sm.albedo_color.lightened(0.1))
 				if sm.albedo_texture:

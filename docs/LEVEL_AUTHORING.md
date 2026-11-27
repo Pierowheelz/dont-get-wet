@@ -478,6 +478,53 @@ The helicopter is `res://assets/vehicles/helicopter.glb` (`tools/blender/vehicle
 `helicopter.tscn` beside it would replace it, and without either the game builds a stand-in in code.
 docs/CONTRACTS.md §9 says what a model must provide.
 
+**`squalls`** (`[{"x", "dur"}]`, `dur` optional; `s.squall(x, dur=3.0)`, `src/hazards/squall.gd`) are
+gusts that come down a country lane. When the walker passes `x`:
+
+- **The gust.** It sets off 20 m upwind of `x` and its front blows down the lane at 8 m/s for 70 m.
+  Upwind is the way the street's `wind` blows at `x`: from ahead when the wind is a headwind or still,
+  from behind in a tailwind (`gusts`' wobble doesn't change it). Each spot is in the gust for `dur`
+  seconds (3 if left out) from the moment the front reaches it, at full strength 0.4 s in and dying
+  over the last 0.8 s, and it builds and dies over the first and last 6 m of its path. From ahead the
+  front meets a walking walker about 2.2 s after the trigger, some 3 m past `x`, and passes him in
+  about 2.6 s; from behind about 3 s after it, some 4 m past `x`, and he is in it about 3.6 s.
+  Nothing is random: each gust is a pure function of the level clock from the moment it is triggered.
+- **Slant.** In it the rain slants hard: `Level.wind` adds `gust_wind` (0.8) times the gust's
+  strength, the way it blows, so the rain gets in under the ends of cover. The `wind` hint ignores it.
+- **The trees' shower.** Under a lot with `cover: "trees"` the gust shakes the trees' water down:
+  each body sample under the trees is soaked, by the gust's strength there, unless cover or the open
+  canopy is straight above it (a vertical ray, leaking while the canopy opens), at `wet_shower_rate`
+  (6/s). Upright the canopy keeps all of it off; tilted fully over it doesn't. A 3 s gust under trees
+  with the umbrella shut costs about 12 to 15 (a quarter of `wet_max`), on top of the rain the canopy
+  lets through.
+- **Stamina and shove.** An open canopy in the gust costs `stamina_drain_gust` (4/s) times the gust's
+  strength, walking or standing (Sturdy Frame cuts it like the rest; the plain wind drain counts the
+  street's wind only). It is shoved over the way the gust blows, up to `gust_shove` (0.3 rad) and
+  buffeting, and bent (droop 0.35), both cut by Sturdy Frame's `upgrade_sturdy_jet_shove`.
+- **Telegraph.** The roar (`gust_loop`) rises from upwind from the moment it is triggered and comes
+  past him with the gust; leaves and spray stream along the hedge tops toward him ahead of its front;
+  the trees and hedges thrash as it reaches them (and stir just ahead of it); under the trees their
+  water comes down in big drops. The first one each attempt shows "A gust. Umbrella up under the
+  trees ({umbrella})." as it is triggered.
+- **Foliage.** Every node in group `&"foliage"` thrashes by the gust at its own x. One with a
+  `set_gust(v: float)` method is driven through it (v 0..1); otherwise every ShaderMaterial on it or
+  under it whose shader declares `uniform float gust` gets its own copy (so trees sharing a material
+  still move one by one) and the value, and `gust_dir` (+1 blowing toward +X, -1 toward -X) if the
+  shader declares that too. A long hedge in one node moves as one: split it into pieces a few metres
+  long. With no foliage on the street, nothing is drawn thrashing and the rest still works.
+
+`Level.gust_at(x, t)` (0 to 1), `Level.gust_push(x, t)` (the same, signed the way it blows) and
+`Level.gust_eta(x, t)` read the gust on the level clock: a triggered gust's future is known, so a later
+`t` predicts it; one not yet triggered reads 0 (INF for the eta). The bots hear it from the trigger,
+as a player would: they open up when a gust will be on them under trees within the opening time plus
+0.5 s, and straighten the canopy upright 0.6 s before it is (in the open they tilt into the slanting
+rain as usual). They never rest or refill within the opening time plus 3 s of one under trees. A
+checkpoint resume (and `--start-x`) skips every squall whose `x` is behind it. `level_preview.py`
+draws each trigger (gust lines and an arrow the way it blows, with its `dur`) and a bracket over where
+it blows on a walking walker; it doesn't score the slant or the shower, so `tools/preview.sh` is the
+judge. Trigger one so the walker reaches trees as the front does, with cover or sun to recover after;
+a squall over open verge only slants the rain.
+
 **`slickers`** (`[{"x", "z", "facing", "pose"}]`; `s.slicker(x, z=0.8, facing=1,
 pose="stand")`) place a man in a yellow slicker (`RaincoatFigure`) at x on lane z:
 `facing` 1 or -1, `pose` `"stand"`, `"watch"` (turned toward the street) or `"walk"`. Scenery only:

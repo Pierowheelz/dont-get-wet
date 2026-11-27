@@ -7,9 +7,11 @@ The PNG is one long strip wrapped into rows of ROW_M metres. The report derives 
 from the JSON the way LevelBuilder.cover_map() does and exits 1 when a design rule fails.
 
 It can't simulate scripted threats (`attackers`, `henchmen`, `drive_bys`, the `courier`,
-`helicopters`): tools/preview.sh, which plays the street with both bots, is the judge of those. On a
-street with skyways they are weighed into the scores as threats (see threats()); elsewhere they are
-left out, and the strip only marks where each helicopter is triggered (and where it hovers). A
+`helicopters`, `squalls`, `runners`): tools/preview.sh, which plays the street with both bots, is the
+judge of those. On a street with skyways, or in the suburbs or the country, they are weighed into the
+scores as threats (see threats()); elsewhere they are left out, and the strip only marks where each
+helicopter is triggered (and where it hovers) and where each squall is triggered (and where its gust
+blows on a walking walker). A
 `skyway` is cover like an awning, only higher, so wind slants rain in further under its ends.
 
 On a country street a lot with `cover: "trees"` is neither cover nor open sky: its crown lets
@@ -51,6 +53,10 @@ COUNTRY_COLORS = {
 }
 WASH_C = (60, 150, 225)
 HELI_C = (150, 60, 150)
+GUST_C = (40, 140, 110)
+SQUALL_OFF = 20.0     # a gust sets off this far upwind of its trigger (Squall.START_OFF)
+SQUALL_SPEED = 8.0    # and its front blows down the lane at this (Squall.SPEED)
+WALK = 1.3            # walk_speed, for where a gust meets a walking walker
 INK = (30, 34, 42)
 MUTED = (110, 116, 128)
 BG = (247, 247, 244)
@@ -371,8 +377,9 @@ HOLD_TOL = 0.30
 
 
 # Scripted threats the preview can't simulate carry a street's pacing where cover has taken the rain
-# away, so on a street with skyways they are weighed in like gutters, per 100 m of the decile they land
-# in. Other streets were paced on the rain alone and leave them out.
+# away (a street with skyways) or where the sun dries off what the rain does (the suburbs and the
+# country), so there they are weighed in like gutters, per 100 m of the decile they land in. Other
+# streets were paced on the rain alone and leave them out.
 # A helicopter's wash meets a walking walker some metres past its trigger (HELI_MEET_M, by direction);
 # a hover adds its seconds. The courier's tail is spread over his walk from doorway to door.
 HELI_W = 3.0
@@ -383,6 +390,16 @@ DRIVE_BY_W = 2.5
 ATTACKER_W = 2.0
 COURIER_W = 3.0             # per 100 m of his walk
 COURIER_STOP_W = 1.0
+QUIET_DRIVE_BY_W = 3.0      # no warning, so it lands
+SQUALL_W = 2.0
+SQUALL_PER_S_W = 0.5        # per second the gust blows
+SQUALL_MEET_M = 2.6         # the gust reaches a walking walker about 2 s past its trigger
+RUNNER_W = 2.0
+
+
+def weighs_threats(st):
+    """Whether this street's pacing counts its scripted threats (see threats())."""
+    return bool(st.d.get("skyways")) or st.d.get("aesthetic") in ("suburban", "country")
 
 
 def threats(st):
@@ -396,7 +413,12 @@ def threats(st):
             hx = float(h["x"]) + HELI_MEET_M.get(int(h.get("dir", -1)), 8.0)
             out.append((hx, hx, HELI_W))
     out += [(float(h["x"]), float(h["x"]), HENCHMAN_W) for h in st.d.get("henchmen", [])]
-    out += [(float(d["x"]), float(d["x"]), DRIVE_BY_W) for d in st.d.get("drive_bys", [])]
+    out += [(float(d["x"]), float(d["x"]), QUIET_DRIVE_BY_W if d.get("quiet") else DRIVE_BY_W)
+            for d in st.d.get("drive_bys", [])]
+    for q in st.d.get("squalls", []):
+        qx = float(q["x"]) + SQUALL_MEET_M
+        out.append((qx, qx, SQUALL_W + SQUALL_PER_S_W * float(q.get("dur", 3.0))))
+    out += [(float(r["x"]), float(r["x"]), RUNNER_W) for r in st.d.get("runners", [])]
     out += [(float(a["x"]), float(a["x"]), ATTACKER_W) for a in st.d.get("attackers", [])]
     c = st.d.get("courier")
     if c:
@@ -415,7 +437,7 @@ def _threat_in(t, a, b):
 
 
 def decile_table(st, tun):
-    thr = threats(st) if st.d.get("skyways") else []
+    thr = threats(st) if weighs_threats(st) else []
     spans = st.open_spans()
     rows = []
     step = st.end_x / 10.0
@@ -447,10 +469,11 @@ DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
                 f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.4*crossings) per 100 m, per decile "
                 "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover (a railway's arches count as "
                 "lot cover); duty = share of the "
-                "time a sheet falls on a spot, Track.WASH_S over the mean train gap) + threat (skyway streets only, scripted: "
+                "time a sheet falls on a spot, Track.WASH_S over the mean train gap) + threat (skyway, suburban and country streets only, scripted: "
                 f"{HELI_W:g} per helicopter pass + {HELI_HOVER_W:g}/s hovering, {HENCHMAN_W:g} per henchman, "
-                f"{DRIVE_BY_W:g} per drive-by, {ATTACKER_W:g} per pursuer, the courier's tail {COURIER_W:g} per "
-                f"100 m + {COURIER_STOP_W:g} per window stop) per 100 m")
+                f"{DRIVE_BY_W:g} per drive-by ({QUIET_DRIVE_BY_W:g} quiet), {ATTACKER_W:g} per pursuer, the courier's "
+                f"tail {COURIER_W:g} per 100 m + {COURIER_STOP_W:g} per window stop, {SQUALL_W:g} per gust + "
+                f"{SQUALL_PER_S_W:g}/s, {RUNNER_W:g} per runner) per 100 m")
 
 
 def crossable_m(tun, wind):
@@ -586,8 +609,12 @@ def print_report(st, tun, rows, checks, name):
     helis = st.d.get("helicopters", [])
     if helis:
         print(f"helicopters: {len(helis)} triggered at x " + ", ".join(f"{float(h['x']):.0f}" for h in helis)
-              + ("; weighed in as a threat (not simulated)" if st.d.get("skyways") else "; their rotor wash is not scored here")
+              + ("; weighed in as a threat (not simulated)" if weighs_threats(st) else "; their rotor wash is not scored here")
               + ", tools/preview.sh is the judge")
+    squalls = st.d.get("squalls", [])
+    if squalls:
+        print(f"squalls: {len(squalls)} triggered at x " + ", ".join(f"{float(q['x']):.0f}" for q in squalls)
+              + "; the gust's slant and the trees' shower are not scored here, tools/preview.sh is the judge")
     print("longest = full length of the longest open span touching the decile (may extend past it)")
     share, sky = st.cover_share()
     line = f"cover: {share:.0%} of end_x under cover ({sky:.0%} under a skyway)"
@@ -685,6 +712,30 @@ def heli_glyph(d, h, x0m, x1m, X, y):
         vx = X(float(h["hover_x"]))
         d.ellipse([vx - 8, y + 4, vx + 8, y + 12], outline=HELI_C, width=2)
         d.text((vx, y + 20), f"{float(h.get('hover_s', 0)):.0f}s", fill=HELI_C, font=font(9, True), anchor="mm")
+
+
+def squall_glyph(d, sq, st, x0m, x1m, X, y):
+    """A squall's trigger: three gust lines at x with an arrow the way it blows, and a bracket over
+    where it blows on a walking walker (from its front meeting him to its tail passing him)."""
+    sx, dur = float(sq["x"]), float(sq.get("dur", 3.0))
+    gdir = 1 if st.wind(sx) > 0 else -1
+    # Front: sx - gdir*OFF + gdir*V*t meets him at sx + WALK*t; its tail passes him dur*V/(V - gdir*WALK) later.
+    t_meet = SQUALL_OFF / (SQUALL_SPEED - gdir * WALK)
+    a = sx + WALK * t_meet
+    b = a + WALK * dur * SQUALL_SPEED / (SQUALL_SPEED - gdir * WALK)
+    if b > x0m and a < x1m:
+        xa, xb = X(max(a, x0m)), X(min(b, x1m))
+        d.line([(xa, y + 33), (xb, y + 33)], fill=GUST_C, width=3)
+        d.line([(xa, y + 29), (xa, y + 37)], fill=GUST_C, width=1)
+        d.line([(xb, y + 29), (xb, y + 37)], fill=GUST_C, width=1)
+    if x0m <= sx <= x1m:
+        cx = X(sx)
+        d.line([(cx, y + 2), (cx, y + H_FEAT_PX - 6)], fill=GUST_C, width=1)
+        for yy, ln in ((9, 14), (15, 22), (21, 12)):
+            d.line([(cx - gdir * ln / 2, y + yy), (cx + gdir * ln / 2, y + yy)], fill=GUST_C, width=2)
+        tip = cx + gdir * 13
+        d.polygon([(tip, y + 11), (tip, y + 19), (tip + gdir * 5, y + 15)], fill=GUST_C)
+        d.text((cx - gdir * 14, y + 26), f"gust {dur:g}s", fill=GUST_C, font=font(9, True), anchor="lm" if gdir < 0 else "rm")
 
 
 H_FEAT_PX = 36
@@ -820,6 +871,8 @@ def render(st, tun, traces, out, title):
                     d.text(((xa + xb) / 2, y + 5), "train wash", fill=(255, 255, 255), font=font(9, True), anchor="mm")
         for h in st.d.get("helicopters", []):
             heli_glyph(d, h, x0m, x1m, X, y)
+        for sq in st.d.get("squalls", []):
+            squall_glyph(d, sq, st, x0m, x1m, X, y)
         for f in st.features:
             fx = float(f["x"])
             fw = float(f.get("w", 1.0))
@@ -900,7 +953,8 @@ def trace_summary(label, rows, tun):
                "SOAKED" if last["wet"] >= tun["wet_max"] - 0.01 else "FAILED dry (a scripted fail: lost, made or shot)")
     return (f"{label}: final wet {last['wet']:.1f}/{tun['wet_max']:.0f} at x={last['x']:.0f} t={last['t']:.0f}s; "
             f"rain {s['wet_rain']:.1f} gutter {s['wet_gutter']:.1f} "
-            f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} rotor {s.get('wet_rotor', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
+            f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} rotor {s.get('wet_rotor', 0.0):.1f} "
+            f"shower {s.get('wet_shower', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
             f"{min(r['stamina'] for r in rows):.0f}; {outcome}")
 
 
