@@ -133,7 +133,18 @@ sign band) and has its front edge between 2.5 and 2.8 m, so the style is purely 
 A lot is retro-future when the builder swaps in the retro kit for it (probability = the level's
 `neon`).
 
-## 7. Credits
+## 7. Skyways and the glass city — `levels/*.json`
+
+A `skyways` entry `{"x0", "x1"}` is cover from x0 to x1: one box on the `cover` layer from y 4.45
+(`SkywayBuilder.SOFFIT_Y`) to 7.6 (`ROOF_Y`) and z 0 to 3.3 (`Z1`), mirrored in the rain's cover map as
+`COVER_VOLUME` (drops splash on the roof, vanish inside, and fall beneath the soffit). These numbers,
+the columns' line (z 2.75, clear of an open canopy on the walker's line) and `column_xs` are gameplay;
+everything `SkywayBuilder.draw` adds is visual and may be restyled, as long as nothing hangs below the
+soffit in front of the columns' line. Likewise every lot style in `ModernBuilder` and its skyline is
+visual only (no collider, no cover): an art pass may replace any of it, keeping `glass_tower` and
+`lobby` signs in the 3.1–3.9 m band and the `plaza` open.
+
+## 8. Credits
 
 Every third-party asset gets a line in `assets/CREDITS.md`: file(s), author, source URL, licence.
 CC0 preferred; CC-BY allowed with attribution. Nothing with NC/ND or unclear licences.

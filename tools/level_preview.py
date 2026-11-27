@@ -7,7 +7,8 @@ The PNG is one long strip wrapped into rows of ROW_M metres. The report derives 
 from the JSON the way LevelBuilder.cover_map() does and exits 1 when a design rule fails.
 
 It can't simulate scripted NPCs, so `attackers` (jets from behind) are left out of the scores and
-checks: tools/preview.sh, which plays the street with both bots, is the judge of those.
+checks: tools/preview.sh, which plays the street with both bots, is the judge of those. A `skyway` is
+cover like an awning, only higher, so wind slants rain in further under its ends.
 """
 import argparse
 import json
@@ -32,6 +33,7 @@ COVER_COLORS = {
     "walkway": (176, 150, 96),
     "canopy": (46, 148, 150),
     "deck": (92, 104, 122),
+    "skyway": (60, 175, 90),
 }
 WASH_C = (60, 150, 225)
 INK = (30, 34, 42)
@@ -84,6 +86,7 @@ class Street:
         # Share of the time a sheet is falling on any one spot of the track, from the mean gap between trains.
         self.wash_duty = WASH_S / ((float(tr["gap"][0]) + float(tr["gap"][1])) / 2.0) if tr else 0.0
         self.decks = [(float(v["x0"]), float(v["x1"])) for v in data.get("viaducts", [])]
+        self.skyways = [(float(v["x0"]), float(v["x1"])) for v in data.get("skyways", [])]
         self.covers = self._cover_spans()
         self.wash = self._wash_zones()
 
@@ -108,7 +111,7 @@ class Street:
                 out.append((lx, lx + lw, kind))
             elif kind == "canopy":
                 out.append((lx + 0.15, lx + lw - 0.15, kind))
-        return out + [(a, b, "deck") for a, b in self.decks]
+        return out + [(a, b, "deck") for a, b in self.decks] + [(a, b, "skyway") for a, b in self.skyways]
 
     def _wash_zones(self):
         """[(x0, x1)] of track with no lot cover: where a passing train's sheet of water lands on the
@@ -122,6 +125,24 @@ class Street:
 
     def under_deck(self, x):
         return any(a <= x <= b for a, b in self.decks)
+
+    def under_skyway(self, x):
+        return any(a <= x <= b for a, b in self.skyways)
+
+    def cover_h(self, x):
+        """Height of the cover over x, which sets how far wind slants rain in under its end: a deck's,
+        else an awning's or slab's, else a skyway's."""
+        if self.under_deck(x):
+            return ARCH_H if self.railway else DECK_H
+        if self.under_skyway(x) and not any(a <= x <= b for a, b, kind in self.covers if kind not in ("deck", "skyway")):
+            return SKYWAY_H
+        return SLANT_H
+
+    def cover_share(self):
+        """Shares of end_x under any cover, and under a skyway."""
+        n = max(int(self.end_x / STEP), 1)
+        xs = [(i + 0.5) * STEP for i in range(n)]
+        return (sum(1 for x in xs if self.covered(x)) / n, sum(1 for x in xs if self.under_skyway(x)) / n)
 
     def washed(self, x):
         return any(a <= x <= b for a, b in self.wash)
@@ -168,6 +189,8 @@ ENTRY_M = 0.5                            # checkpoint sits this far into a safe 
 SLANT_H = 3.1                            # awning height the wind slants rain across
 DECK_H = 3.35                            # Track.DECK_Y: a deck's ends let slanted rain further in
 ARCH_H = 3.1                             # Track.RAIL_SOFFIT: the same at the ends of a run of railway arches
+SKYWAY_H = 4.45                          # SkywayBuilder.SOFFIT_Y: the same at a skyway's ends
+SKYWAY_TARGET = 0.6                      # a skyway street keeps at least this share of end_x under cover
 WASH_S = 11.0 / 12.0                     # Track.WASH_S: seconds a sheet falls on any one spot
 WIND_SLANT = 0.9                         # Level.rain_dir: sideways rain per unit of wind
 GUST_MAX = 1.4                           # Level.wind: gusts scale wind by up to 1 + 0.4
@@ -205,8 +228,7 @@ def safe_runs(st):
 
     def margin(x):
         w = abs(st.wind(x)) * (GUST_MAX if st.gusts else 1.0)
-        h = (ARCH_H if st.railway else DECK_H) if st.under_deck(x) else SLANT_H
-        return h * WIND_SLANT * w + BODY_HALF_M
+        return st.cover_h(x) * WIND_SLANT * w + BODY_HALF_M
 
     runs = [(a if a <= 0.0 else a + margin(a), b - margin(b)) for a, b in merged]
     zones = [(a - BODY_HALF_M, b + BODY_HALF_M) for a, b in st.wash]
@@ -392,6 +414,18 @@ def run_checks(st, tun, rows):
                "deck sits where a gutter's downpipe reaches out, so they pass through each other: drop the lamp "
                f"post ({lamps}), use an awning, or move the gutter off the deck")
         checks.append(("track-clearance", ok, msg))
+
+    if st.skyways:
+        clash = [f"lamp_post at {float(p['x']):.1f} m" for p in st.d.get("props", [])
+                 if p["id"] == "lamp_post" and st.under_skyway(float(p["x"]))]
+        clash += [f"{lot['cover']} at {float(lot['x']):.1f} m" for lot in st.d.get("lots", [])
+                  if lot.get("cover") in ("balcony", "arcade")
+                  and any(a < float(lot["x"]) + float(lot["w"]) and b > float(lot["x"]) for a, b in st.skyways)]
+        ok = not clash
+        msg = ("no lamp posts, balconies or arcades under a skyway" if ok else
+               "; ".join(clash) + ". A skyway's floor is at 4.45 m over the pavement out to 3.3 m: a lamp post's "
+               "head and a balcony's rail stand up through it. Its soffit lights the pavement; use awnings or no cover")
+        checks.append(("skyway-clearance", ok, msg))
     return checks
 
 
@@ -408,6 +442,11 @@ def print_report(st, tun, rows, checks, name):
     if st.d.get("courier"):
         print("courier: the scripted pedestrian is not simulated here; tools/preview.sh is the judge of tailing him")
     print("longest = full length of the longest open span touching the decile (may extend past it)")
+    share, sky = st.cover_share()
+    line = f"cover: {share:.0%} of end_x under cover ({sky:.0%} under a skyway)"
+    if st.skyways:
+        line += f"; a skyway street aims for at least {SKYWAY_TARGET:.0%}" + (" (short)" if share < SKYWAY_TARGET else "")
+    print(line)
     print("checks:")
     for cid, ok, msg in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}] {cid}: {msg}")
@@ -565,10 +604,10 @@ def render(st, tun, traces, out, title):
         # cover
         d.text((LEFT - 8, y + 13), "cover", fill=INK, font=font(12, True), anchor="rm")
         d.rectangle([LEFT, y + 2, right_px, y + H_COVER - 4], fill=SKY)
-        for a, b, kind in sorted(st.covers, key=lambda c: c[2] == "deck"):
+        for a, b, kind in sorted(st.covers, key=lambda c: c[2] in ("deck", "skyway")):
             if b > x0m and a < x1m:
-                # A deck is a band across the top, so the lot cover beneath it still shows.
-                y1 = y + 9 if kind == "deck" else y + H_COVER - 4
+                # A deck or skyway is a band across the top, so the lot cover beneath it still shows.
+                y1 = y + 9 if kind in ("deck", "skyway") else y + H_COVER - 4
                 d.rectangle([X(max(a, x0m)), y + 2, X(min(b, x1m)), y1], fill=COVER_COLORS[kind])
         for s0, s1 in st.open_spans():
             if s1 > x0m and s0 < x1m and s1 - s0 >= 5.0:
