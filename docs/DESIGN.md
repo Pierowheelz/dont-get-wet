@@ -71,7 +71,8 @@ Digital inputs ramp to full over ~0.1 s so keyboard feels as smooth as a trigger
   only splash underfoot: nobody can step round one, so they cost nothing.
 - Decreases **only** in sunny patches and warm air (vents, fires), at full rate above 90 and
   exponentially slower below it. Drying rescues a soaked run but never repays time spent waiting.
-  On the early streets none sits in the final third.
+  On the early streets none sits in the final third. A street can slow that falloff (`dry.falloff`):
+  on Long Lane the sun dries a half-wet walker about nine times as fast, so drying is part of the play.
 - Resets between levels (the character spends the night at the inn).
 - Reaching 100 → **fail sequence**: drop umbrella, scrolling stops, sad walk off the left of the
   screen, "You got wet" screen with Checkpoint / Restart / Map / Menu.
@@ -86,7 +87,8 @@ The game is only fair if it's readable, so exposure is **analytic** (not per-dro
 - A rain direction vector (vertical, bent by wind).
 - Each physics frame, ~9 sample points on the character's body (head, shoulders, torso, arms, legs)
   are ray-cast *against* the rain direction. Any hit on the `cover` physics layer (awnings, balconies,
-  roofs, the umbrella canopy) blocks that sample.
+  roofs, the umbrella canopy) blocks that sample. A tree's crown (its own `trees` layer) lets
+  `tree_leak` (7%) of the rain through to a sample it shades, unless the open canopy is over it too.
 - `exposure` = weighted fraction of unblocked samples. `wetness += exposure × intensity × rate × dt`.
 - Visual rain is GPU particles colliding with a height-field that follows the camera, so drops visibly
   stop on awnings and the umbrella — what you see matches what the model computes.
@@ -103,6 +105,10 @@ The game is only fair if it's readable, so exposure is **analytic** (not per-dro
 | Car splash (side-street crossings) | Big burst from the front just before the crossing | Tilt umbrella forward |
 | Wind (later levels) | Bends rain, extra stamina drain, slows when open into a headwind | Tilt into the rain |
 | Helicopter rotor wash (Skyway Terminal) | A moving footprint where the downdraught drives the rain in under any cover | Open canopy held upright |
+| Street trees (Long Lane) | Partial cover: 7% of the rain gets through | Shut the umbrella under them to rest, dry off in the sun |
+| Gust (Long Lane) | Heard and seen coming down the street; slants the rain and shakes the trees' water down, shoves an open canopy | Open canopy held upright under the trees |
+| Fairweather's quiet car (Long Lane) | Comes up from behind with no lights and no sound until its tyres hiss; a low sheet of water no tilt keeps off | None: dry off in the sun |
+| Runner (Long Lane) | One of their men sprints up from behind and fires once as he passes | Tilt toward him at the glint; or shoot him |
 | Hurricane wind (future) | Damages umbrella | Upgrades |
 | Sunny patch | Dries slowly | Close umbrella to enjoy it |
 | Warm vent / aircon / fire barrel | Dries faster, local | — |
@@ -152,6 +158,20 @@ hide your face), for his men's jets and the drive-bys (tilted at the shot), and 
 Story: you tail Fairweather, the man in the yellow slicker, to the terminal; his men are waiting; his
 helicopter passes over as you reach the Skyway Terminal Hotel, and the outro sends you on to The Zenith.
 
+### Long Lane (street 7 toward the country)
+
+The last of the suburbs past the Bypass, and the bridge between the town's dark streets and the
+country: a 1960s suburb that has been left behind (empty and boarded houses among the lived-in ones,
+a shut shopping strip, a railway overbridge, a church hall, a bus shelter with cracked glass), in the
+grey daylight of a rainy late afternoon, brighter than the streets before it and darker than the
+country after it, thinning toward the country at its far end. Little real cover (14%): street trees
+(32%) keep most of the rain off but not all, and a low sun breaks through often and for a long way
+(28%), drying him much faster than elsewhere. Against that, wetness he can't do much about: gusts that
+shake the trees' water down, two runners who fire once as they pass, and Fairweather's black car coming
+up behind three times with its lights off, through the puddles. Story: Fairweather is driving; you
+reach the Royal Hotel and his car waits in the lane all night. The country look (hedges, oaks, fields,
+a barn, a lychgate, a pub) is built and kept for the last street, The County Road.
+
 ## 8. Map, scoring, progression
 
 - After a level: score screen → **city map**. Nodes adjacent to the current node are selectable; hover/
@@ -194,7 +214,8 @@ helicopter passes over as you reach the Skyway Terminal Hotel, and the outro sen
   rain light.
 - Early levels: decayed 1960s American-style main street — faded signage, boarded windows, striped
   canvas awnings (some torn), brick and terrazzo, sodium lamps. Later: retro-future neon and chrome
-  creep in as you approach the centre.
+  creep in as you approach the centre. Toward the country the light grows: the suburbs (Long Lane) are
+  a grey, brighter daylight, and the country (The County Road) brighter still.
 - Character: CC0 high-poly human (MakeHuman/MPFB or similar), procedural/authored animation.
 - Assets: Blender scripts in `tools/blender/` generate modular buildings/props reproducibly; CC0
   textures/models from Poly Haven / ambientCG. Licences are tracked in `assets/CREDITS.md`.

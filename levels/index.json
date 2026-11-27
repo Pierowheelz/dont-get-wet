@@ -24,7 +24,23 @@
     "county_road",
     "the_bypass"
    ],
-   "soon": true
+   "blurb": "The last of the suburbs. Overgrown gardens, empty houses, big old street trees and a low sun breaking through. Not much to shelter under.",
+   "difficulty": 8,
+   "file": "res://levels/long_lane.json",
+   "outro": [
+    "The publican at the Royal let you dry out by the bar heater.",
+    "All night a black car sat in the lane with its lights off."
+   ],
+   "load": "Nobody parks on Long Lane any more. Somebody's driving it.",
+   "fail": {
+    "shot": [
+     "He didn't even break stride."
+    ],
+    "wet": [
+     "The sun came out. Not for long enough.",
+     "He never touched you. He didn't need to."
+    ]
+   }
   },
   {
    "id": "the_bypass",
