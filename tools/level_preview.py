@@ -43,8 +43,6 @@ COVER_COLORS = {
     "canopy": (46, 148, 150),
     "deck": (92, 104, 122),
     "skyway": (60, 175, 90),
-    "shelter": (176, 120, 70),
-    "bridge": (110, 110, 118),
 }
 # Drawn and listed in the legend only on a street that has them, so other streets' strips are unchanged.
 COUNTRY_COLORS = {
@@ -52,6 +50,7 @@ COUNTRY_COLORS = {
     "barn": (120, 70, 50),
     "porch": (205, 150, 120),
     "trees": (96, 160, 80),
+    "bridge": (110, 110, 118),
 }
 WASH_C = (60, 150, 225)
 HELI_C = (150, 60, 150)
@@ -630,11 +629,11 @@ def print_report(st, tun, rows, checks, name):
         line += f"; a skyway street aims for at least {SKYWAY_TARGET:.0%}" + (" (short)" if share < SKYWAY_TARGET else "")
     print(line)
     if st.country:
-        print(f"country: a tree's crown lets {st.tree_leak:.0%} of the rain through, so a metre under trees scores that "
+        print(f"trees: a tree's crown lets {st.tree_leak:.0%} of the rain through, so a metre under trees scores that "
               f"share of open sky; trees and sun breaks of {SUN_RECOVER_M:.0f} m or more split spans for span-crossable")
     if st.country:
         c, s, t, o = st.shares()
-        print(f"country: of end_x {c:.0%} under full cover, {t:.0%} under trees ({st.tree_leak:.0%} of the rain gets "
+        print(f"shares: of end_x {c:.0%} under full cover, {t:.0%} under trees ({st.tree_leak:.0%} of the rain gets "
               f"through), {s:.0%} in sun, {o:.0%} open rain")
     print("checks:")
     for cid, ok, msg in checks:
@@ -998,6 +997,9 @@ def render(st, tun, traces, out, title):
     present = {k for _, _, k in st.covers} | ({"trees"} if st.trees else set())
     for kind, col in COUNTRY_COLORS.items():   # only on a street that has them
         if kind in present:
+            if x + 130 > d.im.size[0] - LEFT:   # wrap rather than run off the edge
+                ly += 22
+                x = LEFT
             d.rectangle([x, ly + 2, x + 22, ly + 14], fill=col)
             d.text((x + 28, ly + 8), f"trees ({st.tree_leak:.0%} rain)" if kind == "trees" else kind, fill=INK,
                    font=font(12), anchor="lm")
