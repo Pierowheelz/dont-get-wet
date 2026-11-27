@@ -118,7 +118,6 @@ func side() -> float:
 	return 1.0 if from > level.player.position.x else -1.0
 
 
-
 func _process(delta: float) -> void:
 	var p: Player = level.player
 	if p == null or level.camera == null:

@@ -10,7 +10,7 @@ It can't simulate scripted threats (`attackers`, `henchmen`, `drive_bys`, the `c
 `helicopters`, `squalls`, `runners`): tools/preview.sh, which plays the street with both bots, is the
 judge of those. On a street with skyways, or in the suburbs or the country, they are weighed into the
 scores as threats (see threats()); elsewhere they are left out, and the strip only marks where each
-helicopter (and where it hovers), drive-by, runner and squall is triggered (and where its gust blows on
+helicopter (and where it hovers), quiet drive-by, runner and squall is triggered (and where its gust blows on
 a walking walker). A
 `skyway` is cover like an awning, only higher, so wind slants rain in further under its ends.
 
@@ -754,31 +754,15 @@ def squall_glyph(d, sq, st, x0m, x1m, X, y):
         d.text((cx - gdir * 14, y + 26), f"gust {dur:g}s", fill=GUST_C, font=font(9, True), anchor="lm" if gdir < 0 else "rm")
 
 
-def _marked_cars(st):
-    """The drive-bys the strip marks: the quiet ones and those with Fairweather at the wheel."""
-    return [c for c in st.d.get("drive_bys", []) if c.get("quiet") or c.get("driver")]
-
-
-def car_glyph(d, cx, y, quiet=False, shot=True, slicker=False):
-    """A drive-by's trigger: a small sedan at x, lit with its beam ahead, or dark and hollow for a
-    quiet one; a yellow head at the wheel for Fairweather, a red dot over the boot for a passenger's shot."""
+def car_glyph(d, cx, y):
+    """A quiet drive-by's trigger: a dark, hollow sedan at x with Fairweather's yellow head at the wheel."""
     cy = y + 24
     d.line([(cx, y + 2), (cx, y + H_FEAT_PX)], fill=CAR_C, width=1)
-    body = [cx - 10, cy - 2, cx + 10, cy + 4]
-    cabin = [cx - 5, cy - 7, cx + 4, cy - 2]
-    if quiet:
-        d.rectangle(body, outline=CAR_C, width=2)
-        d.rectangle(cabin, outline=CAR_C, width=1)
-    else:
-        d.rectangle(body, fill=CAR_C)
-        d.rectangle(cabin, fill=CAR_C)
-        d.polygon([(cx + 10, cy), (cx + 22, cy - 4), (cx + 22, cy + 5)], fill=(250, 226, 140))
+    d.rectangle([cx - 10, cy - 2, cx + 10, cy + 4], outline=CAR_C, width=2)
+    d.rectangle([cx - 5, cy - 7, cx + 4, cy - 2], outline=CAR_C, width=1)
     for wx in (cx - 6, cx + 6):
         d.ellipse([wx - 3, cy + 2, wx + 3, cy + 8], fill=CAR_C)
-    if slicker:
-        d.ellipse([cx - 1, cy - 7, cx + 4, cy - 2], fill=SLICKER_C)
-    if shot:
-        d.ellipse([cx - 9, cy - 8, cx - 5, cy - 4], fill=RUNNER_C)
+    d.ellipse([cx - 1, cy - 7, cx + 4, cy - 2], fill=SLICKER_C)
 
 
 def runner_glyph(d, cx, y):
@@ -936,9 +920,9 @@ def render(st, tun, traces, out, title):
             heli_glyph(d, h, x0m, x1m, X, y)
         for sq in st.d.get("squalls", []):
             squall_glyph(d, sq, st, x0m, x1m, X, y)
-        for c in _marked_cars(st):
-            if x0m <= float(c["x"]) <= x1m:
-                car_glyph(d, X(float(c["x"])), y, c.get("quiet", False), c.get("shot", True), c.get("driver") == "slicker")
+        for c in st.d.get("drive_bys", []):
+            if c.get("quiet") and x0m <= float(c["x"]) <= x1m:   # plain drive-bys stay unmarked, as before
+                car_glyph(d, X(float(c["x"])), y)
         for r in st.d.get("runners", []):
             if x0m <= float(r["x"]) <= x1m:
                 runner_glyph(d, X(float(r["x"])), y)
@@ -999,8 +983,8 @@ def render(st, tun, traces, out, title):
         glyph(d, kind, x + 14, ly - 8, 20)
         d.text((x + 34, ly + 8), FEATURE_NAMES[kind], fill=INK, font=font(12), anchor="lm")
         x += 140
-    if _marked_cars(st):   # only on a street that has them, so other streets' strips are unchanged
-        car_glyph(d, x + 14, ly - 14, quiet=True, shot=False, slicker=True)
+    if any(c.get("quiet") for c in st.d.get("drive_bys", [])):   # only on a street that has them
+        car_glyph(d, x + 14, ly - 14)
         d.text((x + 40, ly + 8), "quiet, Fairweather", fill=INK, font=font(12), anchor="lm")
         x += 170
     if st.d.get("runners"):
