@@ -43,6 +43,8 @@ COVER_COLORS = {
     "canopy": (46, 148, 150),
     "deck": (92, 104, 122),
     "skyway": (60, 175, 90),
+    "shelter": (176, 120, 70),
+    "bridge": (110, 110, 118),
 }
 # Drawn and listed in the legend only on a street that has them, so other streets' strips are unchanged.
 COUNTRY_COLORS = {
@@ -135,7 +137,7 @@ class Street:
                             nxt.append((max(t1, a), b))
                     segs = nxt
                 out += [(lx + a, lx + b, kind) for a, b in segs if b > a]
-            elif kind in ("balcony", "arcade", "walkway", "shelter", "barn"):
+            elif kind in ("balcony", "arcade", "walkway", "shelter", "barn", "bridge"):
                 out.append((lx, lx + lw, kind))
             elif kind == "porch":
                 a, b = porch_span(lot)
@@ -165,6 +167,8 @@ class Street:
         else an awning's or slab's, else a skyway's."""
         if self.under_deck(x):
             return ARCH_H if self.railway else DECK_H
+        if any(a <= x <= b for a, b, kind in self.covers if kind == "bridge"):
+            return BRIDGE_H
         if self.under_skyway(x) and not any(a <= x <= b for a, b, kind in self.covers if kind not in ("deck", "skyway")):
             return SKYWAY_H
         if any(a <= x <= b for a, b, kind in self.covers if kind == "barn"):
@@ -272,6 +276,7 @@ SLANT_H = 3.1                            # awning height the wind slants rain ac
 DECK_H = 3.35                            # Track.DECK_Y: a deck's ends let slanted rain further in
 ARCH_H = 3.1                             # Track.RAIL_SOFFIT: the same at the ends of a run of railway arches
 SKYWAY_H = 4.45                          # SkywayBuilder.SOFFIT_Y: the same at a skyway's ends
+BRIDGE_H = 4.8                           # SuburbanBuilder.BRIDGE_Y: the same at a rail overbridge's
 BARN_H = 4.4                             # CountryBuilder.BARN_Y: the same at a Dutch barn's ends
 SUN_RECOVER_M = 4.0                      # a sun break this long splits an open span for span-crossable
 PORCH_W = 2.6                            # CountryBuilder.PORCH_W

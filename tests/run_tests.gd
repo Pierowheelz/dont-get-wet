@@ -1193,7 +1193,7 @@ func _tests() -> Array[Callable]:
 		_test_courier_slicker, _test_helicopters, _test_squalls, _test_skyway_terminal, _test_quiet_drive_by, _test_runners,
 		_test_dynamic_resolution, _test_menu_width,
 		_test_credits_scroll, _test_slider_saves, _test_shop_fits, _test_small_screen_text, _test_tree_cover,
-		_test_country_build, _run_tests
+		_test_country_build, _test_suburban_build, _run_tests
 	]
 
 
@@ -3315,5 +3315,83 @@ func _test_country_build() -> void:
 		var aes: Array = LevelBuilder.AWNING_STYLES[k]["aesthetics"]
 		return aes.is_empty() or aes.has("country"))
 	check(country_styles.size() >= 4, "the awning table has styles for a country street: %s" % [country_styles])
+	root.queue_free()
+	await _frames(2)
+
+
+# --- the suburbs (aesthetic "suburban") -----------------------------------------------------------------
+
+## Every suburban lot style builds; the bus shelter's and the hall porch's cover is CountryBuilder's,
+## the overbridge's is its own and covers the street out past the camera; a house is no cover; street
+## trees bring TreeCover's crown and sway in a gust; the pub's door is 4 m into its lot; the awning
+## table has styles for a suburban street; the same lot styles on another street are left to the kit.
+func _test_suburban_build() -> void:
+	var d := {"id": "_suburb_test", "length": 140.0, "aesthetic": "suburban", "neon": 0.0, "wind": [[0, 0.1], [1, 0.1]],
+		"lots": [
+			{"x": 0.0, "w": 6.0, "style": "shop_lit", "cover": "awning", "sign": "MILK BAR", "awning_color": "green", "floors": 0},
+			{"x": 6.0, "w": 14.0, "style": "house", "cover": "trees", "state": "lived", "drive": "left", "car": "sedan"},
+			{"x": 20.0, "w": 12.0, "style": "house", "cover": "none", "state": "boarded", "walls": "weatherboard", "fence": "hedge", "drive": "none", "sign": "SOLD"},
+			{"x": 32.0, "w": 4.0, "style": "bus_shelter", "cover": "shelter"},
+			{"x": 36.0, "w": 10.0, "style": "vacant_block", "cover": "none", "thin": 1.0},
+			{"x": 46.0, "w": 16.0, "style": "flats", "cover": "none", "floors": 2, "sign": "SUNNYSIDE"},
+			{"x": 62.0, "w": 14.0, "style": "park", "cover": "trees"},
+			{"x": 76.0, "w": 10.0, "style": "church_hall", "cover": "porch", "sign": "HALL"},
+			{"x": 86.0, "w": 9.0, "style": "overbridge", "cover": "bridge"},
+			{"x": 95.0, "w": 12.0, "style": "house", "cover": "none", "state": "empty", "drive": "right", "car": "wreck", "thin": 0.6},
+			{"x": 113.0, "w": 8.0, "style": "inn", "cover": "awning", "sign": "ROYAL HOTEL", "awning_color": "green", "floors": 1}],
+		"crossings": [{"x": 107.0, "w": 6.0}],
+		"features": [{"type": "sun", "x": 36.0, "w": 10.0}],
+		"props": [{"id": "lamp_post", "x": 4.0}, {"id": "power_pole", "x": 28.0}, {"id": "lamp_post", "x": 52.0, "lamp": "out"},
+			{"id": "lamp_post", "x": 75.0, "lamp": "flicker"}]}
+	var root := Node3D.new()
+	root.position = Vector3(0.0, 0.0, -800.0)   # well clear of anything else in the physics world
+	add_child(root)
+	var lb := LevelBuilder.new()
+	lb.build(root, d)
+	await _frames(3)
+	check(is_equal_approx(lb.inn_door_x, 117.0), "the suburban pub's door is 4 m into its lot, like the kit inn's: x %.1f" % lb.inn_door_x)
+	var space := root.get_world_3d().direct_space_state
+	var up := func(x: float, mask: int, z := 1.6) -> float:
+		var q := PhysicsRayQueryParameters3D.create(Vector3(x, 1.5, -800.0 + z), Vector3(x, 30.0, -800.0 + z), mask)
+		q.hit_from_inside = true
+		var hit := space.intersect_ray(q)
+		return hit["position"].y if hit else INF
+	var cover := Player.COVER_MASK
+	var got := [up.call(34.0, cover), up.call(81.0, cover), up.call(77.0, cover), up.call(90.5, cover), up.call(90.5, cover, 8.0),
+		up.call(26.0, cover), up.call(13.0, cover), up.call(13.0, TreeCover.LAYER), up.call(69.0, TreeCover.LAYER)]
+	check(absf(got[0] - CountryBuilder.SHELTER_Y) < 0.05 and absf(got[1] - CountryBuilder.PORCH_Y) < 0.05 and is_inf(got[2]),
+		"the bus shelter and the hall's porch at its door are cover (CountryBuilder's), the rest of the hall front isn't: %s" % [got.slice(0, 3)])
+	check(absf(got[3] - SuburbanBuilder.BRIDGE_Y) < 0.05 and absf(got[4] - SuburbanBuilder.BRIDGE_Y) < 0.05,
+		"the overbridge is cover over the footpath and on over the road: %s" % [got.slice(3, 5)])
+	check(is_inf(got[5]) and is_inf(got[6]) and absf(got[7] - TreeCover.UNDERSIDE) < 0.05 and absf(got[8] - TreeCover.UNDERSIDE) < 0.05,
+		"a house is open sky; street trees over a house and a park are TreeCover's crown, not full cover: %s" % [got.slice(5)])
+	check(lb.tree_covers.size() == 2, "each trees lot gets one crown, not the suburb's and LevelBuilder's both (%d)" % lb.tree_covers.size())
+	var foliage := root.find_children("*", "MeshInstance3D", true, false).filter(func(n: Node) -> bool: return n.is_in_group(TreeCover.FOLIAGE_GROUP))
+	var shaken := foliage.filter(func(n: Node) -> bool:
+		var sm := (n as MeshInstance3D).material_override as ShaderMaterial
+		return sm != null and sm.shader.get_shader_uniform_list().any(func(u: Dictionary) -> bool: return u["name"] == "gust") and n.has_meta("x0"))
+	var on_strip := foliage.filter(func(n: Node) -> bool:
+		return absf((n as Node3D).global_position.z + 800.0 - SuburbanBuilder.TREE_Z) < 0.2 and float(n.get_meta("x0")) >= 6.0 and float(n.get_meta("x1")) <= 20.01)
+	check(foliage.size() >= 6 and shaken.size() == foliage.size(), "street trees, park trees, shrubs, hedges and long grass all sway in a gust (%d of %d)" % [shaken.size(), foliage.size()])
+	check(on_strip.size() >= 1, "the house's street tree stands on the nature strip (%d)" % on_strip.size())
+	check(lb.lit_windows.size() >= 3, "a lived-in house, the flats and the pub show lit windows (%d)" % lb.lit_windows.size())
+	var dw := SuburbanBuilder.driveways(lb)
+	check(dw.size() == 2 and dw[0][0] > 6.0 and dw[0][1] < 10.0 and dw[1][0] > 103.0, "driveways cross the nature strip at each carport: %s" % [dw])
+	var cm: Array = lb.cover_map()
+	var img: Image = (cm[0] as ImageTexture).get_image()
+	var rect: Vector4 = cm[1]
+	var at := func(x: float, z: float) -> Color:
+		return img.get_pixel(int((x - rect.x) * LevelBuilder.COVER_RES), int((z - rect.y) * LevelBuilder.COVER_RES_Z))
+	check(is_equal_approx(at.call(90.5, 1.6).g, LevelBuilder.COVER_HIDE) and is_equal_approx(at.call(90.5, 10.0).g, LevelBuilder.COVER_HIDE)
+		and is_equal_approx(at.call(34.0, 1.6).g, LevelBuilder.COVER_SHELL) and is_zero_approx(at.call(26.0, 1.6).g),
+		"in the cover map the overbridge hides the rain out to the camera, the shelter is a shell, a house front is open")
+	var styles: Array = LevelBuilder.AWNING_STYLES.keys().filter(func(k: String) -> bool:
+		var aes: Array = LevelBuilder.AWNING_STYLES[k]["aesthetics"]
+		return LevelBuilder.AWNING_STYLES[k]["eras"].has("60s") and (aes.is_empty() or aes.has("suburban")))
+	check(styles.size() >= 4 and styles.has("tin"), "the awning table has verandas for a suburban street: %s" % [styles])
+	var other := LevelBuilder.new()
+	other.data = {"aesthetic": "rundown"}
+	check(not SuburbanBuilder.draws(other, "house") and not SuburbanBuilder.draws(other, "inn") and SuburbanBuilder.draws(lb, "inn"),
+		"only a suburban street draws its own lots; elsewhere the kit's inn stays")
 	root.queue_free()
 	await _frames(2)

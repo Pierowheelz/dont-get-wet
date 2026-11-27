@@ -760,6 +760,8 @@ func _setup_environment() -> void:
 	if builder.country():
 		CountryBuilder.environment(env, moon)
 	add_child(moon)
+	if data.get("aesthetic", "") == "suburban":
+		SuburbanBuilder.mood(env, moon)   # a grey late afternoon: daylight, not night
 	if Game.settings["low_quality"]:
 		GraphicsCheck.apply_low(env, moon)
 
