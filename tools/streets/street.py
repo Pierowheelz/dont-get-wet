@@ -17,10 +17,13 @@ TRACK_PAST = 40.0   # a default track runs this far past both ends of the street
 
 
 class Street:
-    def __init__(self, id, name, blurb, aesthetic, neon, rain, wind, gusts=False, par_speed=None):
+    def __init__(self, id, name, blurb, aesthetic, neon, rain, wind, gusts=False, par_speed=None, camera=None):
+        """camera: optional overrides of the camera tunables for this street, any of
+        {"distance", "height", "fov", "pitch"} (metres / degrees), e.g. a wider shot of a tall street."""
         self.head = {"authored": True, "id": id, "name": name, "blurb": blurb, "aesthetic": aesthetic,
                      "neon": neon, "rain": rain, "wind": wind, "gusts": gusts}
         self.par_speed = par_speed   # None: the global tunable
+        self.camera = camera
         self.x = 0.0
         self.at = {}
         self.lots, self.crossings, self.features, self.props, self.set_pieces = [], [], [], [], []
@@ -35,6 +38,8 @@ class Street:
         self.courier_rec = None
         self.track_rec = None
         self.viaducts = []
+        self.skyways = []
+        self.helicopters = []
         self.end_x = None
         self.checkpoints = None   # set by hand to override the solver
 
@@ -131,11 +136,33 @@ class Street:
         he gets in and the car pulls out through the puddle at the walker."""
         self.pickup_rec = {"x": self.start(xing_tag), "after": int(after)}
 
-    def courier(self, appear_x, door_x, stops=()):
+    def courier(self, appear_x, door_x, stops=(), look=None):
         """A scripted pedestrian the walker must keep in frame: he steps out of a doorway at appear_x,
-        walks ahead to the door at door_x and stops at each (x, dur) in stops to look in a window."""
+        walks ahead to the door at door_x and stops at each (x, dur) in stops to look in a window.
+        look: None (brown suit, yellow umbrella) or "slicker" (the man in the yellow slicker, hood up,
+        his umbrella furled like a cane)."""
         self.courier_rec = {"appear_x": round(appear_x, 2), "door_x": round(door_x, 2),
                             "stops": [{"x": round(x, 2), "dur": float(d)} for x, d in sorted(stops)]}
+        if look:
+            self.courier_rec["look"] = look
+
+    def skyway(self, from_tag, to_tag):
+        """A glass skyway: an enclosed footbridge carried over the pavement at the first upper floor,
+        from the start of from_tag to the end of to_tag (it may span side streets). Cover."""
+        self.skyways.append({"x0": self.start(from_tag), "x1": self.end(to_tag)})
+
+    def helicopter(self, x, dir=-1, speed=None, hover_x=None, hover_s=None):
+        """A helicopter that flies along the street low over the rooftops once the walker passes x
+        (dir -1: from ahead, right to left; 1: from behind). Its rotor wash drives the rain in under any
+        cover where it passes; only the open canopy keeps it off. hover_x/hover_s: it stops over
+        hover_x for hover_s seconds on the way."""
+        h = {"x": round(x, 2), "dir": int(dir)}
+        if speed is not None:
+            h["speed"] = float(speed)
+        if hover_x is not None:
+            h["hover_x"] = round(hover_x, 2)
+            h["hover_s"] = float(hover_s or 3.0)
+        self.helicopters.append(h)
 
     def track(self, gap, style="monorail", x0=None, x1=None):
         """An elevated railway (style "monorail" or "railway") from x0 to x1 (default: the whole street and TRACK_PAST beyond it). Trains
@@ -187,11 +214,17 @@ class Street:
             rest["track"] = t
         if self.viaducts:
             rest["viaducts"] = self.viaducts
+        if self.skyways:
+            rest["skyways"] = self.skyways
+        if self.helicopters:
+            rest["helicopters"] = sorted(self.helicopters, key=lambda h: h["x"])
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},
                  "length": self.x, "end_x": self.end_x, "checkpoints": [],
                  **{k: level[k] for k in ["rain", "wind", "gusts"]}, **rest}
         if self.par_speed is not None:
             level["par_speed"] = self.par_speed
+        if self.camera:
+            level["camera"] = self.camera
         level["checkpoints"] = self.checkpoints or level_preview.solve_checkpoints(level_preview.Street(level))
         path = LEVELS / f"{level['id']}.json"
         path.write_text(_dump(level))
