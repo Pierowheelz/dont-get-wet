@@ -7,26 +7,29 @@ extends RefCounted
 ## roof and never falls inside the glass. It is high, so wind-slanted rain gets further in under its ends
 ## than under an awning; the rays and the cover map both follow from the geometry.
 ##
-## Section (z, y), from the soffit up: a white concrete floor slab (SOFFIT_Y to DECK_Y) with downlights
-## in its underside and a cyan neon line along its lower front edge, then glazing leaning out from
-## FRONT_Z at the bottom to TOP_Z at GLASS_TOP, a white roof fascia, and the roof at ROOF_Y. Inside: a
-## lit travertine back wall (glass over side streets), a luminous ceiling and a few passengers walking.
+## Section (z, y), from the soffit up: a thin white floor plate (SOFFIT_Y to DECK_Y) with downlights
+## in its underside, a chrome nosing and a cyan neon line along its front edge; plate glass leaning
+## out from FRONT_Z at the foot to TOP_Z at GLASS_TOP between slim mullions, a chrome handrail behind
+## it; and a thin white roof plate with a tapered eave, a row of glowing saucers in its ceiling.
+## There is no back wall: the towers' first floors and the lobbies' upper halves show through the
+## gallery (over a side street the back is glazed too), and passengers walk it in coats of all colours.
 ## Slim tapered columns stand under its front edge every COLUMN_EVERY m or less, never in a side
 ## street's road, and clear of the kerb props. Runs inside LevelBuilder.build: it only adds nodes.
 
-const SOFFIT_Y := 4.45       # underside of the floor slab: above the 3.1-3.9 m sign band
-const DECK_Y := 4.95         # the gallery's floor
-const GLASS_TOP := 7.1       # top of the front glazing
-const ROOF_Y := 7.6          # top of the roof slab
-const FRONT_Z := 3.0         # foot of the front glazing (the slab's front face)
-const TOP_Z := 3.22          # top of the front glazing, which leans out
-const BACK_Z := 0.4           # the gallery's back wall, in front of anything a kit facade carries
-const Z1 := 3.3              # the cover's front edge (roof fascia), short of the kerb at 3.5
+const SOFFIT_Y := 4.45       # underside of the floor plate: above the 3.1-3.9 m sign band
+const DECK_Y := 4.6          # the gallery's floor
+const GLASS_TOP := 7.42      # head of the front glazing, the ceiling
+const ROOF_Y := 7.6          # top of the roof plate
+const FRONT_Z := 2.96        # foot of the front glazing
+const TOP_Z := 3.14          # head of the front glazing, which leans out
+const BACK_Z := 0.4          # the back glazing where the gallery bridges a side street
+const Z1 := 3.3              # the cover's front edge (the eave), short of the kerb at 3.5
 const COLUMN_Z := 2.75       # columns' centre: clear of an open canopy on the walker's line (z 1.6 + 0.8)
 const COLUMN_EVERY := 9.0
 const COLUMN_CLEAR := 0.6    # from a side street's kerb and from a kerb prop
 const MULLION_EVERY := 1.6
 const LIGHT_EVERY := 7.0     # a downlight (and a spot onto the pavement) under the soffit
+const SAUCER_EVERY := 2.4    # between the glowing saucers in the ceiling
 const KERB_PROPS := ["lamp_post", "hydrant", "parking_meter", "street_sign", "mailbox", "trash_can",
 	"newspaper_box", "newspaper_box_b", "phone_booth", "bollard"]
 
@@ -65,50 +68,52 @@ func build(builder: LevelBuilder) -> void:
 ## that nothing below SOFFIT_Y reaches past the columns' line, and the columns where column_xs puts them.
 func draw(x0: float, x1: float, crossings: Array) -> void:
 	var sts := {}
-	var white := b._mat("skyway_concrete", Color(0.86, 0.85, 0.8), 0.55)
-	var soffit := b._mat("skyway_soffit", Color(0.7, 0.7, 0.68), 0.7)
-	var alu := b._mat("skyway_alu", Color(0.78, 0.8, 0.82), 0.25, 0.85)
+	var white := ModernBuilder.white(b)
+	var soffit := b._mat("skyway_soffit", Color(0.6, 0.64, 0.64), 0.7)
+	var alu := b._mat("skyway_alu", Color(0.8, 0.82, 0.84), 0.25, 0.85)
 	var chrome := b._mat("chrome", Color(0.82, 0.84, 0.88), 0.12, 1.0)
-	var floor := b._mat("skyway_floor", Color(0.42, 0.36, 0.3), 0.5)
-	var wall := RoadsideBuilder._glow(b, "skyway_wall", Color(0.78, 0.7, 0.58), 0.35)
-	var ceiling := b._neon_mat(Color(0.92, 0.96, 1.0), 1.25)
-	var neon := b._neon_mat(Color(0.35, 0.95, 1.0), 3.0)
+	var neon := b._neon_mat(Color(0.35, 0.95, 1.0), 2.6)
 	var lamp := b._neon_mat(Color(1.0, 0.92, 0.8), 2.5)
-	# The floor slab: a deep white fascia whose lower edge is drawn back, a darker soffit, the floor.
-	_section(sts, white, x0, x1, [Vector2(0.0, SOFFIT_Y + 0.12), Vector2(FRONT_Z - 0.12, SOFFIT_Y + 0.12),
-		Vector2(FRONT_Z - 0.04, SOFFIT_Y), Vector2(FRONT_Z + 0.04, SOFFIT_Y + 0.1), Vector2(FRONT_Z + 0.06, DECK_Y),
-		Vector2(0.0, DECK_Y)])
-	RoadsideBuilder._add(sts, soffit, x0 + 0.02, x1 - 0.02, SOFFIT_Y + 0.06, SOFFIT_Y + 0.12, 0.0, FRONT_Z - 0.14)
-	RoadsideBuilder._add(sts, floor, x0, x1, DECK_Y, DECK_Y + 0.03, 0.05, FRONT_Z)
-	RoadsideBuilder._add(sts, neon, x0 + 0.05, x1 - 0.05, SOFFIT_Y + 0.02, SOFFIT_Y + 0.05, FRONT_Z - 0.05, FRONT_Z + 0.0)
-	# The roof: a white fascia over the glazing's head, a chrome drip edge, the slab behind.
-	_section(sts, white, x0, x1, [Vector2(0.0, GLASS_TOP), Vector2(TOP_Z, GLASS_TOP), Vector2(Z1, GLASS_TOP + 0.05),
+	var saucer := b._neon_mat(Color(1.0, 0.95, 0.84), 2.0)
+	_glass.set_shader_parameter("tint", Color(0.36, 0.6, 0.6, 0.17))
+	# The floor: a thin white plate, a paler soffit panel let into its underside, a nosing,
+	# and the neon line between them that marks the edge of the dry pavement.
+	RoadsideBuilder._add(sts, white, x0, x1, SOFFIT_Y + 0.02, DECK_Y, 0.0, FRONT_Z + 0.06)
+	RoadsideBuilder._add(sts, soffit, x0 + 0.02, x1 - 0.02, SOFFIT_Y, SOFFIT_Y + 0.02, 0.0, FRONT_Z - 0.12)
+	RoadsideBuilder._add(sts, neon, x0 + 0.05, x1 - 0.05, SOFFIT_Y, SOFFIT_Y + 0.02, FRONT_Z - 0.11, FRONT_Z - 0.07)
+	RoadsideBuilder._add(sts, white, x0, x1, SOFFIT_Y, DECK_Y + 0.02, FRONT_Z + 0.06, FRONT_Z + 0.085)
+	# The roof: a thin plate, its eave tapered to a chrome drip edge; glowing saucers in the ceiling.
+	_section(sts, white, x0, x1, [Vector2(0.0, GLASS_TOP), Vector2(TOP_Z + 0.03, GLASS_TOP), Vector2(Z1, GLASS_TOP + 0.1),
 		Vector2(Z1, ROOF_Y), Vector2(0.0, ROOF_Y)])
-	RoadsideBuilder._add(sts, chrome, x0, x1, ROOF_Y - 0.06, ROOF_Y, Z1, Z1 + 0.03)
-	# Inside: the luminous ceiling in a grid of panels, the back wall (glass where it bridges a road).
-	RoadsideBuilder._add(sts, ceiling, x0 + 0.1, x1 - 0.1, GLASS_TOP - 0.05, GLASS_TOP - 0.02, 0.3, FRONT_Z - 0.1)
-	for z in [1.2, 2.1]:
-		RoadsideBuilder._add(sts, alu, x0 + 0.1, x1 - 0.1, GLASS_TOP - 0.08, GLASS_TOP - 0.04, z - 0.03, z + 0.03)
+	RoadsideBuilder._add(sts, chrome, x0, x1, ROOF_Y - 0.05, ROOF_Y, Z1, Z1 + 0.025)
+	var sx := x0 + SAUCER_EVERY * 0.5
+	while sx < x1:
+		ModernBuilder.cyl(sts, saucer, Vector3(sx, GLASS_TOP - 0.035, 1.65), Vector3(sx, GLASS_TOP, 1.65), 0.34, 0.34, 14)
+		sx += SAUCER_EVERY
+	# Where it bridges a road the back is glazed too; against the buildings it is open to them.
 	for seg in _walls(x0, x1, crossings):
-		if seg[2]:
-			RoadsideBuilder._add(sts, wall, seg[0], seg[1], DECK_Y, GLASS_TOP, BACK_Z - 0.07, BACK_Z)
-			RoadsideBuilder._add(sts, chrome, seg[0], seg[1], DECK_Y + 0.95, DECK_Y + 1.0, BACK_Z, BACK_Z + 0.06)
-		else:
+		if not seg[2]:
 			_glass_quad(Vector3(seg[0], DECK_Y, BACK_Z), Vector3(seg[1], GLASS_TOP, BACK_Z), false)
-	# The front glazing in one leaning sheet, with mullions down it and a transom near the foot.
+			var bn := maxi(1, roundi((seg[1] - seg[0]) / MULLION_EVERY))
+			for i in bn + 1:
+				var bx: float = lerpf(seg[0], seg[1], float(i) / bn)
+				RoadsideBuilder._add(sts, alu, bx - 0.02, bx + 0.02, DECK_Y, GLASS_TOP, BACK_Z - 0.06, BACK_Z)
+			RoadsideBuilder._add(sts, chrome, seg[0], seg[1], DECK_Y + 0.98, DECK_Y + 1.02, BACK_Z + 0.08, BACK_Z + 0.12)
+	# The front glazing in one leaning sheet between slim mullions, a rail at its foot, a handrail behind.
 	_glass_quad(Vector3(x0, DECK_Y, FRONT_Z), Vector3(x1, GLASS_TOP, TOP_Z), true)
 	var n := maxi(1, roundi((x1 - x0) / MULLION_EVERY))
 	for i in n + 1:
-		var mx := clampf(x0 + (x1 - x0) * i / n, x0 + 0.04, x1 - 0.04)
-		_lean_bar(sts, alu, mx, 0.05)
-	RoadsideBuilder._add(sts, alu, x0, x1, DECK_Y + 0.55, DECK_Y + 0.6, FRONT_Z + 0.02, FRONT_Z + 0.07)
+		var mx := clampf(x0 + (x1 - x0) * i / n, x0 + 0.03, x1 - 0.03)
+		_lean_bar(sts, alu, mx, 0.04)
+	RoadsideBuilder._add(sts, alu, x0, x1, DECK_Y, DECK_Y + 0.05, FRONT_Z, FRONT_Z + 0.06)
+	RoadsideBuilder._add(sts, chrome, x0 + 0.1, x1 - 0.1, DECK_Y + 0.98, DECK_Y + 1.02, FRONT_Z - 0.16, FRONT_Z - 0.12)
 	# Glazed ends.
 	_end(sts, alu, white, x0, -1.0)
 	_end(sts, alu, white, x1, 1.0)
 	# Downlights in the soffit, each throwing a pool onto the pavement, so the walker reads under it.
 	var lx := x0 + LIGHT_EVERY * 0.5
 	while lx < x1:
-		RoadsideBuilder._add(sts, lamp, lx - 0.25, lx + 0.25, SOFFIT_Y + 0.04, SOFFIT_Y + 0.06, 1.2, 1.7)
+		ModernBuilder.cyl(sts, lamp, Vector3(lx, SOFFIT_Y, 1.5), Vector3(lx, SOFFIT_Y + 0.025, 1.5), 0.2, 0.2, 12)
 		var sl := SpotLight3D.new()
 		sl.light_color = Color(1.0, 0.88, 0.72)
 		sl.light_energy = 5.5
@@ -120,20 +125,22 @@ func draw(x0: float, x1: float, crossings: Array) -> void:
 		sl.rotation = Vector3(-PI * 0.5, 0, 0)
 		b.root.add_child(sl)
 		lx += LIGHT_EVERY
-	# A cool wash inside, so the glazing and mullions read from the street.
+	# A warm wash inside, so the passengers, the ceiling and the mullions read from the street.
 	var ix := x0 + 5.0
 	while ix < x1 - 2.0:
 		var om := OmniLight3D.new()
-		om.light_color = Color(0.85, 0.95, 1.0)
-		om.light_energy = 1.2
-		om.omni_range = 6.0
+		om.light_color = Color(1.0, 0.94, 0.84)
+		om.light_energy = 1.4
+		om.omni_range = 7.0
 		om.light_volumetric_fog_energy = 0.3
-		om.position = Vector3(ix, GLASS_TOP - 0.6, 1.6)
+		om.position = Vector3(ix, GLASS_TOP - 0.7, 1.6)
 		b.root.add_child(om)
-		ix += 12.0
+		ix += 13.0
+	# Columns: white, tapered to a slim foot in a chrome shoe.
 	for cx in column_xs(x0, x1, crossings, b.data.get("props", [])):
-		_column(cx, white, chrome)
-	RoadsideBuilder._commit(b, sts)
+		ModernBuilder.cyl(sts, chrome, Vector3(cx, 0.0, COLUMN_Z), Vector3(cx, 0.3, COLUMN_Z), 0.15, 0.115, 14)
+		ModernBuilder.cyl(sts, white, Vector3(cx, 0.3, COLUMN_Z), Vector3(cx, SOFFIT_Y, COLUMN_Z), 0.1, 0.17, 14)
+	ModernBuilder._commit(b, sts)
 	_passengers(x0, x1)
 
 
@@ -207,18 +214,18 @@ func _section(sts: Dictionary, mat: Material, x0: float, x1: float, profile: Arr
 
 ## A mullion up the leaning front glazing at x.
 func _lean_bar(sts: Dictionary, mat: Material, x: float, w: float) -> void:
-	var prof := PackedVector2Array([Vector2(FRONT_Z + 0.0, DECK_Y), Vector2(FRONT_Z + 0.09, DECK_Y),
-		Vector2(TOP_Z + 0.09, GLASS_TOP), Vector2(TOP_Z + 0.0, GLASS_TOP)])
+	var prof := PackedVector2Array([Vector2(FRONT_Z + 0.0, DECK_Y), Vector2(FRONT_Z + 0.07, DECK_Y),
+		Vector2(TOP_Z + 0.07, GLASS_TOP), Vector2(TOP_Z + 0.0, GLASS_TOP)])
 	ViaductBuilder.loft_into(RailwayBuilder._st(sts, mat), [[x - w * 0.5, prof], [x + w * 0.5, prof]])
 
 
-## A glazed end: a frame round the section and a pane across it.
+## A glazed end: a slim white post at the wall, a mullion at the front and a pane across between them.
 func _end(sts: Dictionary, alu: Material, white: Material, ex: float, s: float) -> void:
-	RoadsideBuilder._add(sts, white, ex - 0.08, ex + 0.08, SOFFIT_Y + 0.1, ROOF_Y, 0.0, 0.25)
-	_lean_bar(sts, alu, ex, 0.1)
+	RoadsideBuilder._add(sts, white, ex - 0.05, ex + 0.05, DECK_Y, GLASS_TOP, 0.0, 0.14)
+	_lean_bar(sts, alu, ex, 0.07)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var p := [Vector3(ex, DECK_Y, 0.2), Vector3(ex, DECK_Y, FRONT_Z), Vector3(ex, GLASS_TOP, TOP_Z), Vector3(ex, GLASS_TOP, 0.2)]
+	var p := [Vector3(ex, DECK_Y, 0.14), Vector3(ex, DECK_Y, FRONT_Z), Vector3(ex, GLASS_TOP, TOP_Z), Vector3(ex, GLASS_TOP, 0.14)]
 	for i in [0, 1, 2, 0, 2, 3]:
 		st.set_normal(Vector3(s, 0, 0))
 		st.set_uv(Vector2(p[i].z, p[i].y))
@@ -248,33 +255,16 @@ func _add_glass(mesh: Mesh) -> void:
 	b.root.add_child(mi)
 
 
-## A slim tapered white column on a chrome shoe under the front edge.
-func _column(x: float, white: Material, chrome: Material) -> void:
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.2
-	cm.bottom_radius = 0.12
-	cm.height = SOFFIT_Y
-	cm.radial_segments = 16
-	cm.rings = 1
-	var mi := MeshInstance3D.new()
-	mi.mesh = cm
-	mi.material_override = white
-	mi.position = Vector3(x, SOFFIT_Y * 0.5, COLUMN_Z)
-	b.root.add_child(mi)
-	var shoe := CylinderMesh.new()
-	shoe.top_radius = 0.135
-	shoe.bottom_radius = 0.16
-	shoe.height = 0.3
-	shoe.radial_segments = 16
-	shoe.rings = 1
-	var si := MeshInstance3D.new()
-	si.mesh = shoe
-	si.material_override = chrome
-	si.position = Vector3(x, 0.15, COLUMN_Z)
-	b.root.add_child(si)
+## A passenger's cloth: its colour, glowing a little so it carries through the tinted glass at night.
+func _cloth(key: String, col: Color) -> StandardMaterial3D:
+	var m := b._mat("skyway_cloth_" + key, col, 0.85)
+	m.emission_enabled = true
+	m.emission = col
+	m.emission_energy_multiplier = 0.4
+	return m
 
 
-## A few people walking the gallery, in silhouette against the lit back wall, some with a bag.
+## A few people walking the gallery: coats and frocks in the colours of the day, hats, a case in hand.
 func _passengers(x0: float, x1: float) -> void:
 	var n := int((x1 - x0) / 9.0)
 	if n <= 0:
@@ -282,41 +272,63 @@ func _passengers(x0: float, x1: float) -> void:
 	var node := Node3D.new()
 	node.set_script(load("res://src/level/skyway_walkers.gd"))
 	b.root.add_child(node)
-	var dark := b._mat("skyway_figure", Color(0.06, 0.06, 0.07), 0.8)
-	var coat := b._mat("skyway_figure_coat", Color(0.15, 0.13, 0.12), 0.8)
+	var coats := [Color(0.62, 0.5, 0.33), Color(0.13, 0.17, 0.34), Color(0.58, 0.12, 0.1), Color(0.42, 0.42, 0.45),
+		Color(0.1, 0.38, 0.4), Color(0.8, 0.74, 0.58), Color(0.72, 0.5, 0.12)]
+	var dark := _cloth("dark", Color(0.07, 0.07, 0.09))
+	var skin := _cloth("skin", Color(0.74, 0.55, 0.43))
+	var body := CapsuleMesh.new()
+	body.radius = 0.2
+	body.height = 1.0
+	var legs := CapsuleMesh.new()
+	legs.radius = 0.13
+	legs.height = 0.95
+	var skirt := CylinderMesh.new()
+	skirt.top_radius = 0.16
+	skirt.bottom_radius = 0.3
+	skirt.height = 0.62
+	skirt.radial_segments = 10
+	skirt.rings = 1
+	var head := SphereMesh.new()
+	head.radius = 0.11
+	head.height = 0.24
+	var crown := CylinderMesh.new()
+	crown.top_radius = 0.1
+	crown.bottom_radius = 0.12
+	crown.height = 0.11
+	crown.radial_segments = 10
+	crown.rings = 1
+	var brim := CylinderMesh.new()
+	brim.top_radius = 0.19
+	brim.bottom_radius = 0.19
+	brim.height = 0.015
+	brim.radial_segments = 12
+	brim.rings = 1
 	for i in n:
 		var r := b._lot_hash(x0 + i * 9.0, "skyway_walker")
+		var coat := _cloth("coat_%d" % (r % coats.size()), coats[r % coats.size()])
 		var fig := Node3D.new()
-		var mat: Material = coat if r % 3 == 0 else dark
-		var body := CapsuleMesh.new()
-		body.radius = 0.2
-		body.height = 1.45
-		var bi := MeshInstance3D.new()
-		bi.mesh = body
-		bi.material_override = mat
-		bi.position = Vector3(0, 0.75, 0)
-		bi.scale = Vector3(1.0, 1.0, 0.7)
-		fig.add_child(bi)
-		var head := SphereMesh.new()
-		head.radius = 0.11
-		head.height = 0.24
-		var hi := MeshInstance3D.new()
-		hi.mesh = head
-		hi.material_override = dark
-		hi.position = Vector3(0.02, 1.58, 0)
-		fig.add_child(hi)
-		if r % 4 == 1:   # a hat
-			var hat := CylinderMesh.new()
-			hat.top_radius = 0.1
-			hat.bottom_radius = 0.17
-			hat.height = 0.1
-			var ht := MeshInstance3D.new()
-			ht.mesh = hat
-			ht.material_override = dark
-			ht.position = Vector3(0.02, 1.68, 0)
-			fig.add_child(ht)
+		var frock := r % 3 == 1
+		_part(fig, legs, skin if frock else dark, Vector3(0, 0.48, 0), Vector3(1.0, 1.0, 0.75))
+		_part(fig, body, coat, Vector3(0, 1.02, 0), Vector3(1.0, 1.0, 0.7))
+		if frock:
+			_part(fig, skirt, coat, Vector3(0, 0.72, 0), Vector3(1.0, 1.0, 0.8))
+		_part(fig, head, skin, Vector3(0.02, 1.62, 0), Vector3.ONE)
+		if r % 4 != 2:   # a hat: a trilby, or a pillbox in the frock's colour
+			_part(fig, crown, coat if frock else dark, Vector3(0.02, 1.74, 0), Vector3.ONE)
+			if not frock:
+				_part(fig, brim, dark, Vector3(0.03, 1.69, 0), Vector3.ONE)
 		if r % 2 == 0:   # a suitcase
-			b._box(Vector3(0.45, 0.32, 0.14), Vector3(0.05, 0.42, 0.24), coat, fig)
+			b._box(Vector3(0.45, 0.32, 0.14), Vector3(0.05, 0.42, 0.26), _cloth("case", Color(0.4, 0.26, 0.14)), fig)
 		fig.position = Vector3(x0 + (i + 0.5) * (x1 - x0) / n, DECK_Y, 0.9 + float(r % 5) * 0.32)
 		node.add_child(fig)
 		node.call("add_walker", fig, x0 + 0.6, x1 - 0.6, (0.6 + float(r % 7) * 0.12) * (1.0 if r % 2 == 0 else -1.0))
+
+
+func _part(parent: Node3D, mesh: Mesh, mat: Material, pos: Vector3, scale: Vector3) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.position = pos
+	mi.scale = scale
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)

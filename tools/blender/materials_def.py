@@ -151,6 +151,22 @@ MATS.update({
                            params={"color": "Color(1, 0.62, 0.15, 1)", "speed": "0.05"}, preview=(1.0, 0.6, 0.1)),
 })
 
+# ------------------------------------------------------------------------------------------------
+# vehicles (tools/blender/vehicles.py): Skyway's shuttle helicopter
+# ------------------------------------------------------------------------------------------------
+MATS.update({
+    "heli_white":     dict(kind="flat", tint=(0.86, 0.86, 0.82), rough=0.24, clearcoat=True, preview=(0.86, 0.86, 0.82)),
+    "heli_navy":      dict(kind="flat", tint=(0.04, 0.09, 0.24), rough=0.3, clearcoat=True, preview=(0.04, 0.09, 0.24)),
+    "heli_glass":     dict(kind="glass", tint=(0.30, 0.55, 0.58), alpha=0.42, rough=0.04, metal=0.4, preview=(0.3, 0.55, 0.58)),
+    "heli_window":    dict(kind="emissive", tint=(1.0, 0.84, 0.58), emit=(1.0, 0.8, 0.52, 2.4), rough=0.4, preview=(1.0, 0.84, 0.58)),
+    "panel_glow":     dict(kind="emissive", tint=(0.4, 1.0, 0.7), emit=(0.4, 1.0, 0.7, 1.6), rough=0.4, preview=(0.4, 1.0, 0.7)),
+    "rotor_blade":    dict(kind="flat", tint=(0.40, 0.42, 0.46), rough=0.5, preview=(0.4, 0.42, 0.46)),
+    "nav_red":        dict(kind="emissive", tint=(1.0, 0.1, 0.08), emit=(1.0, 0.1, 0.08, 5.0), rough=0.4, preview=(1.0, 0.1, 0.08)),
+    "nav_green":      dict(kind="emissive", tint=(0.15, 1.0, 0.35), emit=(0.15, 1.0, 0.35, 4.0), rough=0.4, preview=(0.15, 1.0, 0.35)),
+    "nav_white":      dict(kind="emissive", tint=(1.0, 1.0, 0.95), emit=(1.0, 1.0, 0.95, 8.0), rough=0.2, preview=(1.0, 1.0, 0.95)),
+    "rotor_blur":     dict(kind="shader", shader="res://src/fx/rotor_blur.gdshader", preview=(0.5, 0.53, 0.6)),
+})
+
 
 def preview(name):
     return MATS[name].get("preview", (0.5, 0.5, 0.5))

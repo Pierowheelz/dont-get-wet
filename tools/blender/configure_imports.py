@@ -12,14 +12,16 @@ import re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 SCRIPT = "res://assets/buildings/kit_import.gd"
+# folder -> its post-import script (vehicles add their lights on top of the kit's material swap)
+FOLDERS = {"assets/buildings": SCRIPT, "assets/props": SCRIPT, "assets/vehicles": "res://assets/vehicles/vehicle_import.gd"}
 
 
 def main():
     changed = 0
-    for folder in ("assets/buildings", "assets/props"):
+    for folder, script in FOLDERS.items():
         for path in sorted(glob.glob(os.path.join(ROOT, folder, "**", "*.glb.import"), recursive=True)):
             s = open(path).read()
-            new = re.sub(r'^import_script/path=.*$', 'import_script/path="%s"' % SCRIPT, s, flags=re.M)
+            new = re.sub(r'^import_script/path=.*$', 'import_script/path="%s"' % script, s, flags=re.M)
             # generated LODs fight with our hand-tuned bevels at street distance; keep them, but
             # meshes are small. Shadow meshes are fine.
             if new != s:
