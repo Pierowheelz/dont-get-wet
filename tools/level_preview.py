@@ -8,7 +8,8 @@ from the JSON the way LevelBuilder.cover_map() does and exits 1 when a design ru
 
 It can't simulate scripted NPCs, so `attackers` (jets from behind) are left out of the scores and
 checks: tools/preview.sh, which plays the street with both bots, is the judge of those. The same goes
-for `helicopters`: the strip marks where each is triggered (and where it hovers), nothing more. A
+for `helicopters`: the strip marks where each is triggered (and where it hovers); on a street with
+skyways they are weighed into the scores as threats (see threats()), elsewhere left out. A
 `skyway` is cover like an awning, only higher, so wind slants rain in further under its ends.
 """
 import argparse
@@ -314,7 +315,7 @@ def threats(st):
     out += [(float(a["x"]), float(a["x"]), ATTACKER_W) for a in st.d.get("attackers", [])]
     c = st.d.get("courier")
     if c:
-        a0, a1 = float(c["appear_x"]), float(c.get("door_x", st.end_x))
+        a0, a1 = float(c.get("appear_x", 20.0)), float(c.get("door_x", st.end_x))
         out.append((a0, a1, COURIER_W * (a1 - a0) / 100.0))
         out += [(float(w["x"]), float(w["x"]), COURIER_STOP_W) for w in c.get("stops", [])]
     return out

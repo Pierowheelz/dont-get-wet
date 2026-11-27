@@ -96,16 +96,16 @@ the retro kit, and only the lots its `neon` roll picks get tube lettering or a f
 The towers' lobbies are lit unless the lot sets `"lit": false`; `"palette": 0-3` picks the glass
 (blue-green, bronze, white spandrels, black) instead of the automatic one. A side street beside a modern
 lot is lined with glass over lit shop windows, and low glass blocks close its far end so the skyline
-stands over them. Under a skyway only the first 5 m or so above its roof is in the frame at the
-street's camera (distance 10.5, pitch 3): the towers and the skyline need a camera that looks up.
+stands over them. Under a skyway the towers and the skyline need a camera that looks up: Skyway
+Terminal's (distance 13, pitch 7) shows some 5 m of tower above the skyway's roof.
 
 **`camera`** (`{"distance", "height", "fov", "pitch", "lead"}`, any of them;
 `Street(..., camera={...})`) replaces the camera tunables (`camera_distance`, `camera_height`,
 `camera_fov`, `camera_pitch_deg`, `camera_lead`) for one street. Pitch is in degrees, positive looks
 up. The frame checks (`Level.in_frame`, the courier's frame edge, the henchmen's) follow the real
 camera, the drive-by pull eases out from it, and the rain box grows to fill the wider view with up to
-1.8 times the drops. A wider view makes the walker smaller: at distance 10.5, fov 52 he is about a
-sixth of the screen's height (a quarter by default). Keep his feet well above the bottom edge.
+1.8 times the drops. A wider view makes the walker smaller: at distance 13, fov 54 he is about an
+eighth of the screen's height (a quarter by default). Keep his feet well above the bottom edge.
 
 The level ends at the inn door. The builder sets `end_x` from the kit door: an 8 m `inn` lot puts the
 door at `x + 4`. Keep the JSON `end_x` in step with it, because the preview uses the JSON value.
@@ -300,8 +300,9 @@ Slim columns stand under its front edge at most 9 m apart, never in a side stree
 clear of kerb props. Rain drips from its front edge, and the visual rain stops on its roof and never
 shows inside the glass. Because it is high, wind slants rain in under its ends much further than
 under an awning: 1 m inside the upwind end in a 0.6 wind the walker is fully wet (under an awning,
-about an eighth), and dry again some 5 m in. Lots under a skyway normally take `cover: "none"`; an
-awning beneath it keeps its own drip line off. Lamp posts, balconies and arcades under a skyway fail
+about an eighth), and dry again some 5 m in. Lots under a skyway take `cover: "none"`: the rain
+visuals draw only the skyway there, so the slanted drops that get in under its ends would fall
+through an awning beneath it (the gameplay rays would still stop on it). Lamp posts, balconies and arcades under a skyway fail
 the **skyway-clearance** check, and a lot beneath one gets no blade sign, hologram or overhead cables.
 
 **`idling_sedan`** (`s.prop("idling_sedan", x)`, x inside a crossing without `car`) stops a black
@@ -467,7 +468,8 @@ when the wash will be on their path within the opening time plus 0.5 s; it overr
 courier's glance or a gunman asks for, so don't stack those on a pass. They never rest or refill
 within the opening time plus 3 s of it. A checkpoint resume skips every helicopter whose `x` is
 behind it. `level_preview.py` draws each trigger (an arrow the way it flies, a ring at `hover_x`)
-and leaves the wash out of its scores: `tools/preview.sh` is the judge. Trigger each where the walker
+and, on a street with skyways, weighs each pass into the pacing as a threat (it can't simulate the
+wash): `tools/preview.sh` is the judge. Trigger each where the walker
 has some 10 m of cover ahead, so a player who reads it has time to open up, and keep hovers short: an
 open canopy walking in the wash costs 7 stamina a second.
 

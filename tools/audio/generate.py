@@ -7,8 +7,7 @@
 
 All sounds are synthesised from fixed seeds, so output is reproducible (bit-exact for the same
 numpy/scipy versions; Vorbis encoding may differ slightly across ffmpeg/libvorbis builds).
-Requires numpy and scipy, and ffmpeg (with libvorbis) on PATH for .ogg; without ffmpeg each file is
-written as a 16-bit .wav instead (the game loads either).
+Requires numpy, scipy and ffmpeg (with libvorbis) on PATH.
 
 Levels: one-shots are peak-normalised to -1 dBFS; ambience loops to -16 LUFS; music to -18 LUFS
 (sits under the rain). Loops are built with circular DSP so they wrap sample-exactly.
@@ -16,7 +15,6 @@ Levels: one-shots are peak-normalised to -1 dBFS; ambience loops to -16 LUFS; mu
 from __future__ import annotations
 
 import os
-import shutil
 import sys
 import time
 
@@ -83,12 +81,8 @@ def main(argv):
         kind, fn = reg[name]
         t0 = time.time()
         x, q = finish(kind, fn())
-        if shutil.which("ffmpeg"):
-            path = os.path.join(OUT, name + ".ogg")
-            dsp.write_ogg(path, x, q)
-        else:
-            path = os.path.join(OUT, name + ".wav")
-            dsp.wavfile.write(path, dsp.SR, np.round(np.clip(x, -1.0, 1.0).T * 32767).astype(np.int16))
+        path = os.path.join(OUT, name + ".ogg")
+        dsp.write_ogg(path, x, q)
         dur = x.shape[-1] / dsp.SR
         lvl = f"{dsp.lufs(x):6.1f} LUFS" if kind != "sfx" else f"{dsp.peak_db(x):6.1f} dBpk"
         print(f"{name:24s} {kind:5s} {dur:6.2f}s {lvl}  ({time.time() - t0:.1f}s)")

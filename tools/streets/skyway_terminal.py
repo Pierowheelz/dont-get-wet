@@ -206,7 +206,7 @@ s.set_piece("His Men", s.start("tower13"), s.end("pipe3"),
             "two men posted under the skyway, downpipes before and after them to refill the shot")
 s.set_piece("The Hover", s.start("gifts"), s.end("pipe4"),
             "a helicopter overtakes and hangs over the skyway: hold the canopy up through the wash "
-            "(stopping is free) until it flies on")
+            "until it flies on (the canopy fights the downdraught: stamina drains even standing)")
 s.set_piece("Airport Road", s.start("plaza4b"), s.end("airportrd"),
             "plazas open to the sky in heavier rain, and two cars that come up behind: splash from behind, "
             "a shot from ahead; skyway again over the approach to Airport Road")

@@ -19,7 +19,7 @@ TRACK_PAST = 40.0   # a default track runs this far past both ends of the street
 class Street:
     def __init__(self, id, name, blurb, aesthetic, neon, rain, wind, gusts=False, par_speed=None, camera=None):
         """camera: optional overrides of the camera tunables for this street, any of
-        {"distance", "height", "fov", "pitch"} (metres / degrees), e.g. a wider shot of a tall street."""
+        {"distance", "height", "fov", "pitch", "lead"} (metres / degrees), e.g. a wider shot of a tall street."""
         self.head = {"authored": True, "id": id, "name": name, "blurb": blurb, "aesthetic": aesthetic,
                      "neon": neon, "rain": rain, "wind": wind, "gusts": gusts}
         self.par_speed = par_speed   # None: the global tunable

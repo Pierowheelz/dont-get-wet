@@ -2750,7 +2750,7 @@ func _test_skyway_terminal() -> void:
 		x += 0.1
 	check(float(covered) / n >= 0.6, "at least 60%% of the street is under cover: %.0f%%" % (100.0 * covered / n))
 	check(level.helicopters != null and level.helicopters.entries.size() == 4
-		and level.helicopters.entries.any(func(e: Dictionary) -> bool: return e.has("hover_x")),
+		and level.helicopters.entries.any(func(e: Dictionary) -> bool: return not is_nan(float(e["hover_x"]))),
 		"four helicopters, one of them hovering")
 	check(level.courier != null and level.courier.slicker and float(d["courier"]["door_x"]) < level.end_x - 50.0,
 		"Fairweather in his slicker, going in at the terminal well short of the hotel")
