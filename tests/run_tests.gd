@@ -1190,7 +1190,8 @@ func _tests() -> Array[Callable]:
 		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
 		_test_bypass_posted_reach, _test_skyway, _test_street_camera, _test_modern_lots,
-		_test_courier_slicker, _test_helicopters, _test_skyway_terminal, _test_dynamic_resolution, _test_menu_width,
+		_test_courier_slicker, _test_helicopters, _test_skyway_terminal, _test_quiet_drive_by, _test_runners,
+		_test_dynamic_resolution, _test_menu_width,
 		_test_credits_scroll, _test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
 	]
 
@@ -1768,9 +1769,11 @@ func _test_rocket_row() -> void:
 ## the wetness its splash and its shot put on him, the order they came in, and the camera's pull.
 func _drive_by_pass(x: float, tilt: float) -> Dictionary:
 	var p: Player = level.player
+	var db: DriveBy = level.drive_bys
+	db._next = db._queue.size()   # nothing sets off by itself while the walker is held past every x
 	await _place(x, 1.0, tilt * Tun.f("umbrella_max_tilt"))
 	p.jet_kick = 0.0
-	var db: DriveBy = level.drive_bys
+	p.speed = 0.0
 	var splash_was: float = p.stats["wet_splash"]
 	var hit_was: float = p.stats["wet_hit"]
 	var cam_z0: float = level.camera.global_position.z
@@ -2782,3 +2785,244 @@ func _test_skyway_terminal() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.current_level = "main_street"
+
+
+# --- Long Lane: Fairweather's quiet car and the runners (on a copy of The Bypass) -------------
+
+## A copy of The Bypass with `extra` merged in (a null value drops that key), as the level under test.
+func _lane_with(extra: Dictionary) -> Level:
+	if is_instance_valid(level):
+		level.queue_free()
+		await _frames(2)
+	var d: Dictionary = Game.level_data("the_bypass")
+	d.merge(extra, true)
+	for k in extra:
+		if extra[k] == null:
+			d.erase(k)
+	var path := OS.get_temp_dir().path_join("dgw_lane_%d.json" % OS.get_process_id())
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(JSON.stringify(d))
+	f.close()
+	Game.nodes["_lane_test"] = {"name": "Lane Test", "file": path}
+	Game.current_level = "_lane_test"
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	level.player.set_physics_process(false)
+	_unhook_defeat(level.player)
+	return level
+
+
+func _drop_lane() -> void:
+	level.queue_free()
+	await _frames(2)
+	DirAccess.remove_absolute(Game.nodes["_lane_test"]["file"])
+	Game.nodes.erase("_lane_test")
+	Game.current_level = "main_street"
+	Game.checkpoint = {}
+
+
+func _bypass_open_x() -> float:
+	for lot in Game.level_data("the_bypass")["lots"]:
+		if lot["style"] == "forecourt":
+			return float(lot["x"]) + float(lot["w"]) * 0.5
+	return -1.0
+
+
+## One pass of drive-by entry `i` with the walker held at x, his canopy open and tilted `tilt` (of
+## full): when it was first heard and the camera began to pull out, against its first splash; what
+## the bots were told before it was heard; the bot's tilt either side of that; and what it cost.
+func _quiet_pass(x: float, i: int, tilt: float) -> Dictionary:
+	var p: Player = level.player
+	var db: DriveBy = level.drive_bys
+	db._next = db._queue.size()   # nothing sets off by itself while the walker is held past every x
+	await _place(x, 1.0, tilt * Tun.f("umbrella_max_tilt"))
+	p.jet_kick = 0.0
+	p.speed = 0.0
+	var splash_was: float = p.stats["wet_splash"]
+	var hit_was: float = p.stats["wet_hit"]
+	db._next = i
+	db._begin()
+	db._next = db._queue.size()
+	var out := {"heard_t": -1.0, "pull_t": -1.0, "splash_t": -1.0, "told_early": false, "coming_heard": true, "bot_early": 1.0,
+		"bot_heard": 1.0, "look": 0.0, "jet": false, "hint": level._seen.has("drive_by"),
+		"beams": db._beams.any(func(b: SpotLight3D) -> bool: return b.visible), "hat": db._car.driver.visible,
+		"fairweather": db._fairweather != null and db._fairweather.visible}
+	var t := 0.0
+	while db.phase != DriveBy.Phase.AWAY and t < 12.0:
+		await get_tree().process_frame
+		var dt := get_process_delta_time()
+		t += dt
+		if out["heard_t"] < 0.0 and db._hiss.playing:
+			out["heard_t"] = t
+		if out["pull_t"] < 0.0 and level.camera_pull > 0.0:
+			out["pull_t"] = t
+		if out["splash_t"] < 0.0 and not db.splashes.is_empty():
+			out["splash_t"] = t
+		var tl: float = p._autopilot(dt)[2]
+		if out["heard_t"] < 0.0:
+			out["told_early"] = out["told_early"] or db.coming() or db.brace() != 0.0
+			out["bot_early"] = minf(out["bot_early"], tl)
+		elif out["splash_t"] < 0.0:
+			out["coming_heard"] = out["coming_heard"] and db.coming()
+			out["bot_heard"] = minf(out["bot_heard"], tl)
+		if absf(db.position.x + DriveBy.CAR.DRIVER.x - x) < 0.6:
+			out["look"] = db._look
+		out["jet"] = out["jet"] or db.jet != null
+	out["away"] = db.phase == DriveBy.Phase.AWAY
+	await get_tree().create_timer(1.2).timeout
+	out["splash"] = p.stats["wet_splash"] - splash_was
+	out["shot"] = p.stats["wet_hit"] - hit_was
+	return out
+
+
+## A quiet drive-by with Fairweather at the wheel and no passenger: no headlights, no sound, no hint
+## and no camera pull while it comes up out of shot; the first sound is the tyre hiss 0.6 to 0.8 s
+## before a low splash from beside that the canopy can't keep off whichever way it tilts; he turns
+## to watch the walker as he passes, and it drives on with no shot. The bots aren't told of it until
+## the hiss. A plain entry on the same street still warns as before.
+func _test_quiet_drive_by() -> void:
+	var open_x := _bypass_open_x()
+	await _lane_with({"drive_bys": [{"x": 2.0, "quiet": true, "shot": false, "driver": "slicker"}, {"x": 3.0}],
+		"attackers": null})
+	var db: DriveBy = level.drive_bys
+	check(db._queue.size() == 2 and db._queue[0]["quiet"] and not db._queue[0]["shot"] and db._queue[0]["slicker"]
+		and not db._queue[1]["quiet"] and db._queue[1]["shot"] and not db._queue[1]["slicker"],
+		"drive_bys take quiet, shot and driver")
+	seed(11)
+	var up := await _quiet_pass(open_x, 0, 0.0)
+	check(not up["beams"] and not up["hat"] and up["fairweather"] and not up["hint"],
+		"a quiet car comes with its headlights off, no hint, and Fairweather at the wheel")
+	var lead: float = up["splash_t"] - up["heard_t"]
+	check(up["heard_t"] > 0.8 and lead > 0.55 and lead < 0.85,
+		"nothing is heard until its tyres hiss %.2f s before the splash" % lead)
+	check(up["pull_t"] > 0.5 and up["splash_t"] - up["pull_t"] < 1.2,
+		"the camera holds until it is about to enter the frame (%.2f s before the splash)" % (up["splash_t"] - up["pull_t"]))
+	check(not up["told_early"] and up["coming_heard"] and up["bot_early"] > -0.5 and up["bot_heard"] > -0.5,
+		"the bots are told nothing before the hiss, then that it is coming; they don't tilt into a sheet no tilt keeps off (%.2f, %.2f)" % [up["bot_early"], up["bot_heard"]])
+	check(absf(up["look"]) > 1.0, "Fairweather turns to watch the walker as he draws level (%.2f rad)" % up["look"])
+	check(not up["jet"] and up["away"] and up["shot"] == 0.0, "no passenger and no shot: it drives on")
+	var back := await _quiet_pass(open_x, 0, -0.7)
+	var fwd := await _quiet_pass(open_x, 0, 0.85)
+	print("  quiet splash: upright %.1f, tilted back %.1f, forward %.1f" % [up["splash"], back["splash"], fwd["splash"]])
+	check(up["splash"] > 5.0 and back["splash"] > 2.5 and fwd["splash"] > 2.5,
+		"its low sheet gets in under the canopy upright (%.1f), tilted back (%.1f) or forward (%.1f)" % [up["splash"], back["splash"], fwd["splash"]])
+	await get_tree().create_timer(2.5).timeout
+	var plain := await _quiet_pass(open_x, 1, 0.0)
+	check(plain["beams"] and plain["hat"] and not plain["fairweather"] and plain["hint"] and plain["heard_t"] < 0.1
+		and plain["pull_t"] < 0.1 and plain["jet"],
+		"a plain entry still comes lit and heard from out of shot, with its hint, the pull and the passenger's shot")
+	await get_tree().create_timer(2.5).timeout
+	await _drop_lane()
+
+
+## One runner, entry `i`, with the walker held at x, canopy open and tilted `tilt` (of full).
+func _runner_pass(x: float, i: int, tilt: float, stop_on_landing := false) -> Dictionary:
+	var p: Player = level.player
+	var rn: Node = level.runners
+	rn._next = rn._queue.size()   # nothing sets off by itself while the walker is held past every x
+	await _place(x, 1.0, tilt * Tun.f("umbrella_max_tilt"))
+	p.jet_kick = 0.0
+	p.speed = 0.0
+	await _seconds(1.0)   # the camera catches up with the walker set down here
+	var hit_was: float = p.stats["wet_hit"]
+	var out := {"threat_before": rn.threat(), "in_frame_t": -1.0, "glint_t": -1.0, "glint_s": 0.0, "amount": 0.0,
+		"fired_ahead": 0.0, "bot_back": 1.0, "bot_fwd": -1.0, "gone_t": -1.0, "landed_t": -1.0, "raise_t": -1.0}
+	rn._begin(i)
+	out["out_of_shot"] = not level.in_frame(rn.position.x, rn.LANE_Z, 0.0)
+	await _idle_frames(2)
+	out["steps"] = rn._steps.playing
+	out["threat"] = rn.threat()
+	var t := 0.0
+	while rn.on() and t < 10.0:
+		await get_tree().process_frame
+		var dt := get_process_delta_time()
+		t += dt
+		if out["in_frame_t"] < 0.0 and level.in_frame(rn.position.x, rn.LANE_Z, 0.0):
+			out["in_frame_t"] = t
+		if out["glint_t"] < 0.0 and rn.jet != null:
+			out["glint_t"] = t
+			out["glint_s"] = rn.jet.glint_s
+			out["amount"] = rn.jet.amount
+		if rn.jet != null and is_instance_valid(rn.jet) and rn.jet.phase == WaterJet.Phase.TRAVEL and out["fired_ahead"] == 0.0:
+			out["fired_ahead"] = rn.position.x - x
+		if out["landed_t"] < 0.0 and rn.jet != null and (not is_instance_valid(rn.jet) or rn.jet.phase == WaterJet.Phase.SPENT):
+			out["landed_t"] = t
+			if stop_on_landing:
+				break
+		var tl: float = p._autopilot(dt)[2]
+		if rn.position.x < x - 1.0:
+			out["bot_back"] = minf(out["bot_back"], tl)
+		elif rn.jet != null:
+			out["bot_fwd"] = maxf(out["bot_fwd"], tl)
+		if out["raise_t"] < 0.0 and rn.brace():
+			out["raise_t"] = t
+	out["gone_t"] = t if not rn.on() else -1.0
+	out["threat_after"] = rn.threat()
+	if stop_on_landing:
+		return out
+	await get_tree().create_timer(1.0).timeout
+	out["shot"] = p.stats["wet_hit"] - hit_was
+	return out
+
+
+## A runner sprints up from behind out of shot with only his footsteps to warn of him, fires one
+## quick telegraphed jet back at the walker once just past him, and runs on out of shot. The bots
+## hear him from the first footstep (never before) and tilt toward him. The walker's shot can soak
+## him; an entry's `hit` and `hint` are his own; a shot that soaks the walker fails as SHOT; a
+## resume past his x skips him.
+func _test_runners() -> void:
+	var open_x := _bypass_open_x()
+	await _lane_with({"runners": [{"x": 2.0}, {"x": 3.0, "hit": 10.0, "hint": "Here he comes."}, {"x": 4.0}],
+		"attackers": null, "drive_bys": null})
+	var rn: Node = level.runners
+	check(rn != null and rn._queue.size() == 3 and not rn.on() and not rn.visible, "three runners, none on before the walker reaches one")
+	seed(5)
+	var up := await _runner_pass(open_x, 0, 0.0)
+	check(not up["threat_before"] and up["out_of_shot"] and up["steps"] and up["threat"],
+		"he starts out of shot behind, his footsteps the first sign, and only then do the bots know of him")
+	check(up["in_frame_t"] > 0.6 and up["in_frame_t"] < 1.3, "he runs into the frame %.2f s after his first footstep" % up["in_frame_t"])
+	check(absf(up["glint_s"] - 0.3) < 0.01 and up["fired_ahead"] > 2.0 and up["fired_ahead"] < 3.2,
+		"a 0.3 s glint, and the shot leaves as he is %.1f m past the walker" % up["fired_ahead"])
+	check(absf(up["amount"] - Tun.f("wet_runner_hit")) < 0.01 and up["shot"] > Tun.f("wet_runner_hit") * 0.6,
+		"upright, his jet (wet_runner_hit %.0f) lands: %.1f" % [Tun.f("wet_runner_hit"), up["shot"]])
+	check(up["bot_back"] > -0.5 and up["bot_fwd"] > 0.8 and absf(up["glint_t"] - up["raise_t"]) < 0.05,
+		"the bots hold the canopy up as he comes (%.2f) and tilt toward him from the glint (%.2f)" % [up["bot_back"], up["bot_fwd"]])
+	check(up["gone_t"] > 0.0 and up["gone_t"] < 6.0 and not up["threat_after"] and not rn.visible,
+		"he runs on out of the right of the frame and is gone (%.1f s)" % up["gone_t"])
+	check(level._seen.has("runner"), "the first one shows the runner hint")
+	var fwd := await _runner_pass(open_x, 0, 0.85)
+	var back := await _runner_pass(open_x, 0, -0.85)
+	print("  runner jet: upright %.1f, tilted forward %.1f, back %.1f (fired %.1f m ahead)" % [up["shot"], fwd["shot"], back["shot"], up["fired_ahead"]])
+	check(fwd["shot"] < up["shot"] * 0.5 and back["shot"] > up["shot"] * 0.8,
+		"tilted forward the canopy stops it (%.1f against %.1f upright); tilted back, it doesn't (%.1f)" % [fwd["shot"], up["shot"], back["shot"]])
+	var own := await _runner_pass(open_x, 1, 0.0)
+	check(absf(own["amount"] - 10.0) < 0.01, "an entry's hit is his own: %.0f" % own["amount"])
+	# The walker's shot soaks him like any of their men: he gives up and the run is over.
+	await _place(open_x, 1.0)
+	rn._begin(2)
+	await _idle_frames(2)
+	var man: NpcBody = rn.man
+	check(man.wettable() and WetBody.of_level(level).has(man), "he is a body the walker's shot can wet")
+	man.soak(man.wet_max(), &"shot")
+	await _idle_frames(3)
+	check(not rn.on() and rn.man != man and man.get_parent() == level, "soaked, he gives up and the run is over")
+	var p: Player = level.player
+	p.wet = Tun.f("wet_max") - 3.0
+	await _runner_pass(open_x, 0, 0.0, true)
+	p._physics_process(1.0 / 60.0)
+	check(p.state == Player.State.DEFEATED and p.fail_cause == &"shot", "a runner's jet that soaks him fails as SHOT: %s" % p.fail_cause)
+	p.state = Player.State.WALK
+	p.wet = 0.0
+	await get_tree().create_timer(2.5).timeout
+	# A resume past the first runner's x skips him.
+	level.queue_free()
+	await _frames(2)
+	Game.debug_start_x = 2.5
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	Game.debug_start_x = -1.0
+	await _frames(3)
+	level.player.set_physics_process(false)
+	check(level.runners._next == 1, "starting past the first runner's x skips him")
+	await _drop_lane()

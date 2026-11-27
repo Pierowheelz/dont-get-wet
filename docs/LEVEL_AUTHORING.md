@@ -405,7 +405,8 @@ leaves behind him. A resume past the crossing leaves the car out; one past the m
 with him boarding. Place the crossing about 6.5 m past that man, with the man inside the last
 canopy.
 
-**`drive_bys`** (`[{"x"}]`; `s.drive_by(x)`, `src/hazards/drive_by.gd`) are cars that come up the
+**`drive_bys`** (`[{"x", "quiet", "shot", "driver"}]`, all but `x` optional; `s.drive_by(x, quiet=False,
+shot=True, driver=None)`, `src/hazards/drive_by.gd`) are cars that come up the
 near lane of the road (z 5.4) from behind the walker, one at a time. When the walker passes `x`:
 
 - **Warning:** the engine and tyre hiss (`car_pass`) from the left while the car is still out of
@@ -429,7 +430,57 @@ in the open and the shot as he reaches the cover (`DRIVE_BY_LEAD` in `tools/stre
 The scenery traffic waits while one is on, and sends no car from 40 m short of its `x` (`DRIVE_BY_CLEAR_M`), so none is on the lane when it comes. A checkpoint resume skips every drive-by whose `x` is
 behind it. The bots hold the umbrella open while one is on, never rest or refill, tilt back
 (`DriveBy.brace()` -1) from 0.35 s before the splash until it has landed and forward (+1) from 0.5 s
-before the shot until it has landed. level_preview ignores them (`tools/preview.sh` is the judge).
+before the shot until it has landed. level_preview marks each trigger on the strip but doesn't
+score them (`tools/preview.sh` is the judge).
+
+An entry's options change that:
+
+- **`"quiet": true`** — Fairweather's way: no warning. Its headlights are off (only the kit car's dim
+  sidelamps), nothing is heard and no hint shows while it is out of shot, and the camera holds until
+  1 s before the splash, as the car is about to enter the frame. The first sound is its tyres' hiss
+  (`car_pass`, faded up from silence), `quiet_car_hiss_s` (0.7 s) before the splash. The splash is a
+  low, flat sheet off the front wheel as it draws level (from 1.6 m behind him to 0.4 m past), thrown
+  across the verge at his hips and chest. It is on him in about half a second and comes in under the
+  canopy whichever way it tilts: about 8 to 9 wetness (`wet_quiet_splash`, 12, in place of
+  `wet_car_splash`), upright, tilted back or forward. Only the sun pays it back. The bots aren't told
+  of it before the hiss (`coming()` false, `brace()` 0); from the hiss they keep the umbrella up and
+  don't rest, but don't tilt, since tilting keeps none of it off and lets the rain in.
+- **`"shot": false`** — no passenger and no shot. After the splash it rolls on 3 m/s faster than him
+  for 1.4 s, then speeds away.
+- **`"driver": "slicker"`** — Fairweather at the wheel in the yellow slicker, hood up (the walker's
+  model dressed by `RaincoatFigure.dress`, as the courier's `look: "slicker"` is), lit by a little
+  of the dashboard's glow and a cool fill from the camera side. He turns to watch the walker as he
+  passes and looks back over his shoulder once past. While he drives, the car's side panels behind
+  the glass are taken out (the kit sedan's cabin is a solid box with its glass laid on top) and their
+  pillars and frames put back in paint, so his hood shows through the side windows.
+
+Entries without these options behave exactly as before.
+
+**`runners`** (`[{"x", "hit", "hint"}]`, all but `x` optional; `s.runner(x, hit=None, hint=None)`,
+`src/level/runners.gd`) are their men on the walker's own model and suit, one at a time (a later
+one waits until the last has gone). When the walker passes `x`:
+
+- **Warning, 0.8 s:** a sprinter's footsteps, panned left, while he is still out of shot. That is
+  all: no shadow, no hint after the first.
+- **Run:** he comes into the frame from the left at `runner_speed` (5.1 m/s, about 1.6 times the
+  walker's run) between the walker and the lane edge (z 2.35), the furled umbrella at his hip like a
+  rifle.
+- **Shot:** as he draws level he shoulders it (0.25 s) and aims back over his shoulder; a 0.3 s glint,
+  and one `WaterJet` leaves as he is 2.5 m past the walker (the muzzle about 1.5 m ahead of him and
+  0.9 m to the camera side). It lands `hit` in full (default `wet_runner_hit`, 8) through
+  `Player.soak(&"shot")`, so one that soaks him fails as SHOT. Upright or tilted back the canopy stops
+  none of it; tilted forward 85% it stops it all.
+- **Gone:** he runs on out of the right of the frame, about 3.5 s after the first footstep.
+
+He is an `NpcBody` with his umbrella furled, so nothing protects him from the walker's shots: two
+clean hits soak him, he gives up as the walker does, and that run is over (a jet already in the air
+flies on). The first runner each attempt shows "Running feet. Tilt toward him as he goes by ({tilt})."
+unless his entry has a `hint`, which shows instead as he comes. A checkpoint resume skips every runner
+whose `x` is behind it. The bots open up and stop resting from his first footstep (`threat()`, never
+from `x`) and tilt toward him (`side()`) from his glint (`brace()`): the perfect bot gets the canopy
+over in time for most of it, the human bot (0.4 s late) mostly doesn't. Tilted that far over in the open he takes nearly the full rain (about
+11 a second in The Bypass's rain), more than the jet, so place a runner, like a drive-by, where his
+shot comes as the walker reaches cover or the sun. level_preview marks each trigger.
 
 **`helicopters`** (`[{"x", "dir", "speed", "hover_x", "hover_s"}]`, all but `x` optional;
 `s.helicopter(x, dir=-1, speed=None, hover_x=None, hover_s=None)`, `src/hazards/helicopter.gd`) are

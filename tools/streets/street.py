@@ -144,7 +144,7 @@ class Street:
 
     def runner(self, x, hit=None, hint=None):
         """One of their men who runs up from behind once the walker passes x, fires one quick jet as he
-        draws level and runs on out of shot. hit: wetness of the jet landing in full (default wet_jet_hit)."""
+        draws level and runs on out of shot. hit: wetness of the jet landing in full (default wet_runner_hit)."""
         r = {"x": round(x, 2)}
         if hit is not None:
             r["hit"] = float(hit)

@@ -32,6 +32,7 @@ var camera_pull := 0.0         # metres the camera eases out from the street (a 
 var drive_bys: DriveBy         # the level's `drive_bys` (cars that pass from behind), or null
 var courier: Courier           # the level's scripted pedestrian to keep in frame, or null
 var henchmen: Node             # the level's `henchmen` (henchmen.gd), or null
+var runners: Node              # the level's `runners` (runners.gd), or null
 var helicopters: Helicopter    # the level's `helicopters` (shuttles whose rotor wash drives the rain in under cover), or null
 
 var player: Player
@@ -188,6 +189,11 @@ func _ready() -> void:
 		drive_bys.name = "DriveBys"
 		drive_bys.level = self
 		add_child(drive_bys)
+	if data.has("runners"):
+		runners = preload("res://src/level/runners.gd").new()
+		runners.name = "Runners"
+		runners.level = self
+		add_child(runners)
 	if data.has("helicopters"):
 		helicopters = Helicopter.new()
 		helicopters.name = "Helicopters"
