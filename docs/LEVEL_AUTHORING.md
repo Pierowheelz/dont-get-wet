@@ -534,9 +534,9 @@ score them (`tools/preview.sh` is the judge).
 An entry's options change that:
 
 - **`"quiet": true`** — Fairweather's way: no warning. Its headlights are off (only the kit car's dim
-  sidelamps), nothing is heard and no hint shows while it is out of shot, and the camera holds until
-  1 s before the splash, as the car is about to enter the frame. The first sound is its tyres' hiss
-  (`car_pass`, faded up from silence), `quiet_car_hiss_s` (0.7 s) before the splash. The splash is a
+  sidelamps), nothing is heard and no hint shows while it is out of shot. The first sign is its
+  tyres' hiss (`car_pass`, faded up from silence), `quiet_car_hiss_s` (0.7 s) before the splash, and
+  only then does the camera ease out. The splash is a
   low, flat sheet off the front wheel as it draws level (from 1.6 m behind him to 0.4 m past), thrown
   across the verge at his hips and chest. It is on him in about half a second and comes in under the
   canopy whichever way it tilts: about 8 to 9 wetness (`wet_quiet_splash`, 12, in place of

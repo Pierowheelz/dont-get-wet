@@ -118,16 +118,6 @@ func side() -> float:
 	return 1.0 if from > level.player.position.x else -1.0
 
 
-## Seconds until his glint could start: 0 once it has, INF when he is not on or has fired.
-func next_glint_in() -> float:
-	if phase == Phase.OFF or phase == Phase.AWAY and not incoming():
-		return INF
-	if incoming():
-		return 0.0
-	var p: Player = level.player
-	var rel := maxf(speed - p.speed, 0.5)
-	return maxf((FIRE_AHEAD - (position.x - p.position.x)) / rel - GLINT_S - RAISE_S, 0.0)
-
 
 func _process(delta: float) -> void:
 	var p: Player = level.player

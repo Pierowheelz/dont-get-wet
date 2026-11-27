@@ -48,7 +48,6 @@ const QUIET_TO := -0.4        # ...and stops just past him
 const QUIET_CARRY := 0.12
 const QUIET_UP := Vector2(3.9, 4.6)
 const QUIET_IN := Vector2(5.0, 6.2)
-const QUIET_PULL_S := 1.0     # the camera starts easing out this long before a quiet car's splash
 const QUIET_HISS_FROM := 1.97 # s into car_pass at which a car warned from START_BACK is splashing him
 const HISS_FADE_IN := 0.15    # s for a quiet car's hiss to come up from silence
 const ROLL_REL := 3.0         # without a shot: m/s faster than him it rolls on at after the splash...
@@ -383,14 +382,13 @@ func _process(delta: float) -> void:
 	_look_at_walker(delta, p)
 
 
-## A quiet car gives itself away only as it arrives: the camera eases out QUIET_PULL_S before the
-## splash, as it is about to enter the frame, and its tyres' hiss starts `quiet_car_hiss_s` before.
+## A quiet car gives itself away only as it arrives: `quiet_car_hiss_s` before the splash its tyres'
+## hiss starts and the camera eases out, nothing sooner.
 func _quiet_cues() -> void:
 	var eta := _to_splash() / REL_SPEED
-	if eta <= QUIET_PULL_S:
-		level.set("camera_pull", PULL)
 	if not heard and eta <= Tun.f("quiet_car_hiss_s"):
 		heard = true
+		level.set("camera_pull", PULL)
 		_hiss.volume_db = -40.0
 		_hiss.play(maxf(QUIET_HISS_FROM - eta, 0.0))
 

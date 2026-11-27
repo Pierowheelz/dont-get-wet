@@ -3086,8 +3086,8 @@ func _test_quiet_drive_by() -> void:
 	var lead: float = up["splash_t"] - up["heard_t"]
 	check(up["heard_t"] > 0.8 and lead > 0.55 and lead < 0.85,
 		"nothing is heard until its tyres hiss %.2f s before the splash" % lead)
-	check(up["pull_t"] > 0.5 and up["splash_t"] - up["pull_t"] < 1.2,
-		"the camera holds until it is about to enter the frame (%.2f s before the splash)" % (up["splash_t"] - up["pull_t"]))
+	check(up["pull_t"] >= up["heard_t"] and up["splash_t"] - up["pull_t"] < 0.85,
+		"the camera holds until the hiss (it eases out %.2f s before the splash)" % (up["splash_t"] - up["pull_t"]))
 	check(not up["told_early"] and up["coming_heard"] and up["bot_early"] > -0.5 and up["bot_heard"] > -0.5,
 		"the bots are told nothing before the hiss, then that it is coming; they don't tilt into a sheet no tilt keeps off (%.2f, %.2f)" % [up["bot_early"], up["bot_heard"]])
 	check(absf(up["look"]) > 1.0, "Fairweather turns to watch the walker as he draws level (%.2f rad)" % up["look"])

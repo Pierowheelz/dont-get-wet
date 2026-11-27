@@ -476,11 +476,20 @@ DIFF_FORMULA = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
                 f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.4*crossings) per 100 m, per decile "
                 "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover (a railway's arches count as "
                 "lot cover); duty = share of the "
-                "time a sheet falls on a spot, Track.WASH_S over the mean train gap) + threat (skyway, suburban and country streets only, scripted: "
+                "time a sheet falls on a spot, Track.WASH_S over the mean train gap) + threat (skyway streets only, scripted: "
                 f"{HELI_W:g} per helicopter pass + {HELI_HOVER_W:g}/s hovering, {HENCHMAN_W:g} per henchman, "
-                f"{DRIVE_BY_W:g} per drive-by ({QUIET_DRIVE_BY_W:g} quiet), {ATTACKER_W:g} per pursuer, the courier's "
-                f"tail {COURIER_W:g} per 100 m + {COURIER_STOP_W:g} per window stop, {SQUALL_W:g} per gust + "
-                f"{SQUALL_PER_S_W:g}/s, {RUNNER_W:g} per runner) per 100 m")
+                f"{DRIVE_BY_W:g} per drive-by, {ATTACKER_W:g} per pursuer, the courier's tail {COURIER_W:g} per "
+                f"100 m + {COURIER_STOP_W:g} per window stop) per 100 m")
+# A suburban or country street also weighs its gusts, runners and quiet cars (see weighs_threats()).
+DIFF_FORMULA_LANE = ("difficulty = 10 * mean(open_sky * rain * (1 + |wind|)) "
+                     f"+ 10 * {WASH_W} * duty * wash + (0.5*gutters + 0.4*crossings) per 100 m, per decile "
+                     "of end_x (rain is 0 in sun breaks; wash = share of track with no lot cover (a railway's arches count as "
+                     "lot cover); duty = share of the "
+                     "time a sheet falls on a spot, Track.WASH_S over the mean train gap) + threat (skyway, suburban and country streets only, scripted: "
+                     f"{HELI_W:g} per helicopter pass + {HELI_HOVER_W:g}/s hovering, {HENCHMAN_W:g} per henchman, "
+                     f"{DRIVE_BY_W:g} per drive-by ({QUIET_DRIVE_BY_W:g} quiet), {ATTACKER_W:g} per pursuer, the courier's "
+                     f"tail {COURIER_W:g} per 100 m + {COURIER_STOP_W:g} per window stop, {SQUALL_W:g} per gust + "
+                     f"{SQUALL_PER_S_W:g}/s, {RUNNER_W:g} per runner) per 100 m")
 
 
 def crossable_m(tun, wind):
@@ -610,7 +619,7 @@ def print_report(st, tun, rows, checks, name):
         print(f"{k:>6} {r['a']:>5.0f}-{r['b']:<5.0f} {r['open']:>5.0%} " + (f"{r['trees']:>5.0%} " if trees else "")
               + f"{longest:>8} {r['g']:>3} {r['p']:>3} "
               f"{r['c']:>4} {r['rain']:>5.2f} {r['wind']:>6.2f} {r['wash']:>5.0%} {r['threat']:>6.1f} {r['diff']:>6.1f}")
-    print(DIFF_FORMULA)
+    print(DIFF_FORMULA_LANE if st.d.get("aesthetic") in ("suburban", "country") else DIFF_FORMULA)
     if st.d.get("courier"):
         print("courier: the scripted pedestrian is not simulated here; tools/preview.sh is the judge of tailing him")
     helis = st.d.get("helicopters", [])
@@ -743,6 +752,11 @@ def squall_glyph(d, sq, st, x0m, x1m, X, y):
         tip = cx + gdir * 13
         d.polygon([(tip, y + 11), (tip, y + 19), (tip + gdir * 5, y + 15)], fill=GUST_C)
         d.text((cx - gdir * 14, y + 26), f"gust {dur:g}s", fill=GUST_C, font=font(9, True), anchor="lm" if gdir < 0 else "rm")
+
+
+def _marked_cars(st):
+    """The drive-bys the strip marks: the quiet ones and those with Fairweather at the wheel."""
+    return [c for c in st.d.get("drive_bys", []) if c.get("quiet") or c.get("driver")]
 
 
 def car_glyph(d, cx, y, quiet=False, shot=True, slicker=False):
@@ -922,7 +936,7 @@ def render(st, tun, traces, out, title):
             heli_glyph(d, h, x0m, x1m, X, y)
         for sq in st.d.get("squalls", []):
             squall_glyph(d, sq, st, x0m, x1m, X, y)
-        for c in st.d.get("drive_bys", []):
+        for c in _marked_cars(st):
             if x0m <= float(c["x"]) <= x1m:
                 car_glyph(d, X(float(c["x"])), y, c.get("quiet", False), c.get("shot", True), c.get("driver") == "slicker")
         for r in st.d.get("runners", []):
@@ -985,15 +999,14 @@ def render(st, tun, traces, out, title):
         glyph(d, kind, x + 14, ly - 8, 20)
         d.text((x + 34, ly + 8), FEATURE_NAMES[kind], fill=INK, font=font(12), anchor="lm")
         x += 140
-    car_glyph(d, x + 14, ly - 14)
-    d.text((x + 40, ly + 8), "drive-by", fill=INK, font=font(12), anchor="lm")
-    x += 120
-    car_glyph(d, x + 14, ly - 14, quiet=True, shot=False, slicker=True)
-    d.text((x + 40, ly + 8), "quiet, Fairweather", fill=INK, font=font(12), anchor="lm")
-    x += 170
-    runner_glyph(d, x + 18, ly - 14)
-    d.text((x + 34, ly + 8), "runner", fill=INK, font=font(12), anchor="lm")
-    x += 110
+    if _marked_cars(st):   # only on a street that has them, so other streets' strips are unchanged
+        car_glyph(d, x + 14, ly - 14, quiet=True, shot=False, slicker=True)
+        d.text((x + 40, ly + 8), "quiet, Fairweather", fill=INK, font=font(12), anchor="lm")
+        x += 170
+    if st.d.get("runners"):
+        runner_glyph(d, x + 18, ly - 14)
+        d.text((x + 34, ly + 8), "runner", fill=INK, font=font(12), anchor="lm")
+        x += 110
     present = {k for _, _, k in st.covers} | ({"trees"} if st.trees else set())
     for kind, col in COUNTRY_COLORS.items():   # only on a street that has them
         if kind in present:
@@ -1028,7 +1041,8 @@ def trace_summary(label, rows, tun):
     return (f"{label}: final wet {last['wet']:.1f}/{tun['wet_max']:.0f} at x={last['x']:.0f} t={last['t']:.0f}s; "
             f"rain {s['wet_rain']:.1f} gutter {s['wet_gutter']:.1f} "
             f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} rotor {s.get('wet_rotor', 0.0):.1f} "
-            f"shower {s.get('wet_shower', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
+            + (f"shower {s['wet_shower']:.1f} " if s.get('wet_shower', 0.0) > 0.0 else "")
+            + f"dried {s['dried']:.1f}; min stamina "
             f"{min(r['stamina'] for r in rows):.0f}; {outcome}")
 
 
