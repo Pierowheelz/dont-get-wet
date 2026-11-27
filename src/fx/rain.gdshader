@@ -2,12 +2,15 @@ shader_type particles;
 // Rain streaks. Emitted in a box around the emitter (which follows the camera), falling along
 // `fall_dir`. They stop (and splash) on a cover height map built from the level data (awnings,
 // slabs, roofs, ground) and on the umbrella canopy, and vanish inside sunny zones — so the visual
-// rain matches the gameplay rain model exactly — and under deck spans, out to the camera.
+// rain matches the gameplay rain model exactly — under deck spans, out to the camera, and inside a
+// skyway (between its soffit, `volume_floor`, and its roof).
 
 uniform vec3 box_extents = vec3(14.0, 7.0, 5.0);
 uniform vec3 fall_dir = vec3(0.0, -1.0, 0.0);
 uniform float fall_speed = 9.0;
 uniform float streak_length = 0.45;
+uniform float streak_width = 0.012;
+uniform float volume_floor = 4.45;      // SkywayBuilder.SOFFIT_Y
 uniform float intensity = 1.0;          // 0..1.5, fraction of particles alive
 uniform vec4 sun_zones[8];              // x0, x1 world; zw unused
 uniform int sun_zone_count = 0;
@@ -52,7 +55,10 @@ void process() {
 		vec2 d = pos.xz - umbrella.xz;
 		if (dot(d, d) < umbrella.w * umbrella.w && pos.y < umbrella.y + 0.12 && pos.y > umbrella.y - 0.35) hit = true;
 	}
-	bool dead = hit || (cm.g > 1.5 && pos.y < cm.r);   // under a deck: gone, no splash
+	// Inside a skyway (COVER_VOLUME): splash on its roof, gone (no splash) inside the glass.
+	if (cm.g > 2.5 && pos.y < cm.r && pos.y > cm.r - 0.3) hit = true;
+	bool dead = hit || (cm.g > 1.5 && cm.g < 2.5 && pos.y < cm.r);   // under a deck: gone, no splash
+	if (cm.g > 2.5 && pos.y < cm.r && pos.y > volume_floor) dead = true;
 	// Sun test, matching Player._rain_exposure: a drop reads as falling on whatever it covers on
 	// screen, so move it along its camera ray into the player's plane, then follow its fall line to
 	// sky_y, where gameplay decides whether that spot is rained on. Testing raw world x instead
@@ -76,7 +82,7 @@ void process() {
 	// Orient: local Y along velocity, scaled to streak length; face +Z (side camera).
 	vec3 v = normalize(VELOCITY);
 	vec3 side = normalize(cross(v, vec3(0.0, 0.0, 1.0)));
-	TRANSFORM[0].xyz = side * 0.012;
+	TRANSFORM[0].xyz = side * streak_width;
 	TRANSFORM[1].xyz = v * streak_length;
 	TRANSFORM[2].xyz = vec3(0.0, 0.0, 1.0);
 }

@@ -120,9 +120,14 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 	kit = _kits.get("60s", {})
 	if track:
 		ViaductBuilder.new().build(self, track)
+	if data.has("skyways"):
+		SkywayBuilder.new().build(self)
 	for c in data.get("crossings", []):
 		_build_crossing(c)
-	_build_backdrop()
+	if modern():
+		ModernBuilder.skyline(self)
+	else:
+		_build_backdrop()
 	for p in data.get("props", []):
 		_build_prop(p)
 
@@ -131,13 +136,16 @@ func build(p_root: Node3D, p_data: Dictionary) -> void:
 ## R = height of a thin cover shell (awning/slab), G = COVER_SHELL where such a shell exists, B = solid
 ## ground/roof height. Drops only stop on a shell when they cross it from above, so slanted
 ## (windy) rain blows in under the edges exactly as the gameplay rays assume. G = COVER_HIDE: drops
-## vanish below R without a splash (the open air under a deck span).
+## vanish below R without a splash (the open air under a deck span). G = COVER_VOLUME: a skyway, solid
+## from its soffit (the shader's `volume_floor`) up to R: drops splash on its roof and vanish inside it,
+## and slanted rain still falls under it below the soffit.
 const COVER_RES := 10.0          # texels per metre along x
 const COVER_RES_Z := 4.0
 const COVER_Z0 := -3.0
 const COVER_Z1 := 13.0
 const COVER_SHELL := 1.0
 const COVER_HIDE := 2.0
+const COVER_VOLUME := 3.0        # a solid from SkywayBuilder.SOFFIT_Y up to R: drops stop on its roof
 
 
 func cover_map() -> Array:
@@ -185,6 +193,8 @@ func cover_map() -> Array:
 		for d in track.decks:
 			# Visual only: the street under a deck reads dry from the wall out to the camera.
 			_cover_fill(img, x0, d[0], d[1], 0.0, COVER_Z1, func(_z): return Track.DECK_TOP, COVER_HIDE)
+	for sp in SkywayBuilder.spans(data):
+		_cover_fill(img, x0, sp[0], sp[1], 0.0, SkywayBuilder.Z1, func(_z): return SkywayBuilder.ROOF_Y, COVER_VOLUME)
 	var tex := ImageTexture.create_from_image(img)
 	return [tex, Vector4(x0, COVER_Z0, w / COVER_RES, COVER_Z1 - COVER_Z0)]
 
@@ -292,6 +302,11 @@ func _cover_fill(img: Image, x0: float, a: float, b: float, z0: float, z1: float
 
 # --- helpers --------------------------------------------------------------------------------
 
+## The jet-age city centre (`aesthetic: "modern"`): glass towers, a skyscraper skyline.
+func modern() -> bool:
+	return data.get("aesthetic", "") == "modern"
+
+
 func _mat(key: String, color: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:
 	if _mats.has(key):
 		return _mats[key]
@@ -346,6 +361,8 @@ func _load_kits() -> void:
 		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(KIT_PATH))
 		if d is Dictionary:
 			var aes: String = data.get("aesthetic", "rundown")
+			if aes == "modern":
+				aes = "neon"   # the jet-age city builds its kit lots from the retro-future kit
 			for m in d.get("modules", []):
 				if not ResourceLoader.exists(m["scene"]):
 					continue
@@ -411,7 +428,11 @@ func _build_lot(lot: Dictionary) -> void:
 	kit = _kits.get("60s", {})
 	var era := "60s"
 	var retro: Dictionary = _kits.get("retro", {})
-	if not retro.is_empty() and rng.randf() < float(data.get("neon", 0.0)):
+	var swap := not retro.is_empty() and rng.randf() < float(data.get("neon", 0.0))
+	if modern() and retro.get("ground", {}).has(lot.get("style", "wall")):
+		kit = retro   # the jet-age city: every kit lot is the retro kit, its neon only where the roll says
+		era = "retro"
+	if swap:
 		var st: String = lot.get("style", "wall")
 		if retro.get("ground", {}).has(st):
 			kit = retro
@@ -430,6 +451,8 @@ func _build_lot(lot: Dictionary) -> void:
 		RoadsideBuilder.forecourt(self, x, w, lot)
 	elif style == "motel":
 		RoadsideBuilder.motel(self, x, w, floors)
+	elif ModernBuilder.STYLES.has(style):
+		ModernBuilder.lot(self, x, w, style, floors, lot)
 	else:
 		_build_facade(x, w, style, floors, lot)
 	match lot.get("cover", "none"):
@@ -449,11 +472,13 @@ func _build_lot(lot: Dictionary) -> void:
 			_cover_box(Vector3(w - 0.3, 0.4, 3.5), Transform3D(Basis(), Vector3(x + w * 0.5, 3.75, 1.55)))
 			_drips(x + 0.15, x + w - 0.15, 3.5, 3.32)
 	var under_viaduct: bool = track != null and track.railway() and lot.get("cover", "none") == "awning"
-	if lot.has("sign") and style not in ["vacant", "forecourt", "motel"] and not under_viaduct:   # a railway viaduct hides an awning lot's sign
+	if lot.has("sign") and style not in ["vacant", "forecourt", "motel"] + ModernBuilder.STYLES and not under_viaduct:   # a railway viaduct hides an awning lot's sign
 		_build_sign(x, w, String(lot["sign"]), style, bool(lot.get("neon", false)))
-	if style != "vacant" and rng.randf() < float(data.get("neon", 0.0)) * 0.45:
+	# Rolled before the skyway test, so a street without skyways rolls exactly as it always has.
+	var clear: bool = not SkywayBuilder.under(data, x + w * 0.5) and not ModernBuilder.STYLES.has(style)
+	if style != "vacant" and rng.randf() < float(data.get("neon", 0.0)) * 0.45 and clear:
 		_build_holo(x, w, floors)
-	if style != "vacant" and floors >= 1 and w >= 6.0 and rng.randf() < float(data.get("neon", 0.0)) * 0.5:
+	if style != "vacant" and floors >= 1 and w >= 6.0 and rng.randf() < float(data.get("neon", 0.0)) * 0.5 and clear:
 		var cid := "overhead_cables_10" if w >= 10.0 else "overhead_cables_6"
 		if props_kit.has(cid):
 			var cn := _instance(props_kit[cid]["scene"])
@@ -975,10 +1000,10 @@ func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, uv0:
 	st.set_uv(Vector2(uv0.x, uv1.y)); st.add_vertex(d)
 
 
-## Drips along a cover edge from a to b, left out under deck spans, which keep the rain off it.
+## Drips along a cover edge from a to b, left out under deck spans and skyways, which keep the rain off it.
 func _drips_off_decks(a: float, b: float, y: float, z: float) -> void:
 	var spans := [[a, b]]
-	for d in (track.decks if track else []):
+	for d in (track.decks if track else []) + SkywayBuilder.spans(data):
 		var cut := []
 		for sp in spans:
 			if sp[0] < d[0]:
@@ -992,13 +1017,13 @@ func _drips_off_decks(a: float, b: float, y: float, z: float) -> void:
 
 ## A line of drips falling from a cover edge: telegraphs exactly where shelter ends. `density`
 ## scales both how many drips fall and how bright they are.
-func _drips(a: float, b: float, y: float, z: float, density := 1.0) -> void:
+func _drips(a: float, b: float, y: float, z: float, density := 1.0, life := 0.75) -> void:
 	var w := b - a
 	if w < 0.3:
 		return
 	var p := GPUParticles3D.new()
 	p.amount = maxi(4, int(w * 14.0 * density))
-	p.lifetime = 0.75
+	p.lifetime = life
 	p.randomness = 0.5
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
@@ -1024,7 +1049,7 @@ func _drips(a: float, b: float, y: float, z: float, density := 1.0) -> void:
 		_drip_meshes[density] = mesh
 	p.draw_pass_1 = _drip_meshes[density]
 	p.position = Vector3((a + b) * 0.5, y, z)
-	p.visibility_aabb = AABB(Vector3(-w * 0.5 - 0.5, -4.0, -0.5), Vector3(w + 1.0, 4.5, 1.0))
+	p.visibility_aabb = AABB(Vector3(-w * 0.5 - 0.5, -maxf(4.0, y + 0.3), -0.5), Vector3(w + 1.0, maxf(4.5, y + 0.8), 1.0))
 	root.add_child(p)
 
 
@@ -1133,6 +1158,8 @@ func _build_neon(x: float, w: float, text: String) -> void:
 	var kit_signs: Array = ["neon_blade_a", "neon_blade_b", "neon_googie", "led_ticker"].filter(func(id): return props_kit.has(id))
 	if w >= 4.0 and not kit_signs.is_empty() and rng.randf() < 0.8:
 		var pid: String = kit_signs[rng.randi() % kit_signs.size()]
+		if SkywayBuilder.under(data, x + w * 0.5):
+			return   # a blade sign would stand up through the skyway
 		var sn := _instance(props_kit[pid]["scene"])
 		if sn:
 			sn.position = Vector3(x + w - 0.8 if pid != "led_ticker" else x + w * 0.5, float(props_kit[pid].get("mount_y", 4.2)), 0.0)
@@ -1141,7 +1168,7 @@ func _build_neon(x: float, w: float, text: String) -> void:
 				sn.position.z = 0.0
 			root.add_child(sn)
 		return
-	if w >= 4.0 and rng.randf() < 0.75:
+	if w >= 4.0 and rng.randf() < 0.75 and not SkywayBuilder.under(data, x + w * 0.5):
 		var col2: Color = NEON_COLORS[rng.randi() % NEON_COLORS.size()]
 		var blade := Node3D.new()
 		blade.position = Vector3(x + w - 0.6, 4.15, 0.25)
@@ -1232,11 +1259,27 @@ func _build_crossing(c: Dictionary) -> void:
 		if absf(float(lot["x"]) - x1) < 0.05:
 			floors_r = int(lot.get("floors", 2))
 	# Side walls of the corner buildings, receding down the side street.
-	_side_street_wall(x0, floors_l, 1.0)
-	_side_street_wall(x1, floors_r, -1.0)
+	var style_l := ""
+	var style_r := ""
+	for lot in data.get("lots", []):
+		if absf(float(lot["x"]) + float(lot["w"]) - x0) < 0.05:
+			style_l = String(lot.get("style", ""))
+		if absf(float(lot["x"]) - x1) < 0.05:
+			style_r = String(lot.get("style", ""))
+	if ModernBuilder.STYLES.has(style_l):
+		ModernBuilder.side_wall(self, x0, floors_l, 1.0)
+	else:
+		_side_street_wall(x0, floors_l, 1.0)
+	if ModernBuilder.STYLES.has(style_r):
+		ModernBuilder.side_wall(self, x1, floors_r, -1.0)
+	else:
+		_side_street_wall(x1, floors_r, -1.0)
 	# Far facade across the end of the side street, lost in the fog.
 	var far_z := -34.0
 	var fx := x0 - 4.0
+	if modern():
+		ModernBuilder.far_facade(self, x0, x1, far_z)
+		fx = INF
 	while fx < x1 + 4.0:
 		var fw := rng.randf_range(4.0, 7.0)
 		var fh := 4.0 + 3.2 * rng.randi_range(1, 4)

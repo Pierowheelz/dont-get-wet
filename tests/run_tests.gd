@@ -1189,7 +1189,8 @@ func _tests() -> Array[Callable]:
 		_test_raincoat_figure, _test_fail_cause, _test_walk_off, _test_trigger_ends, _test_tilt_hand_off,
 		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
-		_test_bypass_posted_reach, _test_dynamic_resolution, _test_menu_width, _test_credits_scroll,
+		_test_bypass_posted_reach, _test_skyway, _test_street_camera, _test_modern_lots,
+		_test_dynamic_resolution, _test_menu_width, _test_credits_scroll,
 		_test_slider_saves, _test_shop_fits, _test_small_screen_text, _run_tests
 	]
 
@@ -2391,3 +2392,104 @@ func _run_tests() -> void:
 	Game.autopilot = true
 	Game.runs = {}
 	Game.run = Run.new("", start)
+
+
+# --- Skyway Terminal: skyways, the street camera, the glass city ------------------------------------
+
+## The walker's rain exposure at x on the street lv, umbrella shut.
+func _bare_exposure(lv: Level, x: float) -> float:
+	var p: Player = lv.player
+	p.position = Vector3(x, lv.ground_y(x), Tun.f("player_z"))
+	p.open = 0.0
+	await _frames(3)
+	p._update_umbrella()
+	await get_tree().process_frame
+	for i in 2:
+		await get_tree().physics_frame
+	return p._rain_exposure()
+
+
+## A skyway is cover: no rain under it, and the visual rain stops on its roof and never falls inside
+## it. It is high, so wind-slanted rain reaches further in under its upwind end than under an awning.
+func _test_skyway() -> void:
+	# Open ground but for a skyway from 30 to 70 and an awning from 100 to 140.
+	var street := {"crossings": [], "features": [], "skyways": [{"x0": 30.0, "x1": 70.0}], "lots": [
+		{"x": 0.0, "w": 100.0, "style": "vacant", "cover": "none", "floors": 0},
+		{"x": 100.0, "w": 40.0, "style": "wall", "cover": "awning", "floors": 2},
+		{"x": 140.0, "w": 133.0, "style": "vacant", "cover": "none", "floors": 0}]}
+	var lv := await _street_with(street)
+	var mid := await _bare_exposure(lv, 50.0)
+	var outside := await _bare_exposure(lv, 85.0)
+	check(mid < 0.05 and outside > 0.95, "under a skyway, umbrella shut: exposure %.2f ~ 0 (open sky %.2f)" % [mid, outside])
+	var cover: Array = lv.builder.cover_map()
+	var img: Image = (cover[0] as ImageTexture).get_image()
+	var rect: Vector4 = cover[1]
+	var px := img.get_pixel(int((50.0 - rect.x) * LevelBuilder.COVER_RES), int((1.6 - rect.y) * LevelBuilder.COVER_RES_Z))
+	check(is_equal_approx(px.g, LevelBuilder.COVER_VOLUME) and is_equal_approx(px.r, SkywayBuilder.ROOF_Y),
+		"the rain's cover map marks the skyway solid up to its roof (%.1f, %.2f), so drops stop on it" % [px.g, px.r])
+	var cols := SkywayBuilder.column_xs(0.0, 60.0, [[20.0, 32.0]], [{"id": "lamp_post", "x": 45.0}])
+	var gaps: Array = []
+	for i in range(1, cols.size()):
+		gaps.append(cols[i] - cols[i - 1])
+	check(cols.all(func(c: float) -> bool: return (c < 19.4 or c > 32.6) and absf(c - 45.0) >= 0.6)
+		and gaps.all(func(g: float) -> bool: return g <= SkywayBuilder.COLUMN_EVERY + 0.01 or g > 12.0),
+		"skyway columns stand clear of the side street's road and the lamp post, at most %.0f m apart elsewhere: %s" % [SkywayBuilder.COLUMN_EVERY, cols])
+	await _drop_street(lv)
+	# A strong tailwind slants the rain in from behind: just inside the skyway's near end he is wet,
+	# wetter than as far inside an awning's end, and a few metres further in he is dry again.
+	street["wind"] = [[0.0, 0.6], [1.0, 0.6]]
+	lv = await _street_with(street)
+	var edge := await _bare_exposure(lv, 31.0)
+	var deep := await _bare_exposure(lv, 36.0)
+	var awning := await _bare_exposure(lv, 101.0)
+	check(edge > 0.3 and edge > awning + 0.2 and deep < 0.05,
+		"slanted rain gets in at a skyway's end: 1 m in %.2f (an awning's %.2f), 6 m in %.2f" % [edge, awning, deep])
+	await _drop_street(lv)
+
+
+## A street's `camera` replaces the camera tunables for it; the rain box grows with the view.
+func _test_street_camera() -> void:
+	var cam := {"distance": 11.0, "height": 3.2, "fov": 55.0, "pitch": 6.0, "lead": 3.0}
+	var lv := await _street_with({"camera": cam})
+	lv._update_camera(1.0)
+	var c := lv.camera
+	var p: Player = lv.player
+	check(is_equal_approx(c.fov, 55.0) and absf(c.position.z - (Tun.f("player_z") + 11.0)) < 0.01
+		and absf(c.position.y - 3.2) < 0.01 and is_equal_approx(c.rotation.x, deg_to_rad(6.0)),
+		"the street's camera is the one it asks for: fov %.0f, z %.2f, y %.2f, pitch %.1f" % [c.fov, c.position.z, c.position.y, rad_to_deg(c.rotation.x)])
+	for i in 120:
+		lv._update_camera(1.0 / 30.0)
+	check(absf(c.position.x - (p.position.x + 3.0)) < 0.2, "and leads the walker by its own lead: %.2f" % (c.position.x - p.position.x))
+	check(lv.in_frame(c.position.x + 8.0, Tun.f("player_z")), "the wider view keeps 8 m either side of its centre in frame")
+	var v: Vector2 = lv.rain_fx.view_scale()
+	check(v.x > 1.3 and v.y > 0.0, "the rain box widens (x%.2f) and rises (+%.1f m) to fill the wider view" % [v.x, v.y])
+	await _drop_street(lv)
+	lv = await _street_with({})
+	check(lv.rain_fx.view_scale() == Vector2(1.0, 0.0) and lv.rain_fx._rain.amount == (7000 if Game.settings.get("low_quality", false) else 16000),
+		"a street without a camera override keeps the default rain box and drop count")
+	await _drop_street(lv)
+
+
+## The glass city's lot styles build from the level data alone, with a skyline and the retro kit's inn.
+func _test_modern_lots() -> void:
+	var d := {"id": "_modern_test", "length": 70.0, "aesthetic": "modern", "neon": 0.0,
+		"lots": [
+			{"x": 0.0, "w": 10.0, "style": "glass_tower", "cover": "none", "floors": 12, "sign": "AERO"},
+			{"x": 10.0, "w": 12.0, "style": "lobby", "cover": "none", "floors": 10, "sign": "TERMINAL"},
+			{"x": 22.0, "w": 14.0, "style": "plaza", "cover": "none", "floors": 6},
+			{"x": 40.0, "w": 8.0, "style": "inn", "cover": "awning", "floors": 4, "sign": "HOTEL"}],
+		"crossings": [{"x": 36.0, "w": 4.0}], "skyways": [{"x0": 0.0, "x1": 22.0}]}
+	var root := Node3D.new()
+	add_child(root)
+	var lb := LevelBuilder.new()
+	lb.build(root, d)
+	var curtains := 0
+	for n in root.get_children():
+		var mi := n as MeshInstance3D
+		if mi and mi.material_override is ShaderMaterial and (mi.material_override as ShaderMaterial).shader.resource_path.ends_with("curtain_wall.gdshader"):
+			curtains += 1
+	check(curtains >= 6, "glass towers, a lobby, a plaza's tower, side walls and the skyline draw curtain walls (%d meshes)" % curtains)
+	check(lb.inn_door_x > 40.0 and lb.inn_door_x < 48.0, "the inn still sets the door on a modern street: x %.1f" % lb.inn_door_x)
+	check(lb.lit_windows.size() >= 2, "lit lobbies light the pavement (%d)" % lb.lit_windows.size())
+	root.queue_free()
+	await _frames(2)
