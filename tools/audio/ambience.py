@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from dsp import (SR, add_at, cconv, cfilt, cnoise, drop_field, k_bubble, k_membrane, k_tick,
-                 make_ir, mag_bp, mag_peak, match_spectrum, nsamp, pan, periodic_freq, pink,
+from dsp import (SR, add_at, cconv, cfilt, cnoise, cplace, drop_field, env_ad, k_bubble, k_membrane,
+                 k_tick, make_ir, mag_bp, mag_peak, match_spectrum, nsamp, pan, periodic_freq, pink,
                  brown, rng, smooth_rand, tax, undb, lp, bp, hp)
 
 
@@ -321,6 +321,39 @@ def traffic(seed, dur):
     return out
 
 
+# --------------------------------------------------------------------------- rotor
+
+def rotor(seed, dur):
+    """A turbine shuttle helicopter close overhead: the main rotor's blade slap (three blades at
+    three turns a second, a deep thud and a hollow whomp, one blade tracking a little out), the
+    turbines' whine and roar, and the tail rotor's buzz. Mono: the game places it on the
+    helicopter. Every rate is snapped to a whole number of cycles in the loop."""
+    r = rng(seed)
+    n = nsamp(dur)
+    t = tax(n)
+    bpf = periodic_freq(9.0, n)
+    count = int(round(dur * bpf))
+    pos = (np.arange(count) * SR / bpf + r.normal(0, 0.0012 * SR, count)).astype(int)
+    track = np.array([1.0, 0.82, 0.92])[np.arange(count) % 3]
+    m = nsamp(0.16)
+    thud = lp(r.standard_normal(m), 150, 2) * env_ad(m, 0.004, 0.045)
+    thud = thud / np.abs(thud).max() + 0.8 * np.sin(2 * np.pi * 62 * tax(m)) * env_ad(m, 0.003, 0.05)
+    whomp = bp(r.standard_normal(m), 260, 1100, 2) * env_ad(m, 0.006, 0.03)
+    slap = cplace(n, thud / np.abs(thud).max(), pos, track)
+    slap += 0.55 * cplace(n, whomp / np.abs(whomp).max(), pos + nsamp(0.004), track ** 2)
+    beat = 0.5 + 0.5 * np.cos(2 * np.pi * bpf * t)
+    roar = cnoise(n, r, lambda f: pink(f) * mag_bp(f, 250, 3500, 2)) * (0.75 + 0.25 * beat)
+    whine = np.zeros(n)
+    for f0, a in ((2150.0, 1.0), (4300.0, 0.35), (1075.0, 0.4)):
+        whine += a * np.sin(2 * np.pi * periodic_freq(f0, n) * t + r.uniform(0, 6.28))
+    tail_f = periodic_freq(92.0, n)
+    tail = sum(np.sin(2 * np.pi * h * tail_f * t + r.uniform(0, 6.28)) / h for h in range(1, 9))
+    tail *= 0.8 + 0.2 * np.cos(2 * np.pi * periodic_freq(23.0, n) * t)
+    out = unit(slap) + undb(-9) * unit(roar) + undb(-22) * unit(whine) + undb(-17) * unit(tail)
+    ir = make_ir(r, t60=1.1, pre_ms=5, channels=1, hf_ratio=0.5, density_ms=6, early=10)[0]
+    return out + 0.25 * cconv(out, ir)
+
+
 LOOPS = {
     "rain_light_loop": (lambda: rain(101, 40.0, heavy=False)),
     "rain_heavy_loop": (lambda: rain(202, 40.0, heavy=True)),
@@ -330,4 +363,5 @@ LOOPS = {
     "gutter_on_umbrella_loop": (lambda: gutter_on_umbrella(515, 16.0)),
     "wind_loop": (lambda: wind(606, 45.0)),
     "traffic_distant_loop": (lambda: traffic(707, 50.0)),
+    "rotor_loop": (lambda: rotor(808, 4.0)),
 }

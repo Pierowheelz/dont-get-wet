@@ -423,6 +423,50 @@ behind it. The bots hold the umbrella open while one is on, never rest or refill
 (`DriveBy.brace()` -1) from 0.35 s before the splash until it has landed and forward (+1) from 0.5 s
 before the shot until it has landed. level_preview ignores them (`tools/preview.sh` is the judge).
 
+**`helicopters`** (`[{"x", "dir", "speed", "hover_x", "hover_s"}]`, all but `x` optional;
+`s.helicopter(x, dir=-1, speed=None, hover_x=None, hover_s=None)`, `src/hazards/helicopter.gd`) are
+the shuttle helicopters flying low along the street between the terminal and the airport. When the
+walker passes `x`:
+
+- **Flight.** One comes in 50 m past `x` (`dir` -1, the default: flying right to left, toward him) or
+  50 m short of it (`dir` 1: overtaking him from behind), flies 110 m along the street over the
+  pavement's front edge at `speed` (6 m/s by default) and is gone. With `hover_x` it brakes at
+  2.5 m/s² to a stop over that x, hovers `hover_s` seconds (3 if left out) and flies on; `hover_x`
+  must lie on its path at least its braking distance (7.2 m at 6 m/s) from either end, or the hover
+  is dropped with a warning. From ahead its wash meets a walking walker about 6.4 s after the
+  trigger, some 8 m past `x`; from behind at 6 m/s, about 9.5 s after it, some 12 m past `x`.
+  Nothing is random: each flight is a pure function of the level clock from the moment it is
+  triggered.
+- **Wash.** The footprint on the pavement under it is full strength within 3 m either side of it and
+  fades out over the next 1.2 m, so a passing one sits on a spot for about a second. Inside it cover
+  is no shelter (skyway, awning, slab or deck): each body sample is soaked, by the wash's strength
+  there, unless the open canopy is straight above it (a vertical ray, leaking while the canopy
+  opens), at `wet_rotor_rate` (10/s). Upright the canopy keeps all of it off; tilted fully over it
+  doesn't. A pass with the umbrella shut costs about 10 (20%); a hover costs that much for every
+  second he stands in it. While the umbrella is open in the wash the canopy fights the downdraught:
+  `stamina_drain_rotor` (4/s) on top, walking or standing (Sturdy Frame cuts it like the rest).
+- **Telegraph.** The rotor's thud (`rotor_loop`) builds from its side from the moment it is
+  triggered; its searchlight sweeps the pavement about 9 m ahead of it; while it is within 28 m of him
+  the camera eases out 4 m (`Level.camera_pull`, as for a drive-by) so it is seen whole, and it
+  shakes as it goes over; under it the rain is driven in sideways and spray blows out along the
+  pavement. The first one each attempt shows "Rotor wash! It blows the rain in under cover. Umbrella
+  up ({umbrella})." 3.5 s before its wash reaches him. Its rotor hub flies just under the top of that
+  eased-out frame, between 9 and 14 m up.
+
+`Level.rotor_at(x, t)` (0 to 1) and `Level.rotor_eta(x, t)` read the wash on the level clock: a
+triggered helicopter's future is known, so a later `t` predicts it. The bots open up, upright,
+when the wash will be on their path within the opening time plus 0.5 s; it overrides any tilt a
+courier's glance or a gunman asks for, so don't stack those on a pass. They never rest or refill
+within the opening time plus 3 s of it. A checkpoint resume skips every helicopter whose `x` is
+behind it. `level_preview.py` draws each trigger (an arrow the way it flies, a ring at `hover_x`)
+and leaves the wash out of its scores: `tools/preview.sh` is the judge. Trigger each where the walker
+has some 10 m of cover ahead, so a player who reads it has time to open up, and keep hovers short: an
+open canopy walking in the wash costs 7 stamina a second.
+
+`--start-x` past a trigger skips that helicopter too; for screenshots, start about 2 m short of it.
+A modelled helicopter at `res://assets/vehicles/helicopter.tscn` (or `.glb`) replaces the stand-in
+built in code; docs/CONTRACTS.md §8 says what it must provide.
+
 **`slickers`** (`[{"x", "z", "facing", "pose"}]`; `s.slicker(x, z=0.8, facing=1,
 pose="stand")`) place a man in a yellow slicker (`RaincoatFigure`) at x on lane z:
 `facing` 1 or -1, `pose` `"stand"`, `"watch"` (turned toward the street) or `"walk"`. Scenery only:

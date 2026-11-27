@@ -7,8 +7,9 @@ The PNG is one long strip wrapped into rows of ROW_M metres. The report derives 
 from the JSON the way LevelBuilder.cover_map() does and exits 1 when a design rule fails.
 
 It can't simulate scripted NPCs, so `attackers` (jets from behind) are left out of the scores and
-checks: tools/preview.sh, which plays the street with both bots, is the judge of those. A `skyway` is
-cover like an awning, only higher, so wind slants rain in further under its ends.
+checks: tools/preview.sh, which plays the street with both bots, is the judge of those. The same goes
+for `helicopters`: the strip marks where each is triggered (and where it hovers), nothing more. A
+`skyway` is cover like an awning, only higher, so wind slants rain in further under its ends.
 """
 import argparse
 import json
@@ -36,6 +37,7 @@ COVER_COLORS = {
     "skyway": (60, 175, 90),
 }
 WASH_C = (60, 150, 225)
+HELI_C = (150, 60, 150)
 INK = (30, 34, 42)
 MUTED = (110, 116, 128)
 BG = (247, 247, 244)
@@ -441,6 +443,10 @@ def print_report(st, tun, rows, checks, name):
     print(DIFF_FORMULA)
     if st.d.get("courier"):
         print("courier: the scripted pedestrian is not simulated here; tools/preview.sh is the judge of tailing him")
+    helis = st.d.get("helicopters", [])
+    if helis:
+        print(f"helicopters: {len(helis)} triggered at x " + ", ".join(f"{float(h['x']):.0f}" for h in helis)
+              + "; their rotor wash is not scored here, tools/preview.sh is the judge")
     print("longest = full length of the longest open span touching the decile (may extend past it)")
     share, sky = st.cover_share()
     line = f"cover: {share:.0%} of end_x under cover ({sky:.0%} under a skyway)"
@@ -512,6 +518,28 @@ def glyph(d, kind, cx, y, w_px):
         d.rectangle([cx - 5, y + 10, cx + 5, y + 22], outline=(160, 40, 160), width=2)
         d.text((cx, y + 16), "?", fill=(160, 40, 160), font=font(10), anchor="mm")
 
+
+def heli_glyph(d, h, x0m, x1m, X, y):
+    """A helicopter's trigger: a small silhouette at x with an arrow the way it flies, and a ring
+    under hover_x if it stops there."""
+    hx, hdir = float(h["x"]), (-1 if float(h.get("dir", -1)) < 0 else 1)
+    if x0m <= hx <= x1m:
+        cx, cy = X(hx), y + 26
+        d.line([(cx, y + 2), (cx, y + H_FEAT_PX)], fill=HELI_C, width=1)
+        d.ellipse([cx - 7, cy - 4, cx + 7, cy + 4], fill=HELI_C)
+        d.line([(cx - 9 * hdir, cy), (cx - 17 * hdir, cy - 2)], fill=HELI_C, width=2)
+        d.line([(cx - 11, cy - 7), (cx + 11, cy - 7)], fill=HELI_C, width=2)
+        d.line([(cx, cy - 7), (cx, cy - 4)], fill=HELI_C, width=2)
+        ax = cx + 14 * hdir
+        d.line([(cx + 9 * hdir, cy - 12), (ax, cy - 12)], fill=HELI_C, width=2)
+        d.polygon([(ax, cy - 15), (ax, cy - 9), (ax + 4 * hdir, cy - 12)], fill=HELI_C)
+    if "hover_x" in h and x0m <= float(h["hover_x"]) <= x1m:
+        vx = X(float(h["hover_x"]))
+        d.ellipse([vx - 8, y + 4, vx + 8, y + 12], outline=HELI_C, width=2)
+        d.text((vx, y + 20), f"{float(h.get('hover_s', 0)):.0f}s", fill=HELI_C, font=font(9, True), anchor="mm")
+
+
+H_FEAT_PX = 36
 
 FEATURE_NAMES = {"puddle": "puddle", "gutter": "gutter", "sun": "sun break", "vent": "warm vent",
                  "fire_barrel": "fire barrel"}
@@ -642,6 +670,8 @@ def render(st, tun, traces, out, title):
                     d.line([(sx, y + 8), (sx, y + 14)], fill=WASH_C, width=1)
                 if xb - xa > 50:
                     d.text(((xa + xb) / 2, y + 5), "train wash", fill=(255, 255, 255), font=font(9, True), anchor="mm")
+        for h in st.d.get("helicopters", []):
+            heli_glyph(d, h, x0m, x1m, X, y)
         for f in st.features:
             fx = float(f["x"])
             fw = float(f.get("w", 1.0))
@@ -722,7 +752,7 @@ def trace_summary(label, rows, tun):
                "SOAKED" if last["wet"] >= tun["wet_max"] - 0.01 else "FAILED dry (a scripted fail: lost, made or shot)")
     return (f"{label}: final wet {last['wet']:.1f}/{tun['wet_max']:.0f} at x={last['x']:.0f} t={last['t']:.0f}s; "
             f"rain {s['wet_rain']:.1f} gutter {s['wet_gutter']:.1f} "
-            f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
+            f"splash {s['wet_splash']:.1f} wash {s.get('wet_wash', 0.0):.1f} rotor {s.get('wet_rotor', 0.0):.1f} dried {s['dried']:.1f}; min stamina "
             f"{min(r['stamina'] for r in rows):.0f}; {outcome}")
 
 
