@@ -21,6 +21,8 @@ var puddles: Array = []        # [x0, x1, deep]
 var sun_zones: Array = []      # [x0, x1] rain-free span (the break, widened to meet nearby cover)
 var dry_zones: Array = []      # [x0, x1, rate, needs_closed_umbrella]
 var crossings: Array = []      # [x0, x1]
+var tree_spans: Array = []     # [x0, x1] of every lot with `cover: "trees"`, in x order
+var dry_falloff := NAN         # the level's `dry.falloff` (how fast drying slows as he dries), NAN: the tunable
 var cars: Array = []           # CarHazard nodes
 var track: Track              # the elevated monorail, or null
 var phones: Array = []         # {x, keep, line} of every ringing payphone, in prop order
@@ -63,6 +65,10 @@ func _ready() -> void:
 	for c in data.get("crossings", []):
 		crossings.append([float(c["x"]), float(c["x"]) + float(c["w"])])
 	checkpoints = data.get("checkpoints", [])
+	dry_falloff = float(data.get("dry", {}).get("falloff", NAN))
+	for l in data.get("lots", []):
+		if l.get("cover", "") == "trees":
+			tree_spans.append([float(l["x"]), float(l["x"]) + float(l["w"])])
 
 	var pre: Dictionary = Game.prebuilt
 	Game.prebuilt = {}
@@ -283,6 +289,14 @@ func rain_intensity(x: float) -> float:
 		if x > z[0] and x < z[1]:
 			return 0.0
 	return rain_intensity_raw(x)
+
+
+## Whether x is under a lot's trees (`cover: "trees"`), whose canopy keeps most of the rain off.
+func under_trees(x: float) -> bool:
+	for s in tree_spans:
+		if x >= s[0] and x <= s[1]:
+			return true
+	return false
 
 
 ## Signed wind strength 0..~1 (+ blows toward +X = tailwind).

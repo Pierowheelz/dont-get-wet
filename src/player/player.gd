@@ -64,8 +64,10 @@ var _drips: GPUParticles3D                 # autopilot: keep umbrella up a littl
 ## Drying runs at full rate only when nearly soaked and slows exponentially as he dries off, so a
 ## warm spot rescues a bad start but never repays the time spent standing in it. The falloff never
 ## takes it below `dry_min_rate` (1% of wet_max per 5 s), or above the spot's own rate.
-static func dry_speed(spot_rate: float, wet_frac: float) -> float:
-	var falloff := exp(-Tun.f("dry_falloff") * maxf(Tun.f("dry_full_above") - wet_frac, 0.0))
+## `falloff_k` replaces the `dry_falloff` tunable for one street (a level's `dry.falloff`; NAN: the tunable).
+static func dry_speed(spot_rate: float, wet_frac: float, falloff_k := NAN) -> float:
+	var k := Tun.f("dry_falloff") if is_nan(falloff_k) else falloff_k
+	var falloff := exp(-k * maxf(Tun.f("dry_full_above") - wet_frac, 0.0))
 	return minf(spot_rate, maxf(spot_rate * falloff, Tun.f("dry_min_rate")))
 
 
@@ -264,7 +266,7 @@ func _physics_process(delta: float) -> void:
 	gain += rotor_hit * Tun.f("wet_rotor_rate")
 	stats["wet_rotor"] += rotor_hit * Tun.f("wet_rotor_rate") * delta
 	_check_puddles()
-	drying = dry_speed(level.dry_rate(position.x, open), wet / Tun.f("wet_max"))
+	drying = dry_speed(level.dry_rate(position.x, open), wet / Tun.f("wet_max"), level.dry_falloff)
 	stats["dried"] += minf(drying * delta, wet)
 	wet = clampf(wet + (gain - drying) * delta, 0.0, Tun.f("wet_max"))
 	if wet >= Tun.f("wet_max"):

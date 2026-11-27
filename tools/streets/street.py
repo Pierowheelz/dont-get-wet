@@ -17,13 +17,17 @@ TRACK_PAST = 40.0   # a default track runs this far past both ends of the street
 
 
 class Street:
-    def __init__(self, id, name, blurb, aesthetic, neon, rain, wind, gusts=False, par_speed=None, camera=None):
+    def __init__(self, id, name, blurb, aesthetic, neon, rain, wind, gusts=False, par_speed=None, camera=None,
+                 dry_falloff=None):
         """camera: optional overrides of the camera tunables for this street, any of
-        {"distance", "height", "fov", "pitch", "lead"} (metres / degrees), e.g. a wider shot of a tall street."""
+        {"distance", "height", "fov", "pitch", "lead"} (metres / degrees), e.g. a wider shot of a tall street.
+        dry_falloff: replaces the `dry_falloff` tunable on this street (lower: the sun keeps drying him
+        well below soaked)."""
         self.head = {"authored": True, "id": id, "name": name, "blurb": blurb, "aesthetic": aesthetic,
                      "neon": neon, "rain": rain, "wind": wind, "gusts": gusts}
         self.par_speed = par_speed   # None: the global tunable
         self.camera = camera
+        self.dry_falloff = dry_falloff
         self.x = 0.0
         self.at = {}
         self.lots, self.crossings, self.features, self.props, self.set_pieces = [], [], [], [], []
@@ -40,6 +44,8 @@ class Street:
         self.viaducts = []
         self.skyways = []
         self.helicopters = []
+        self.squalls = []
+        self.runners = []
         self.end_x = None
         self.checkpoints = None   # set by hand to override the solver
 
@@ -115,10 +121,36 @@ class Street:
             a["hit"] = float(hit)
         self.attackers.append(a)
 
-    def drive_by(self, x):
+    def drive_by(self, x, quiet=False, shot=True, driver=None):
         """A car that comes up the near lane from behind once the walker passes x, splashes him as it
-        passes, then a passenger fires one telegraphed shot from ahead."""
-        self.drive_bys.append({"x": round(x, 2)})
+        passes, then a passenger fires one telegraphed shot from ahead.
+        quiet: no warning (no engine from out of shot, headlights off), so the splash can't be read.
+        shot: False leaves out the passenger and his shot (the splash only).
+        driver: "slicker" puts Fairweather, in his yellow slicker, at the wheel."""
+        d = {"x": round(x, 2)}
+        if quiet:
+            d["quiet"] = True
+        if not shot:
+            d["shot"] = False
+        if driver:
+            d["driver"] = driver
+        self.drive_bys.append(d)
+
+    def squall(self, x, dur=3.0):
+        """A gust that comes down the lane once the walker passes x: heard and seen coming, then for dur
+        seconds it drives the rain in at a slant and shakes the trees' water down on whoever is under
+        them (only the open canopy keeps that off), and pushes at an open umbrella."""
+        self.squalls.append({"x": round(x, 2), "dur": float(dur)})
+
+    def runner(self, x, hit=None, hint=None):
+        """One of their men who runs up from behind once the walker passes x, fires one quick jet as he
+        draws level and runs on out of shot. hit: wetness of the jet landing in full (default wet_jet_hit)."""
+        r = {"x": round(x, 2)}
+        if hit is not None:
+            r["hit"] = float(hit)
+        if hint is not None:
+            r["hint"] = hint
+        self.runners.append(r)
 
     def slicker(self, x, z=0.8, facing=1, pose="stand"):
         """A man in a yellow slicker standing at x on lane z (scenery). facing 1 or -1;
@@ -218,6 +250,10 @@ class Street:
             rest["skyways"] = self.skyways
         if self.helicopters:
             rest["helicopters"] = sorted(self.helicopters, key=lambda h: h["x"])
+        if self.squalls:
+            rest["squalls"] = sorted(self.squalls, key=lambda h: h["x"])
+        if self.runners:
+            rest["runners"] = sorted(self.runners, key=lambda h: h["x"])
         level = {**{k: level[k] for k in ["authored", "id", "name", "blurb", "aesthetic", "neon"]},
                  "length": self.x, "end_x": self.end_x, "checkpoints": [],
                  **{k: level[k] for k in ["rain", "wind", "gusts"]}, **rest}
@@ -225,6 +261,8 @@ class Street:
             level["par_speed"] = self.par_speed
         if self.camera:
             level["camera"] = self.camera
+        if self.dry_falloff is not None:
+            level["dry"] = {"falloff": float(self.dry_falloff)}
         level["checkpoints"] = self.checkpoints or level_preview.solve_checkpoints(level_preview.Street(level))
         path = LEVELS / f"{level['id']}.json"
         path.write_text(_dump(level))
