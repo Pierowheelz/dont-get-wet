@@ -1190,7 +1190,7 @@ func _tests() -> Array[Callable]:
 		_test_touch_controls, _test_umbrella_shot, _test_viaduct, _test_viaduct_road,
 		_test_pursuer_lamp_fades, _test_rocket_row, _test_the_bypass, _test_bypass_traffic_clear,
 		_test_bypass_posted_reach, _test_skyway, _test_street_camera, _test_modern_lots,
-		_test_courier_slicker, _test_helicopters, _test_squalls, _test_skyway_terminal, _test_quiet_drive_by, _test_runners,
+		_test_courier_slicker, _test_helicopters, _test_squalls, _test_skyway_terminal, _test_quiet_drive_by, _test_runners, _test_long_lane,
 		_test_dynamic_resolution, _test_menu_width,
 		_test_credits_scroll, _test_slider_saves, _test_shop_fits, _test_small_screen_text, _test_tree_cover,
 		_test_country_build, _test_suburban_build, _run_tests
@@ -2898,7 +2898,8 @@ func _test_squalls() -> void:
 		and is_inf(level.gust_eta(66.0, arrive + 3.5)) and level.gust_at(61.0 + Squall.START_OFF + 1.0, arrive) == 0.0,
 		"gust_eta counts down to it, is 0 in it and INF once it has gone; nothing blows upwind of where it set off")
 	level.elapsed = arrive + 1.0
-	check(level.wind(66.0, false) == 0.0 and absf(level.wind(66.0) + Tun.f("gust_wind")) < 0.001 and level.rain_dir(66.0).x < -0.5,
+	var slant := -Vector3(Tun.f("gust_wind") * 0.9, -1.0, 0.0).normalized().x   # the gust's wind alone, from ahead
+	check(level.wind(66.0, false) == 0.0 and absf(level.wind(66.0) + Tun.f("gust_wind")) < 0.001 and absf(level.rain_dir(66.0).x - slant) < 0.01 and slant < -0.3,
 		"in it the wind blows %.1f from ahead and the rain slants hard" % Tun.f("gust_wind"))
 
 	# The trees' shower: only under the trees, only in the gust; only the canopy straight above keeps it off.
@@ -3373,7 +3374,7 @@ func _test_suburban_build() -> void:
 	var on_strip := foliage.filter(func(n: Node) -> bool:
 		return absf((n as Node3D).global_position.z + 800.0 - SuburbanBuilder.TREE_Z) < 0.2 and float(n.get_meta("x0")) >= 6.0 and float(n.get_meta("x1")) <= 20.01)
 	check(foliage.size() >= 6 and shaken.size() == foliage.size(), "street trees, park trees, shrubs, hedges and long grass all sway in a gust (%d of %d)" % [shaken.size(), foliage.size()])
-	check(on_strip.size() >= 1, "the house's street tree stands on the nature strip (%d)" % on_strip.size())
+	check(on_strip.size() >= 1, "the house's street tree stands in the front garden, behind the walker (%d)" % on_strip.size())
 	check(lb.lit_windows.size() >= 3, "a lived-in house, the flats and the pub show lit windows (%d)" % lb.lit_windows.size())
 	var dw := SuburbanBuilder.driveways(lb)
 	check(dw.size() == 2 and dw[0][0] > 6.0 and dw[0][1] < 10.0 and dw[1][0] > 103.0, "driveways cross the nature strip at each carport: %s" % [dw])
@@ -3395,3 +3396,81 @@ func _test_suburban_build() -> void:
 		"only a suburban street draws its own lots; elsewhere the kit's inn stays")
 	root.queue_free()
 	await _frames(2)
+
+
+# --- Long Lane -------------------------------------------------------------------------------------
+
+## Long Lane, street 7 toward the country: a rundown suburb with little real cover, where the street
+## trees and the sun carry the walker and the gusts, the runners and Fairweather's quiet car wet him
+## whatever he does. The map opens it after The Bypass; The County Road is still to come.
+func _test_long_lane() -> void:
+	Game.current_level = "long_lane"
+	if is_instance_valid(level):
+		level.queue_free()
+	await _frames(2)
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	var p: Player = level.player
+	p.set_physics_process(false)
+	p.speed = 0.0
+	_unhook_defeat(p)
+	var d: Dictionary = level.data
+	check(Game.street_number("long_lane") == 7 and p.gun.armed and d["aesthetic"] == "suburban", "Long Lane is street 7, armed, in the suburbs")
+	# The share of the walking line under full cover, under trees and in the sun.
+	var full := 0
+	var trees := 0
+	var sun := 0
+	var n := 0
+	var x := 0.05
+	while x < level.end_x:
+		n += 1
+		var lot: Dictionary = {}
+		for l: Dictionary in d["lots"]:
+			if x >= float(l["x"]) and x < float(l["x"]) + float(l["w"]):
+				lot = l
+		var cov: String = lot.get("cover", "none")
+		if level.sun_zones.any(func(z: Array) -> bool: return x > z[0] and x < z[1]):
+			sun += 1
+		elif cov == "trees":
+			trees += 1
+		elif cov != "none":
+			full += 1
+		x += 0.1
+	check(float(full) / n < 0.2 and float(trees) / n > 0.25 and float(sun) / n > 0.2,
+		"little real cover (%.0f%%); street trees (%.0f%%) and the sun (%.0f%%) carry him" % [100.0 * full / n, 100.0 * trees / n, 100.0 * sun / n])
+	check(level.tree_spans.size() >= 10 and level.under_trees(float(level.tree_spans[0][0]) + 1.0), "its trees are cover a walker can stand under")
+	check(not is_nan(level.dry_falloff) and Player.dry_speed(Tun.f("dry_sun_rate"), 0.5, level.dry_falloff) > 5.0 * Player.dry_speed(Tun.f("dry_sun_rate"), 0.5),
+		"the sun here dries a half-wet walker over five times as fast as elsewhere (%.2f/s against %.2f/s)"
+		% [Player.dry_speed(Tun.f("dry_sun_rate"), 0.5, level.dry_falloff), Player.dry_speed(Tun.f("dry_sun_rate"), 0.5)])
+	check(level.squalls != null and level.squalls.entries.size() == 3, "three gusts")
+	check(level.runners != null and level.runners._queue.size() == 2, "two of their men run up from behind")
+	var cars: Array = level.drive_bys._queue if level.drive_bys else []
+	check(cars.size() == 3 and cars.all(func(c: Dictionary) -> bool: return c["quiet"] and not c["shot"] and c["slicker"]),
+		"Fairweather's car comes three times, quiet, with him at the wheel and no shot")
+	# Each runner's shot comes in a sun break, where turning the canopy to him costs no rain.
+	for r: Dictionary in level.runners._queue:
+		var shot_x := float(r["x"]) + 3.0
+		check(level.rain_intensity(shot_x) == 0.0, "the runner from x %.0f fires as the walker walks in the sun" % float(r["x"]))
+
+	var r := Run.new("left", Game.start_node)
+	r.completed = [Game.start_node, "canal_row", "mill_road", "kiln_street", "viaduct_road", "the_bypass"]
+	r.current_node = "the_bypass"
+	var run_was := Game.run
+	Game.run = r
+	check(not Game.is_soon("long_lane") and Game.can_select("long_lane"), "the map opens Long Lane once The Bypass is walked")
+	r.completed.pop_back()
+	r.current_node = "viaduct_road"
+	check(not Game.can_select("long_lane"), "... and not before")
+	Game.run = run_was
+	var hud := preload("res://src/ui/hud.gd")
+	check(hud.fail_line("long_lane", &"shot") != "" and hud.fail_line("long_lane", &"wet") != "", "Long Lane's fail lines")
+	var node: Dictionary = Game.nodes["long_lane"]
+	check(String(node["outro"][-1]).contains("black car") and Game.is_soon("county_road"), "the outro leaves his car in the lane; The County Road is still to come")
+	level.queue_free()
+	await _frames(2)
+	Game.current_level = "main_street"
+	level = load("res://src/level/level.tscn").instantiate()
+	add_child(level)
+	await _frames(5)
+	level.player.set_physics_process(false)

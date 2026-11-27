@@ -15,8 +15,9 @@ extends RefCounted
 ##                 cover, the visual rain stops under it from the wall out to the camera)
 ##   inn           a 1960s brick corner pub (`sign`, e.g. "ROYAL HOTEL"); its door is at the lot's x + 4
 ## Kit lots (`shop_lit`, `shop_dark`, `shuttered`, ...) are the shopping strip, under the awning
-## styles this aesthetic picks (verandas). Any lot with `cover: "trees"` gets street trees on the
-## nature strip (`street_tree_a/b.glb` when present) and its crown's gameplay from TreeCover.
+## styles this aesthetic picks (verandas). Any lot with `cover: "trees"` gets street trees in the front
+## gardens, heads out over the footpath (`street_tree_a/b.glb` when present), and its crown's gameplay
+## from TreeCover.
 ## `shelter` and `porch` cover are CountryBuilder's (its colliders, drips and rain map, any street);
 ## only `bridge` is this builder's.
 ##
@@ -40,7 +41,9 @@ const PROPS := ["lamp_post", "power_pole"]
 const PATH_Z1 := 2.4          # the footpath runs from the fence line to here
 const STRIP_Z1 := 3.34        # then the nature strip to the kerb
 const SET_BACK := 7.0         # a house's front wall stands this far behind the fence line
-const TREE_Z := 2.9           # street trees stand on the nature strip
+const TREE_Z := -0.7          # street trees stand in the front gardens, just behind the fence line,
+                              # turned so their heads lean out over the footpath: a trunk never passes
+                              # between the walker and the camera
 const POLE_Z := 3.12
 const BRIDGE_Y := 4.8         # underside of the rail overbridge's girders
 const BRIDGE_Z0 := -0.6       # its abutment face, behind the footpath
@@ -1213,7 +1216,8 @@ static func _back_house(b: LevelBuilder, sts: Dictionary, x0: float, x1: float, 
 
 # --- trees -----------------------------------------------------------------------------------------
 
-## A street tree on the nature strip at x, its foliage tagged with the lot's span x0..x1 (under
+## A street tree in the front garden at x, its head out over the footpath, its foliage tagged with the
+## lot's span x0..x1 (under
 ## `parent`, TreeCover's node): a plane (kind 0) or a gum (1), the model if there is one, else drawn
 ## here. Its leaves are in the `&"foliage"` group on the foliage shader; its crown is over the footpath
 ## with nothing but the trunk below 3.4 m there.
@@ -1221,7 +1225,7 @@ static func street_tree(b: LevelBuilder, parent: Node3D, x: float, x0: float, x1
 	var m := TreeCover.model(b, TREE_MODELS[kind % TREE_MODELS.size()], Vector3(x, 0.0, TREE_Z), parent)
 	if m:
 		m.scale = Vector3.ONE * r.randf_range(0.94, 1.05)
-		m.rotation.y = r.randf_range(-0.12, 0.12)
+		m.rotation.y = PI + r.randf_range(-0.12, 0.12)   # the model's head is set back from its foot: turn it to face the street
 		TreeCover.tag_foliage(m, x0, x1)
 		return
 	_code_tree(b, Vector3(x, 0.0, TREE_Z), kind, r, 1.0)
@@ -1235,7 +1239,7 @@ static func park_tree(b: LevelBuilder, at: Vector3, r: RandomNumberGenerator, s 
 static func _code_tree(b: LevelBuilder, at: Vector3, kind: int, r: RandomNumberGenerator, s: float, over_path := true) -> void:
 	var sts := {}
 	var bark := _m(b, "bark_gum" if kind == 1 else "bark", Color(0.62, 0.58, 0.5) if kind == 1 else Color(0.27, 0.22, 0.17), 0.9)
-	var lean := Vector3(0.0, 0.0, -1.3 if over_path else 0.0)   # a street tree leans its head over the footpath
+	var lean := Vector3(0.0, 0.0, 1.3 if over_path else 0.0)   # a street tree leans its head out over the footpath
 	var fork := at + Vector3(0, 3.8 * s, 0) + lean * 0.5
 	ModernBuilder.cyl(sts, bark, at, fork, 0.24 * s, 0.17 * s, 8)
 	ModernBuilder.cyl(sts, bark, fork, fork + Vector3(-1.2, 2.2, 0) * s + lean * 0.3, 0.15 * s, 0.08 * s, 6)

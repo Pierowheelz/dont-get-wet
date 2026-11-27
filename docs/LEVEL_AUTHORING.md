@@ -61,7 +61,7 @@ S needs 950, which a run at par reaches with up to 20% wet.
 | `arcade` | flat slab at 4.15 m, 2.9 m deep, columns every 3.5 m | Reads as a colonnade. Columns can hide part of a sign. |
 | `canopy` | gas-station roof | Only with `style: "gas_station"`, which draws it. |
 | `walkway` | flat slab at 3.0 m, 2.4 m deep, steel posts at its front edge | A motel's upper walkway roofing the lower one; use with `style: "motel"`. |
-| `trees` | a tree's crown, underside 3.6 m, from z -1.5 out to 3.7 | **Partial cover** on any street (`TreeCover`, below): it keeps off all but `tree_leak` (15%) of the rain, so the walker gets a little wet with the umbrella shut and none with it open. Not shelter: no checkpoint, no resting. |
+| `trees` | a tree's crown, underside 3.6 m, from z -1.5 out to 3.7 | **Partial cover** on any street (`TreeCover`, below): it keeps off all but `tree_leak` (7%) of the rain, so the walker gets a little wet with the umbrella shut and none with it open. Not shelter: no checkpoint, and the bots never stop there; tired (below 70 stamina) they shut the umbrella under trees and walk on, taking the leak, until rested or the trees end. |
 | `shelter` | roof at 2.6 m, 2.4 m deep | A bus shelter's or a lychgate's roof; use with `style: "bus_shelter"` or `"lychgate"` (a suburban street draws its own bus shelter on the same numbers). |
 | `barn` | roof at 4.4 m from 7 m back to z 2.6 | An open-fronted Dutch barn; use with `style: "barn"`. Wind slants rain in further under its ends. |
 | `porch` | roof at 2.55 m, 2.35 m deep, over part of the lot | A porch over the door: 2.6 m centred on it, or the lot's own `porch: [x0, x1]` (local; `[0, w]` is a verandah along the whole front). Use with `cottage`, a country `inn` or a suburban `church_hall`; the cover draws it. |
@@ -134,7 +134,7 @@ drawn in code; cover and collisions never come from a model. Lot widths: shelter
 **`TreeCover`** (`src/level/tree_cover.gd`) is the tree for any street. A lot with `cover: "trees"`
 gets a crown on physics layer 6 `trees` over its whole width, from 3.6 m (`UNDERSIDE`, well above an
 open umbrella) to 8 m and z -1.5 to 3.7 (`Z0`, `Z1`): a body sample whose ray to the sky only a crown
-stops takes `tree_leak` (tunable, 0.15) of the rain, none under the open umbrella
+stops takes `tree_leak` (tunable, 0.07) of the rain, none under the open umbrella
 (`Player._rain_exposure`). The visual rain matches it: below the crown's underside only that share of
 the drops falls on, out to the camera as under a deck, and drips fall from the leaves
 (`&"tree_drips"`). A lot's style builder calls
@@ -186,7 +186,9 @@ or `"none"`) and `sign` (its agent's board, e.g. FOR SALE or SOLD). Any lot take
 suburb has thinned out toward the country: the house sits further back in a wider yard, the fence
 turns to wire, and the rooftops behind give way to a paddock behind a post-and-wire fence, with more
 trees; ramp it up over the last lots of a street that leads to the country). Any suburban lot with
-`cover: "trees"` gets a street tree on the nature strip (z 2.9) every 9 m or so, a plane or a gum
+`cover: "trees"` gets a street tree in the front garden just behind the fence line (z −0.7) every 9 m
+or so, turned so its head leans out over the footpath (a trunk never passes between the walker and
+the camera), a plane or a gum
 (`street_tree_a` / `street_tree_b`, docs/CONTRACTS.md §10, else drawn in code), with TreeCover's
 crown over the lot. Shrubs, hedges and long grass sway in a gust as the trees do.
 
@@ -636,7 +638,7 @@ gusts that come down a country lane. When the walker passes `x`:
   front meets a walking walker about 2.2 s after the trigger, some 3 m past `x`, and passes him in
   about 2.6 s; from behind about 3 s after it, some 4 m past `x`, and he is in it about 3.6 s.
   Nothing is random: each gust is a pure function of the level clock from the moment it is triggered.
-- **Slant.** In it the rain slants hard: `Level.wind` adds `gust_wind` (0.8) times the gust's
+- **Slant.** In it the rain slants hard: `Level.wind` adds `gust_wind` (0.45) times the gust's
   strength, the way it blows, so the rain gets in under the ends of cover. The `wind` hint ignores it.
 - **The trees' shower.** Under a lot with `cover: "trees"` the gust shakes the trees' water down:
   each body sample under the trees is soaked, by the gust's strength there, unless cover or the open
