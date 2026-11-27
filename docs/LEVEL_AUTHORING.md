@@ -78,21 +78,26 @@ street with `neon` above 0 the builder swaps some lots to the retro kit, and a s
 a random filler name; pass `sign=" "` on narrow seams to keep it blank.
 
 **The glass city** (`aesthetic: "modern"`, `src/level/modern_builder.gd`) draws three more styles in
-code, all without cover, and a skyline of skyscrapers (offices lit, red beacons on the tall ones)
-behind the street instead of the usual dark silhouette. Its kit lots (`shop_lit`, `inn`, ...) all use
+code, all without cover, and a skyline of skyscrapers behind the street instead of the usual dark
+silhouette: three rows, each paler in the haze than the one in front, windows lit, red warning lights
+on their tops. Every curtain wall shows a room behind each pane (`src/fx/curtain_wall.gdshader`). Its kit lots (`shop_lit`, `inn`, ...) all use
 the retro kit, and only the lots its `neon` roll picks get tube lettering or a filler name.
 
-- `glass_tower`: a curtain-wall tower, 4 m + 3.2 m per `floors` (8 to 20 or more): travertine pilotis at
-  the lot line in front of a lobby 1.8 m back on a terrazzo floor, `sign` in stainless capitals on the
-  fascia over it (3.3 to 4 m).
-- `lobby`: a double-height glass lobby (7.2 m) with a mezzanine and globe lamps, the tower above it;
-  the same sign band. Pair it with a `revolving_door` for a terminal or hotel entrance.
-- `plaza`: an open travertine plaza (open sky) with planters, flagpoles and globe lamps, its tower
-  16 m back. Keep its `floors` low (3 to 6) so the skyline shows above it.
+- `glass_tower`: a curtain-wall tower, 4 m + 3.2 m per `floors` (8 to 20 or more): travertine piers at
+  the lot line in front of a lit, furnished lobby 1.8 m back (lifts, a reception or a mural, picked
+  by the lot), `sign` in lit white capitals on an enamel fascia over it (3.3 to 4 m).
+- `lobby`: a double-height glass lobby (7.2 m) with a mezzanine and pendant lamps, the tower above it;
+  the same sign band. A sign with TERMINAL, AIR, TRAVEL or HOLIDAYS in it gets a departures board on
+  its back wall. Pair it with a `revolving_door` for a terminal or hotel entrance.
+- `plaza`: an open travertine plaza (open sky) with a pool, a spire or a clipped tree and two globe
+  lamps, the neighbours' glass flanks either side and its tower 40 m back. Keep its `floors` low (3 to
+  6): at 5 the tower's top is about 18° up from the camera, and the skyline stands over it.
 
 The towers' lobbies are lit unless the lot sets `"lit": false`; `"palette": 0-3` picks the glass
 (blue-green, bronze, white spandrels, black) instead of the automatic one. A side street beside a modern
-lot is lined with glass, and towers close its far end.
+lot is lined with glass over lit shop windows, and low glass blocks close its far end so the skyline
+stands over them. Under a skyway only the first 5 m or so above its roof is in the frame at the
+street's camera (distance 10.5, pitch 3): the towers and the skyline need a camera that looks up.
 
 **`camera`** (`{"distance", "height", "fov", "pitch", "lead"}`, any of them;
 `Street(..., camera={...})`) replaces the camera tunables (`camera_distance`, `camera_height`,
@@ -289,6 +294,8 @@ arches as cover and leaves them out of the wash. `Track.arch_at(x)` is true unde
 enclosed glass galleries over the pavement from the start of `from_tag` to the end of `to_tag`, and
 cover. One may bridge a side street. Its underside is at 4.45 m, above the sign band, so shop signs
 beneath it show; it reaches from the facades to 3.3 m, short of the kerb, and its roof is at 7.6 m.
+It is drawn as a thin floor plate and a thin roof with plate glass between them and no back wall, so
+the buildings' first floors show through it (keep what stands behind it worth seeing).
 Slim columns stand under its front edge at most 9 m apart, never in a side street's road and 0.6 m
 clear of kerb props. Rain drips from its front edge, and the visual rain stops on its roof and never
 shows inside the glass. Because it is high, wind slants rain in under its ends much further than

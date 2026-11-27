@@ -2551,11 +2551,14 @@ func _test_modern_lots() -> void:
 	var lb := LevelBuilder.new()
 	lb.build(root, d)
 	var curtains := 0
+	var skylines := 0
 	for n in root.get_children():
 		var mi := n as MeshInstance3D
-		if mi and mi.material_override is ShaderMaterial and (mi.material_override as ShaderMaterial).shader.resource_path.ends_with("curtain_wall.gdshader"):
-			curtains += 1
-	check(curtains >= 6, "glass towers, a lobby, a plaza's tower, side walls and the skyline draw curtain walls (%d meshes)" % curtains)
+		var path: String = (mi.material_override as ShaderMaterial).shader.resource_path if mi and mi.material_override is ShaderMaterial else ""
+		curtains += int(path.ends_with("curtain_wall.gdshader"))
+		skylines += int(path.ends_with("skyline.gdshader"))
+	check(curtains >= 4, "a glass tower, a lobby, its flank beside the plaza and the side street's far end draw curtain walls (%d meshes)" % curtains)
+	check(skylines == 2, "the skyline behind them is one mesh, the plaza's tower in the haze another (%d)" % skylines)
 	check(lb.inn_door_x > 40.0 and lb.inn_door_x < 48.0, "the inn still sets the door on a modern street: x %.1f" % lb.inn_door_x)
 	check(lb.lit_windows.size() >= 2, "lit lobbies light the pavement (%d)" % lb.lit_windows.size())
 	root.queue_free()

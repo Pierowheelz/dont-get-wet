@@ -141,7 +141,8 @@ A `skyways` entry `{"x0", "x1"}` is cover from x0 to x1: one box on the `cover` 
 `COVER_VOLUME` (drops splash on the roof, vanish inside, and fall beneath the soffit). These numbers,
 the columns' line (z 2.75, clear of an open canopy on the walker's line) and `column_xs` are gameplay;
 everything `SkywayBuilder.draw` adds is visual and may be restyled, as long as nothing hangs below the
-soffit in front of the columns' line. Likewise every lot style in `ModernBuilder` and its skyline is
+soffit in front of the columns' line. As drawn, the gallery's floor (`DECK_Y`) is 0.15 m above the
+soffit and it has no back wall. Likewise every lot style in `ModernBuilder` and its skyline is
 visual only (no collider, no cover): an art pass may replace any of it, keeping `glass_tower` and
 `lobby` signs in the 3.1–3.9 m band and the `plaza` open.
 
