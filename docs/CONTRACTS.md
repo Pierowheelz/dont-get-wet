@@ -104,7 +104,9 @@ Required: `sidewalk.tres`, `asphalt_wet.tres`, `curb.tres`, `brick_red.tres`, `b
 `ui_confirm`, `ui_back`, `ui_denied`, `fail_sting`, `win_sting`, `token`, `door_open`,
 `music_menu_loop`, `music_level_loop`, `phone_ring`, `train_pass` (a monorail train passing
 overhead, its nose passing 2.4 s in), `rotor_loop` (a turbine helicopter close overhead: three-bladed
-rotor slap at 9 Hz, turbine whine, tail-rotor buzz; mono, the game places it on the helicopter).
+rotor slap at 9 Hz, turbine whine, tail-rotor buzz; mono, the game places it on the helicopter),
+`gust_loop` (a squall's gust in the hedges and trees: roar, buffeting, leaves thrashing; mono, the
+game places it at the gust and fades it in and out).
 
 ## 6. Awning lots — `levels/*.json`
 
